@@ -29,7 +29,7 @@ const ConfirmModal = ({
     : 'bg-primary-500 text-primary-500 shadow-primary-500/20 hover:bg-primary-600';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
