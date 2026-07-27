@@ -1,0 +1,54 @@
+@import "tailwindcss";
+@custom-variant dark (&:is(.dark, .dark *));
+
+@theme {
+  --color-primary-500: #aa3bff;
+  --color-primary-600: #932de0;
+  
+  --color-bg-light: #f3f4f6;
+  --color-bg-dark: #111827;
+  
+  --color-card-light: #ffffff;
+  --color-card-dark: #1f2937;
+  
+  --color-text-light: #1f2937;
+  --color-text-dark: #f9fafb;
+}
+
+@layer base {
+  :root {
+    --bg-color: var(--color-bg-light);
+    --card-color: var(--color-card-light);
+    --text-color: var(--color-text-light);
+    --text-muted: #6b7280;
+    --border-color: #e5e7eb;
+  }
+
+  :root.dark {
+    --bg-color: var(--color-bg-dark);
+    --card-color: var(--color-card-dark);
+    --text-color: var(--color-text-dark);
+    --text-muted: #9ca3af;
+    --border-color: #374151;
+  }
+
+  body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    @apply antialiased min-h-screen transition-colors duration-300;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/70 dark:bg-gray-800/70 backdrop-blur-md border border-white/20 dark:border-gray-700/50 shadow-xl;
+  }
+  
+  .text-muted {
+    color: var(--text-muted);
+  }
+  
+  .border-subtle {
+    border-color: var(--border-color);
+  }
+}
