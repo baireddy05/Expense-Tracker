@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHome, faList, faChartPie, faCog, faMoon, faSun } from '@fortawesome/free-solid-svg-icons';
+import { faHome, faList, faChartPie, faCog, faMoon, faSun, faWallet } from '@fortawesome/free-solid-svg-icons';
 import { useTheme } from '../../context/ThemeContext';
 
 const Sidebar = () => {
@@ -18,7 +18,7 @@ const Sidebar = () => {
     <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 h-screen sticky top-0 transition-colors duration-300">
       <div className="p-6">
         <h1 className="text-2xl font-bold text-primary-600 dark:text-primary-500 flex items-center gap-2">
-          <FontAwesomeIcon icon={faChartPie} />
+          <FontAwesomeIcon icon={faWallet} />
           ExTrack
         </h1>
       </div>
