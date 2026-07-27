@@ -156,19 +156,25 @@ const Dashboard = () => {
              {transactions.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 5).map(t => {
                const cat = categories.find(c => c.id === t.categoryId);
                return (
-                 <div key={t.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                   <div className="flex items-center gap-3">
-                     <div className="w-10 h-10 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: cat?.color || '#ccc' }}>
-                       <FontAwesomeIcon icon={cat?.icon || 'fa-circle'} />
-                     </div>
-                     <div>
-                       <p className="font-medium text-gray-900 dark:text-white">{t.note || cat?.name}</p>
-                       <p className="text-xs text-gray-500">{new Date(t.date).toLocaleDateString()}</p>
-                     </div>
+                 <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                   <div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: cat?.color || '#ccc' }}>
+                     <FontAwesomeIcon icon={cat?.icon || 'fa-circle'} />
                    </div>
-                   <span className={`font-semibold ${t.type === 'income' ? 'text-green-500' : 'text-gray-900 dark:text-white'}`}>
-                     {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
-                   </span>
+                   
+                   <div className="flex-1 min-w-0">
+                     <p className="font-medium text-gray-900 dark:text-white leading-snug line-clamp-2">
+                       {t.note || cat?.name}
+                     </p>
+                     <p className="text-xs text-gray-500 mt-0.5 truncate">
+                       {new Date(t.date).toLocaleDateString()}
+                     </p>
+                   </div>
+                   
+                   <div className="text-right shrink-0 ml-2">
+                     <span className={`font-semibold whitespace-nowrap ${t.type === 'income' ? 'text-green-500' : 'text-gray-900 dark:text-white'}`}>
+                       {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
+                     </span>
+                   </div>
                  </div>
                );
              })}
