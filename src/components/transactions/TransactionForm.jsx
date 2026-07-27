@@ -79,19 +79,19 @@ const TransactionForm = ({ isOpen, onClose, initialData = null }) => {
   const filteredCategories = categories.filter(c => c.type === type);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4 sm:p-0">
-      <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-slide-up sm:animate-fade-in border border-gray-200 dark:border-gray-800">
-        <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-800">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm sm:p-4">
+      <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-slide-up sm:animate-fade-in border border-gray-200 dark:border-gray-800 flex flex-col max-h-[85vh]">
+        <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             {initialData ? 'Edit Transaction' : 'Add Transaction'}
           </h2>
-          <button onClick={onClose} className="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <button type="button" onClick={onClose} className="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
             <FontAwesomeIcon icon={faTimes} />
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
-          <div className="flex rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 p-1">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto">
+          <div className="flex rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 p-1 shrink-0">
             <button 
               type="button" 
               onClick={() => setType('expense')}
