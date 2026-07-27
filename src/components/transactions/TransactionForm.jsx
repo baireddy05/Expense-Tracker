@@ -80,7 +80,7 @@ const TransactionForm = ({ isOpen, onClose, initialData = null }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm sm:p-4">
-      <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-slide-up sm:animate-fade-in border border-gray-200 dark:border-gray-800 flex flex-col max-h-[85vh]">
+      <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-slide-up sm:animate-fade-in border border-gray-200 dark:border-gray-800 flex flex-col max-h-[85dvh]">
         <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             {initialData ? 'Edit Transaction' : 'Add Transaction'}
@@ -90,7 +90,7 @@ const TransactionForm = ({ isOpen, onClose, initialData = null }) => {
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto">
+        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4 pb-8 sm:pb-6">
           <div className="flex rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 p-1 shrink-0">
             <button 
               type="button" 
