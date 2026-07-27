@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useTransactions } from '../context/TransactionContext';
 import TransactionForm from '../components/transactions/TransactionForm';
+import ConfirmModal from '../components/ui/ConfirmModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrash, faEdit, faSearch, faFilter, faFilePdf, faCalendarAlt } from '@fortawesome/free-solid-svg-icons';
 import jsPDF from 'jspdf';
@@ -14,6 +15,9 @@ const Transactions = () => {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [timeFilter, setTimeFilter] = useState('all');
+  
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null });
+  const [pdfConfirmOpen, setPdfConfirmOpen] = useState(false);
 
   const filteredTransactions = useMemo(() => {
     const now = new Date();
@@ -61,9 +65,13 @@ const Transactions = () => {
     setTimeout(() => setEditingTx(null), 300); // Clear after animation
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this transaction?')) {
-      await deleteTransaction(id);
+  const requestDelete = (id) => {
+    setDeleteConfirm({ isOpen: true, id });
+  };
+
+  const confirmDelete = async () => {
+    if (deleteConfirm.id) {
+      await deleteTransaction(deleteConfirm.id);
     }
   };
 
@@ -149,6 +157,15 @@ const Transactions = () => {
     doc.save(`transactions_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
+  const handleExportPDF = () => {
+    if (filteredTransactions.length === 0) {
+      alert("No transactions to export for the selected filters.");
+      return;
+    }
+    
+    setPdfConfirmOpen(true);
+  };
+
   return (
     <div className="space-y-6 relative h-full">
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -159,7 +176,7 @@ const Transactions = () => {
         
         <div className="flex gap-3 w-full md:w-auto">
           <button 
-            onClick={exportToPDF}
+            onClick={handleExportPDF}
             className="flex-1 md:flex-none items-center justify-center gap-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 px-5 py-2.5 rounded-xl font-medium transition-colors"
           >
             <FontAwesomeIcon icon={faFilePdf} className="text-red-500" />
@@ -252,7 +269,7 @@ const Transactions = () => {
                         <button onClick={() => handleEdit(t)} className="p-2 text-gray-400 hover:text-primary-500 transition-colors">
                           <FontAwesomeIcon icon={faEdit} />
                         </button>
-                        <button onClick={() => handleDelete(t.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
+                        <button onClick={() => requestDelete(t.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
                           <FontAwesomeIcon icon={faTrash} />
                         </button>
                       </div>
@@ -293,7 +310,7 @@ const Transactions = () => {
                   <button onClick={() => handleEdit(t)} className="text-gray-400 hover:text-primary-500 p-1">
                     <FontAwesomeIcon icon={faEdit} />
                   </button>
-                  <button onClick={() => handleDelete(t.id)} className="text-gray-400 hover:text-red-500 p-1">
+                  <button onClick={() => requestDelete(t.id)} className="text-gray-400 hover:text-red-500 p-1">
                     <FontAwesomeIcon icon={faTrash} />
                   </button>
                 </div>
@@ -316,6 +333,27 @@ const Transactions = () => {
 
       {/* Transaction Modal */}
       <TransactionForm isOpen={isFormOpen} onClose={handleCloseForm} initialData={editingTx} />
+
+      {/* Fancy Confirmation Modals */}
+      <ConfirmModal 
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, id: null })}
+        onConfirm={confirmDelete}
+        title="Delete Transaction"
+        message="Are you sure you want to delete this transaction? This action cannot be undone."
+        confirmText="Delete"
+        isDanger={true}
+      />
+
+      <ConfirmModal 
+        isOpen={pdfConfirmOpen}
+        onClose={() => setPdfConfirmOpen(false)}
+        onConfirm={exportToPDF}
+        title="Export to PDF"
+        message={`Are you sure you want to generate and download a PDF report containing ${filteredTransactions.length} transaction(s)?`}
+        confirmText="Export"
+        isDanger={false}
+      />
     </div>
   );
 };
