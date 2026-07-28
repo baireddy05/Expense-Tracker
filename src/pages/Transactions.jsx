@@ -54,9 +54,8 @@ const Transactions = () => {
         } else if (timeFilter === 'year') {
           matchesTime = txDate.getFullYear() === now.getFullYear();
         } else if (timeFilter === 'custom') {
-          const [year, month, day] = customDate.split('-');
-          const selectedDate = new Date(year, month - 1, day);
-          matchesTime = txDate.toDateString() === selectedDate.toDateString();
+          const txDateStr = t.date.includes('T') ? t.date.split('T')[0] : t.date;
+          matchesTime = txDateStr === customDate;
         }
 
         return matchesSearch && matchesType && matchesTime;
