@@ -18,6 +18,7 @@ const Transactions = () => {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [timeFilter, setTimeFilter] = useState('today');
+  const [customDate, setCustomDate] = useState(new Date().toISOString().split('T')[0]);
   
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null });
   const [pdfConfirmOpen, setPdfConfirmOpen] = useState(false);
@@ -52,6 +53,10 @@ const Transactions = () => {
           matchesTime = txDate.getMonth() === now.getMonth() && txDate.getFullYear() === now.getFullYear();
         } else if (timeFilter === 'year') {
           matchesTime = txDate.getFullYear() === now.getFullYear();
+        } else if (timeFilter === 'custom') {
+          const [year, month, day] = customDate.split('-');
+          const selectedDate = new Date(year, month - 1, day);
+          matchesTime = txDate.toDateString() === selectedDate.toDateString();
         }
 
         return matchesSearch && matchesType && matchesTime;
@@ -232,8 +237,19 @@ const Transactions = () => {
             <option value="week">This Week</option>
             <option value="month">This Month</option>
             <option value="year">This Year</option>
+            <option value="custom">Specific Date</option>
           </select>
         </div>
+        {timeFilter === 'custom' && (
+          <div className="relative min-w-[150px] animate-fade-in">
+            <input 
+              type="date"
+              value={customDate}
+              onChange={e => setCustomDate(e.target.value)}
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white"
+            />
+          </div>
+        )}
         <div className="relative min-w-[150px]">
           <FontAwesomeIcon icon={faFilter} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
           <select 
