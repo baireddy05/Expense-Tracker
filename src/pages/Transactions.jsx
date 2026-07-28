@@ -16,9 +16,17 @@ const Transactions = () => {
   const [editingTx, setEditingTx] = useState(null);
   
   const [search, setSearch] = useState('');
+  const getLocalToday = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const [filterType, setFilterType] = useState('all');
   const [timeFilter, setTimeFilter] = useState('today');
-  const [customDate, setCustomDate] = useState(new Date().toISOString().split('T')[0]);
+  const [customDate, setCustomDate] = useState(getLocalToday());
   
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null });
   const [pdfConfirmOpen, setPdfConfirmOpen] = useState(false);
@@ -54,8 +62,16 @@ const Transactions = () => {
         } else if (timeFilter === 'year') {
           matchesTime = txDate.getFullYear() === now.getFullYear();
         } else if (timeFilter === 'custom') {
-          const txDateStr = t.date.includes('T') ? t.date.split('T')[0] : t.date;
-          matchesTime = txDateStr === customDate;
+          try {
+            // Simplify back to robust local string matching
+            const tDateObj = new Date(t.date?.seconds ? t.date.seconds * 1000 : t.date);
+            const y = tDateObj.getFullYear();
+            const m = String(tDateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(tDateObj.getDate()).padStart(2, '0');
+            matchesTime = `${y}-${m}-${d}` === customDate;
+          } catch (e) {
+            matchesTime = false;
+          }
         }
 
         return matchesSearch && matchesType && matchesTime;
@@ -65,7 +81,7 @@ const Transactions = () => {
         if (dateDiff !== 0) return dateDiff;
         return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
       });
-  }, [transactions, search, filterType, timeFilter, categories]);
+  }, [transactions, search, filterType, timeFilter, customDate, categories]);
 
   const handleEdit = (tx) => {
     setEditingTx(tx);

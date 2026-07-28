@@ -7,10 +7,18 @@ import toast from 'react-hot-toast';
 const TransactionForm = ({ isOpen, onClose, initialData = null }) => {
   const { categories, addTransaction, updateTransaction } = useTransactions();
   
+  const getLocalToday = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const [type, setType] = useState('expense');
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getLocalToday());
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
@@ -27,7 +35,7 @@ const TransactionForm = ({ isOpen, onClose, initialData = null }) => {
       setType('expense');
       setAmount('');
       setCategoryId('');
-      setDate(new Date().toISOString().split('T')[0]);
+      setDate(getLocalToday());
       setNote('');
       setIsCreatingCategory(false);
       setNewCategoryName('');
