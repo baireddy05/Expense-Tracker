@@ -27,8 +27,7 @@ const SwipeableItem = ({ children, onEdit, onDelete }) => {
 
     // Swipe left (delete)
     if (offset < -actionThreshold || velocity < -500) {
-      setExitX(-window.innerWidth);
-      await controls.start({ x: -window.innerWidth, transition: { duration: 0.2 } });
+      await controls.start({ x: 0, transition: { type: 'spring', bounce: 0.5 } });
       onDelete();
     } 
     // Swipe right (edit)
