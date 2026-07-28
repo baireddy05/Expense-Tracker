@@ -14,7 +14,7 @@ const Transactions = () => {
   
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [timeFilter, setTimeFilter] = useState('all');
+  const [timeFilter, setTimeFilter] = useState('today');
   
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null });
   const [pdfConfirmOpen, setPdfConfirmOpen] = useState(false);
