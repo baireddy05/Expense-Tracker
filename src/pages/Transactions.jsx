@@ -6,9 +6,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrash, faEdit, faSearch, faFilter, faFilePdf, faCalendarAlt } from '@fortawesome/free-solid-svg-icons';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { TransactionsSkeleton } from '../components/ui/Skeleton';
 
 const Transactions = () => {
-  const { transactions, categories, deleteTransaction } = useTransactions();
+  const { transactions, categories, deleteTransaction, loading } = useTransactions();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
   
@@ -165,6 +166,8 @@ const Transactions = () => {
     
     setPdfConfirmOpen(true);
   };
+
+  if (loading) return <TransactionsSkeleton />;
 
   return (
     <div className="space-y-6 relative h-full">

@@ -4,11 +4,14 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faWallet, faArrowTrendUp, faArrowTrendDown } from '@fortawesome/free-solid-svg-icons';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
+import { DashboardSkeleton } from '../components/ui/Skeleton';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 const Dashboard = () => {
-  const { transactions, categories } = useTransactions();
+  const { transactions, categories, loading } = useTransactions();
+
+  if (loading) return <DashboardSkeleton />;
 
   const stats = useMemo(() => {
     let income = 0;
