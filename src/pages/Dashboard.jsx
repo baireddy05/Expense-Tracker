@@ -2,14 +2,14 @@ import React, { useMemo } from 'react';
 import { useTransactions } from '../context/TransactionContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faWallet, faArrowTrendUp, faArrowTrendDown } from '@fortawesome/free-solid-svg-icons';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
-import { Doughnut, Bar } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler } from 'chart.js';
+import { Doughnut, Line } from 'react-chartjs-2';
 import { DashboardSkeleton } from '../components/ui/Skeleton';
 
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler);
 
 const Dashboard = () => {
-  const { transactions, categories, loading } = useTransactions();
+  const { transactions, categories, loading, settings } = useTransactions();
 
   if (loading) return <DashboardSkeleton />;
 
@@ -46,8 +46,13 @@ const Dashboard = () => {
     };
   }, [transactions]);
 
-  const velocityMeter = Math.min((stats.monthlyExpense / (stats.monthlyIncome || 1)) * 100, 100);
+  const budgetLimit = settings?.monthlyBudget || 0;
+  const hasBudget = budgetLimit > 0;
+  const budgetPercentage = hasBudget ? Math.min((stats.monthlyExpense / budgetLimit) * 100, 100) : 0;
   
+  // Alternative Velocity meter if no budget set
+  const velocityMeter = Math.min((stats.monthlyExpense / (stats.monthlyIncome || 1)) * 100, 100);
+
   const expenseByCategory = useMemo(() => {
     const expenses = transactions.filter(t => t.type === 'expense');
     const grouped = expenses.reduce((acc, t) => {
@@ -63,13 +68,64 @@ const Dashboard = () => {
       .sort((a, b) => b.amount - a.amount);
   }, [transactions, categories]);
 
-  const chartData = {
+  const trendData = useMemo(() => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return d;
+    });
+
+    const labels = last7Days.map(d => d.toLocaleDateString('en-US', { weekday: 'short' }));
+    const incomeData = new Array(7).fill(0);
+    const expenseData = new Array(7).fill(0);
+
+    transactions.forEach(t => {
+      const tDate = new Date(t.date);
+      // find index in last7Days
+      const index = last7Days.findIndex(d => 
+        d.getDate() === tDate.getDate() && 
+        d.getMonth() === tDate.getMonth() && 
+        d.getFullYear() === tDate.getFullYear()
+      );
+      
+      if (index !== -1) {
+        if (t.type === 'income') incomeData[index] += parseFloat(t.amount);
+        else expenseData[index] += parseFloat(t.amount);
+      }
+    });
+
+    return { labels, incomeData, expenseData };
+  }, [transactions]);
+
+  const donutChartData = {
     labels: expenseByCategory.map(e => e.name),
     datasets: [{
       data: expenseByCategory.map(e => e.amount),
       backgroundColor: expenseByCategory.map(e => e.color),
       borderWidth: 0,
     }]
+  };
+
+  const lineChartData = {
+    labels: trendData.labels,
+    datasets: [
+      {
+        label: 'Income',
+        data: trendData.incomeData,
+        borderColor: '#22c55e',
+        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        tension: 0.4,
+        fill: true,
+      },
+      {
+        label: 'Expense',
+        data: trendData.expenseData,
+        borderColor: '#ef4444',
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        tension: 0.4,
+        fill: true,
+      }
+    ]
   };
 
   const formatCurrency = (amount) => {
@@ -116,20 +172,57 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Spending Velocity */}
+      {/* Spending Velocity / Budget */}
       <div className="glass rounded-2xl p-6">
-        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Spending Velocity (This Month)</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            {hasBudget ? 'Budget Progress (This Month)' : 'Spending Velocity (This Month)'}
+          </h3>
+          {hasBudget && (
+            <span className="text-sm font-medium text-gray-500">
+              {formatCurrency(stats.monthlyExpense)} / {formatCurrency(budgetLimit)}
+            </span>
+          )}
+        </div>
         <div className="h-4 w-full bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
           <div 
             className={`h-full transition-all duration-1000 ease-out ${
-              velocityMeter < 50 ? 'bg-green-500' : velocityMeter < 80 ? 'bg-yellow-500' : 'bg-red-500'
+              hasBudget 
+                ? (budgetPercentage < 75 ? 'bg-green-500' : budgetPercentage < 90 ? 'bg-yellow-500' : 'bg-red-500')
+                : (velocityMeter < 50 ? 'bg-green-500' : velocityMeter < 80 ? 'bg-yellow-500' : 'bg-red-500')
             }`}
-            style={{ width: `${velocityMeter}%` }}
+            style={{ width: `${hasBudget ? budgetPercentage : velocityMeter}%` }}
           />
         </div>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-          You've spent {velocityMeter.toFixed(1)}% of your monthly income.
+          {hasBudget 
+            ? (budgetPercentage >= 100 
+                ? "You've exceeded your monthly budget!" 
+                : `You've used ${budgetPercentage.toFixed(1)}% of your monthly budget.`)
+            : `You've spent ${velocityMeter.toFixed(1)}% of your monthly income.`
+          }
         </p>
+      </div>
+
+      {/* Trend Line Chart */}
+      <div className="glass rounded-2xl p-6">
+        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Weekly Trend</h3>
+        <div className="w-full h-[250px]">
+          <Line 
+            data={lineChartData}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'top', labels: { color: '#888' } }
+              },
+              scales: {
+                y: { grid: { color: 'rgba(200, 200, 200, 0.1)' }, ticks: { color: '#888' } },
+                x: { grid: { display: false }, ticks: { color: '#888' } }
+              }
+            }}
+          />
+        </div>
       </div>
 
       {/* Charts Grid */}
@@ -139,7 +232,7 @@ const Dashboard = () => {
           <div className="w-full max-w-[300px] aspect-square relative">
             {expenseByCategory.length > 0 ? (
               <Doughnut 
-                data={chartData} 
+                data={donutChartData} 
                 options={{
                   cutout: '70%',
                   plugins: { legend: { position: 'bottom', labels: { color: '#888' } } }
@@ -156,7 +249,11 @@ const Dashboard = () => {
         <div className="glass rounded-2xl p-6">
            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Recent Transactions</h3>
            <div className="space-y-4 mt-4">
-             {transactions.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 5).map(t => {
+             {[...transactions].sort((a,b) => {
+               const dateDiff = new Date(b.date) - new Date(a.date);
+               if (dateDiff !== 0) return dateDiff;
+               return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+             }).slice(0, 5).map(t => {
                const cat = categories.find(c => c.id === t.categoryId);
                return (
                  <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">

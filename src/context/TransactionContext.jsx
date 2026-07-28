@@ -6,18 +6,21 @@ const TransactionContext = createContext();
 export const TransactionProvider = ({ children }) => {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [settings, setSettings] = useState({ monthlyBudget: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [txData, catData] = await Promise.all([
+      const [txData, catData, settingsData] = await Promise.all([
         DataService.getTransactions(),
-        DataService.getCategories()
+        DataService.getCategories(),
+        DataService.getSettings()
       ]);
       setTransactions(txData);
       setCategories(catData);
+      setSettings(settingsData);
       setError(null);
     } catch (err) {
       setError(err.message || 'Failed to load data');
@@ -29,6 +32,17 @@ export const TransactionProvider = ({ children }) => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const updateSettings = async (updates) => {
+    try {
+      const updated = await DataService.updateSettings(settings.id || 'global', updates);
+      setSettings(prev => ({ ...prev, ...updated }));
+      return updated;
+    } catch (err) {
+      setError('Failed to update settings');
+      throw err;
+    }
+  };
 
   const addTransaction = async (tx) => {
     try {
@@ -77,8 +91,10 @@ export const TransactionProvider = ({ children }) => {
     <TransactionContext.Provider value={{
       transactions,
       categories,
+      settings,
       loading,
       error,
+      updateSettings,
       addTransaction,
       updateTransaction,
       deleteTransaction,

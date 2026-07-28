@@ -7,6 +7,7 @@ import { faPlus, faTrash, faEdit, faSearch, faFilter, faFilePdf, faCalendarAlt }
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { TransactionsSkeleton } from '../components/ui/Skeleton';
+import SwipeableItem from '../components/transactions/SwipeableItem';
 
 const Transactions = () => {
   const { transactions, categories, deleteTransaction, loading } = useTransactions();
@@ -53,7 +54,11 @@ const Transactions = () => {
 
         return matchesSearch && matchesType && matchesTime;
       })
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
+      .sort((a, b) => {
+        const dateDiff = new Date(b.date) - new Date(a.date);
+        if (dateDiff !== 0) return dateDiff;
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      });
   }, [transactions, search, filterType, timeFilter, categories]);
 
   const handleEdit = (tx) => {
@@ -291,38 +296,36 @@ const Transactions = () => {
       </div>
 
       {/* Mobile Stacked List View */}
-      <div className="md:hidden space-y-3 pb-24">
+      <div className="md:hidden pb-24">
         {filteredTransactions.map(t => {
           const cat = categories.find(c => c.id === t.categoryId);
           return (
-            <div key={t.id} className="glass rounded-xl p-4 flex items-center gap-3">
-              <div className="w-12 h-12 shrink-0 rounded-full flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: cat?.color || '#ccc' }}>
-                <FontAwesomeIcon icon={cat?.icon || 'fa-circle'} className="text-xl" />
-              </div>
-              
-              <div className="flex-1 min-w-0 py-1">
-                <p className="font-semibold text-gray-900 dark:text-white text-base leading-snug line-clamp-2">
-                  {t.note || cat?.name}
-                </p>
-                <p className="text-sm text-gray-500 mt-1 truncate">
-                  {new Date(t.date).toLocaleDateString()} &bull; {cat?.name}
-                </p>
-              </div>
-              
-              <div className="text-right shrink-0 ml-2">
-                <p className={`font-bold text-base whitespace-nowrap ${t.type === 'income' ? 'text-green-500' : 'text-gray-900 dark:text-white'}`}>
-                  {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
-                </p>
-                <div className="flex items-center justify-end gap-1 mt-1.5 -mr-2">
-                  <button onClick={() => handleEdit(t)} className="text-gray-400 hover:text-primary-500 p-2 transition-colors">
-                    <FontAwesomeIcon icon={faEdit} />
-                  </button>
-                  <button onClick={() => requestDelete(t.id)} className="text-gray-400 hover:text-red-500 p-2 transition-colors">
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
+            <SwipeableItem 
+              key={t.id} 
+              onEdit={() => handleEdit(t)} 
+              onDelete={() => requestDelete(t.id)}
+            >
+              <div className="glass p-4 flex items-center gap-3">
+                <div className="w-12 h-12 shrink-0 rounded-full flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: cat?.color || '#ccc' }}>
+                  <FontAwesomeIcon icon={cat?.icon || 'fa-circle'} className="text-xl" />
+                </div>
+                
+                <div className="flex-1 min-w-0 py-1">
+                  <p className="font-semibold text-gray-900 dark:text-white text-base leading-snug line-clamp-2">
+                    {t.note || cat?.name}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1 truncate">
+                    {new Date(t.date).toLocaleDateString()} &bull; {cat?.name}
+                  </p>
+                </div>
+                
+                <div className="text-right shrink-0 ml-2">
+                  <p className={`font-bold text-base whitespace-nowrap ${t.type === 'income' ? 'text-green-500' : 'text-gray-900 dark:text-white'}`}>
+                    {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
+                  </p>
                 </div>
               </div>
-            </div>
+            </SwipeableItem>
           );
         })}
         {filteredTransactions.length === 0 && (

@@ -102,5 +102,25 @@ export const DataService = {
     if (!db) throw new Error("Firebase not initialized");
     const docRef = await addDoc(collection(db, "categories"), category);
     return { id: docRef.id, ...category };
+  },
+
+  async getSettings() {
+    if (!db) return { monthlyBudget: 0 };
+    const querySnapshot = await getDocs(collection(db, "settings"));
+    if (querySnapshot.empty) {
+      const defaultSettings = { monthlyBudget: 0 };
+      const docRef = doc(collection(db, "settings"), "global");
+      await setDoc(docRef, defaultSettings);
+      return { id: docRef.id, ...defaultSettings };
+    }
+    const docData = querySnapshot.docs[0];
+    return { id: docData.id, ...docData.data() };
+  },
+
+  async updateSettings(id, updates) {
+    if (!db) throw new Error("Firebase not initialized");
+    const settingsRef = doc(db, "settings", id);
+    await updateDoc(settingsRef, updates);
+    return { id, ...updates };
   }
 };

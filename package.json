@@ -20,6 +20,7 @@
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "firebase": "^12.16.0",
+    "framer-motion": "^12.43.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "papaparse": "^5.5.4",
