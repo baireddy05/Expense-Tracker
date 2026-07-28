@@ -57,9 +57,9 @@ export const TransactionProvider = ({ children }) => {
 
   const updateTransaction = async (id, updates) => {
     try {
-      const updated = await DataService.updateTransaction(id, updates);
-      setTransactions(prev => prev.map(t => t.id === id ? updated : t));
-      return updated;
+      await DataService.updateTransaction(id, updates);
+      setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+      return { id, ...updates };
     } catch (err) {
       setError('Failed to update transaction');
       throw err;

@@ -1,13 +1,18 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { motion, useAnimation, useMotionValue, useTransform } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faEdit } from '@fortawesome/free-solid-svg-icons';
 
-const SwipeableItem = ({ children, onEdit, onDelete }) => {
+const SwipeableItem = ({ children, onEdit, onDelete, resetToken }) => {
   const [exitX, setExitX] = useState(0);
   const containerRef = useRef(null);
   const controls = useAnimation();
   const x = useMotionValue(0);
+
+  // Reset to original position when resetToken changes
+  useEffect(() => {
+    controls.start({ x: 0, transition: { type: 'spring', bounce: 0.5 } });
+  }, [resetToken, controls]);
 
   // Thresholds for triggering actions
   const actionThreshold = 80;
@@ -27,7 +32,7 @@ const SwipeableItem = ({ children, onEdit, onDelete }) => {
 
     // Swipe left (delete)
     if (offset < -actionThreshold || velocity < -500) {
-      await controls.start({ x: 0, transition: { type: 'spring', bounce: 0.5 } });
+      await controls.start({ x: -actionThreshold, transition: { type: 'spring', bounce: 0.5 } });
       onDelete();
     } 
     // Swipe right (edit)

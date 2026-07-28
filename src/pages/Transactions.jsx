@@ -21,6 +21,7 @@ const Transactions = () => {
   
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null });
   const [pdfConfirmOpen, setPdfConfirmOpen] = useState(false);
+  const [swipeResetToken, setSwipeResetToken] = useState(0);
 
   const filteredTransactions = useMemo(() => {
     const now = new Date();
@@ -310,6 +311,7 @@ const Transactions = () => {
               key={t.id} 
               onEdit={() => handleEdit(t)} 
               onDelete={() => requestDelete(t.id)}
+              resetToken={swipeResetToken}
             >
               <div className="glass p-4 flex items-center gap-3">
                 <div className="w-12 h-12 shrink-0 rounded-full flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: cat?.color || '#ccc' }}>
@@ -353,7 +355,10 @@ const Transactions = () => {
       {/* Fancy Confirmation Modals */}
       <ConfirmModal 
         isOpen={deleteConfirm.isOpen}
-        onClose={() => setDeleteConfirm({ isOpen: false, id: null })}
+        onClose={() => {
+          setDeleteConfirm({ isOpen: false, id: null });
+          setSwipeResetToken(prev => prev + 1);
+        }}
         onConfirm={confirmDelete}
         title="Delete Transaction"
         message="Are you sure you want to delete this transaction? This action cannot be undone."
