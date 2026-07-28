@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import Papa from 'papaparse';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload, faMoon, faSun, faDesktop, faPiggyBank } from '@fortawesome/free-solid-svg-icons';
+import toast from 'react-hot-toast';
 
 const Settings = () => {
   const { transactions, categories, settings, updateSettings } = useTransactions();
@@ -21,8 +22,10 @@ const Settings = () => {
     setIsSavingBudget(true);
     try {
       await updateSettings({ monthlyBudget: parseFloat(budgetInput) || 0 });
+      toast.success('Budget saved successfully');
     } catch (e) {
       console.error(e);
+      toast.error('Failed to save budget');
     } finally {
       setIsSavingBudget(false);
     }

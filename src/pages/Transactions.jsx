@@ -8,6 +8,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { TransactionsSkeleton } from '../components/ui/Skeleton';
 import SwipeableItem from '../components/transactions/SwipeableItem';
+import toast from 'react-hot-toast';
 
 const Transactions = () => {
   const { transactions, categories, deleteTransaction, loading } = useTransactions();
@@ -77,7 +78,12 @@ const Transactions = () => {
 
   const confirmDelete = async () => {
     if (deleteConfirm.id) {
-      await deleteTransaction(deleteConfirm.id);
+      try {
+        await deleteTransaction(deleteConfirm.id);
+        toast.success('Transaction deleted');
+      } catch (e) {
+        toast.error('Failed to delete transaction');
+      }
     }
   };
 

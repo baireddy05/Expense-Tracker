@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTransactions } from '../../context/TransactionContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import toast from 'react-hot-toast';
 
 const TransactionForm = ({ isOpen, onClose, initialData = null }) => {
   const { categories, addTransaction, updateTransaction } = useTransactions();
@@ -44,12 +45,15 @@ const TransactionForm = ({ isOpen, onClose, initialData = null }) => {
       const txData = { type, amount: parseFloat(amount), categoryId, date, note };
       if (initialData) {
         await updateTransaction(initialData.id, txData);
+        toast.success('Transaction updated!');
       } else {
         await addTransaction(txData);
+        toast.success('Transaction added!');
       }
       onClose();
     } catch (error) {
       console.error(error);
+      toast.error('Something went wrong');
     } finally {
       setLoading(false);
     }
@@ -71,8 +75,10 @@ const TransactionForm = ({ isOpen, onClose, initialData = null }) => {
       setCategoryId(cat.id);
       setIsCreatingCategory(false);
       setNewCategoryName('');
+      toast.success('Category created!');
     } catch (error) {
       console.error("Failed to create category", error);
+      toast.error('Failed to create category');
     }
   };
 

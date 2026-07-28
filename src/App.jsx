@@ -1,18 +1,19 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider } from './context/ThemeContext';
+import { TransactionProvider } from './context/TransactionContext';
 import AppShell from './components/layout/AppShell';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
-import { TransactionProvider } from './context/TransactionContext';
-import { ThemeProvider } from './context/ThemeContext';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
     <ThemeProvider>
       <TransactionProvider>
-        <BrowserRouter>
+        <Router>
           <Routes>
             <Route path="/" element={<AppShell />}>
               <Route index element={<Navigate to="/dashboard" replace />} />
@@ -22,7 +23,18 @@ function App() {
               <Route path="settings" element={<Settings />} />
             </Route>
           </Routes>
-        </BrowserRouter>
+          <Toaster 
+            position="bottom-center"
+            toastOptions={{
+              className: 'dark:bg-gray-800 dark:text-white',
+              style: {
+                borderRadius: '12px',
+                background: '#333',
+                color: '#fff',
+              }
+            }}
+          />
+        </Router>
       </TransactionProvider>
     </ThemeProvider>
   );

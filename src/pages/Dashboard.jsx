@@ -5,6 +5,7 @@ import { faWallet, faArrowTrendUp, faArrowTrendDown } from '@fortawesome/free-so
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
 import { DashboardSkeleton } from '../components/ui/Skeleton';
+import AnimatedCounter from '../components/ui/AnimatedCounter';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler);
 
@@ -147,7 +148,7 @@ const Dashboard = () => {
           </div>
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Balance</p>
           <h2 className={`text-4xl font-bold mt-2 ${stats.balance >= 0 ? 'text-gray-900 dark:text-white' : 'text-red-500'}`}>
-            {formatCurrency(stats.balance)}
+            <AnimatedCounter value={stats.balance} isCurrency={true} />
           </h2>
         </div>
 
@@ -158,7 +159,9 @@ const Dashboard = () => {
             </div>
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Monthly Income</p>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(stats.monthlyIncome)}</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <AnimatedCounter value={stats.monthlyIncome} isCurrency={true} />
+          </h2>
         </div>
 
         <div className="glass rounded-2xl p-6">
@@ -168,7 +171,9 @@ const Dashboard = () => {
             </div>
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Monthly Expense</p>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(stats.monthlyExpense)}</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <AnimatedCounter value={stats.monthlyExpense} isCurrency={true} />
+          </h2>
         </div>
       </div>
 
