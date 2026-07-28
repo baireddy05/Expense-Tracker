@@ -72,7 +72,30 @@ export const DataService = {
       await batch.commit();
       return seeded;
     }
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    const docs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    // Deduplicate and cleanup database
+    const unique = [];
+    const seen = new Set();
+    const duplicates = [];
+    
+    for (const d of docs) {
+      const key = d.name + '|' + d.type;
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(d);
+      } else {
+        duplicates.push(d);
+      }
+    }
+    
+    if (duplicates.length > 0) {
+      Promise.all(duplicates.map(dup => deleteDoc(doc(db, "categories", dup.id))))
+        .catch(console.error);
+    }
+    
+    return unique;
   },
 
   async addCategory(category) {
