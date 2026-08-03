@@ -58,6 +58,10 @@ const Transactions = () => {
         
         if (timeFilter === 'today') {
           matchesTime = txDate.toDateString() === now.toDateString();
+        } else if (timeFilter === 'yesterday') {
+          const yesterday = new Date(now);
+          yesterday.setDate(yesterday.getDate() - 1);
+          matchesTime = txDate.toDateString() === yesterday.toDateString();
         } else if (timeFilter === 'week') {
           matchesTime = txDate >= getStartOfWeek(now);
         } else if (timeFilter === 'month') {
@@ -155,12 +159,12 @@ const Transactions = () => {
         t.type === 'income' ? 'Income' : 'Expense',
         cat ? cat.name : 'Unknown',
         t.note || '-',
-        formatCurrencyPDF(t.amount)
+        (t.type === 'income' ? '+' : '-') + formatCurrencyPDF(t.amount)
       ]);
     });
 
-    tableRows.push(['', '', '', 'Total Income:', formatCurrencyPDF(totalIncome)]);
-    tableRows.push(['', '', '', 'Total Expense:', formatCurrencyPDF(totalExpense)]);
+    tableRows.push(['', '', '', 'Total Income:', '+' + formatCurrencyPDF(totalIncome)]);
+    tableRows.push(['', '', '', 'Total Expense:', '-' + formatCurrencyPDF(totalExpense)]);
 
     autoTable(doc, {
       head: [tableColumn],
@@ -254,6 +258,7 @@ const Transactions = () => {
           >
             <option value="all">All Time</option>
             <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
             <option value="week">This Week</option>
             <option value="month">This Month</option>
             <option value="year">This Year</option>
