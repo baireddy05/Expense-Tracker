@@ -3,11 +3,12 @@ import { useTransactions } from '../context/TransactionContext';
 import TransactionForm from '../components/transactions/TransactionForm';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faTrash, faEdit, faSearch, faFilter, faFilePdf, faCalendarAlt } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faTrash, faEdit, faSearch, faFilter, faFilePdf, faCalendarAlt, faTags } from '@fortawesome/free-solid-svg-icons';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { TransactionsSkeleton } from '../components/ui/Skeleton';
 import SwipeableItem from '../components/transactions/SwipeableItem';
+import { getCategoryIcon } from '../utils/categoryIcons';
 import toast from 'react-hot-toast';
 
 const Transactions = () => {
@@ -25,6 +26,7 @@ const Transactions = () => {
   };
 
   const [filterType, setFilterType] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [timeFilter, setTimeFilter] = useState('today');
   const [customDate, setCustomDate] = useState(getLocalToday());
   
@@ -49,6 +51,7 @@ const Transactions = () => {
         const matchesSearch = t.note?.toLowerCase().includes(search.toLowerCase()) || 
                               categories.find(c => c.id === t.categoryId)?.name.toLowerCase().includes(search.toLowerCase());
         const matchesType = filterType === 'all' || t.type === filterType;
+        const matchesCategory = categoryFilter === 'all' || t.categoryId === categoryFilter;
         
         let matchesTime = true;
         const txDate = new Date(t.date);
@@ -74,14 +77,14 @@ const Transactions = () => {
           }
         }
 
-        return matchesSearch && matchesType && matchesTime;
+        return matchesSearch && matchesType && matchesCategory && matchesTime;
       })
       .sort((a, b) => {
         const dateDiff = new Date(b.date) - new Date(a.date);
         if (dateDiff !== 0) return dateDiff;
         return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
       });
-  }, [transactions, search, filterType, timeFilter, customDate, categories]);
+  }, [transactions, search, filterType, categoryFilter, timeFilter, customDate, categories]);
 
   const handleEdit = (tx) => {
     setEditingTx(tx);
@@ -128,7 +131,8 @@ const Transactions = () => {
     doc.setFontSize(11);
     doc.setTextColor(107, 114, 128); // gray-500
     doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN', { dateStyle: 'long' })}`, 14, 32);
-    doc.text(`Filters: Type: ${filterType.toUpperCase()} | Time: ${timeFilter.toUpperCase()} | Search: "${search || 'None'}"`, 14, 38);
+    const catName = categoryFilter === 'all' ? 'ALL' : (categories.find(c => c.id === categoryFilter)?.name || 'UNKNOWN');
+    doc.text(`Filters: Type: ${filterType.toUpperCase()} | Cat: ${catName.toUpperCase()} | Time: ${timeFilter.toUpperCase()} | Search: "${search || 'None'}"`, 14, 38);
 
     // Separator line
     doc.setDrawColor(229, 231, 235); // gray-200
@@ -229,23 +233,24 @@ const Transactions = () => {
       </header>
 
       {/* Filters & Search */}
-      <div className="glass rounded-2xl p-4 flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
+      <div className="glass rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="relative sm:col-span-2 lg:col-span-1">
           <FontAwesomeIcon icon={faSearch} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
           <input 
             type="text" 
             placeholder="Search transactions..." 
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white"
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white text-sm"
           />
         </div>
-        <div className="relative min-w-[150px]">
+
+        <div className="relative">
           <FontAwesomeIcon icon={faCalendarAlt} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
           <select 
             value={timeFilter}
             onChange={e => setTimeFilter(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white appearance-none"
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white appearance-none text-sm cursor-pointer"
           >
             <option value="all">All Time</option>
             <option value="today">Today</option>
@@ -255,28 +260,44 @@ const Transactions = () => {
             <option value="custom">Specific Date</option>
           </select>
         </div>
-        {timeFilter === 'custom' && (
-          <div className="relative min-w-[150px] animate-fade-in">
-            <input 
-              type="date"
-              value={customDate}
-              onChange={e => setCustomDate(e.target.value)}
-              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white"
-            />
-          </div>
-        )}
-        <div className="relative min-w-[150px]">
+
+        <div className="relative">
+          <FontAwesomeIcon icon={faTags} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          <select 
+            value={categoryFilter}
+            onChange={e => setCategoryFilter(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white appearance-none text-sm cursor-pointer"
+          >
+            <option value="all">All Categories</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="relative">
           <FontAwesomeIcon icon={faFilter} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
           <select 
             value={filterType}
             onChange={e => setFilterType(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white appearance-none"
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white appearance-none text-sm cursor-pointer"
           >
             <option value="all">All Types</option>
             <option value="expense">Expense</option>
             <option value="income">Income</option>
           </select>
         </div>
+
+        {timeFilter === 'custom' && (
+          <div className="relative sm:col-span-2 lg:col-span-4 animate-fade-in">
+            <input 
+              type="date" 
+              value={customDate}
+              onChange={e => setCustomDate(e.target.value)}
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white text-sm"
+            />
+          </div>
+        )}
       </div>
 
       {/* Desktop Table View */}
@@ -295,19 +316,34 @@ const Transactions = () => {
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
               {filteredTransactions.map(t => {
                 const cat = categories.find(c => c.id === t.categoryId);
+                const categoryColor = cat?.color || '#888888';
                 return (
                   <tr key={t.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors group">
-                    <td className="p-4 text-gray-900 dark:text-gray-300">{new Date(t.date).toLocaleDateString()}</td>
+                    <td className="p-4 text-gray-900 dark:text-gray-300 whitespace-nowrap">
+                      {new Date(t.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </td>
                     <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs" style={{ backgroundColor: cat?.color || '#ccc' }}>
-                          <FontAwesomeIcon icon={cat?.icon || 'fa-circle'} />
+                      <div className="flex items-center gap-2.5">
+                        <div 
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs shrink-0 shadow-sm" 
+                          style={{ backgroundColor: categoryColor }}
+                        >
+                          <FontAwesomeIcon icon={getCategoryIcon(cat?.icon)} />
                         </div>
-                        <span className="text-gray-900 dark:text-gray-300">{cat?.name}</span>
+                        <span 
+                          className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold"
+                          style={{
+                            backgroundColor: `${categoryColor}18`,
+                            color: categoryColor,
+                            border: `1px solid ${categoryColor}35`
+                          }}
+                        >
+                          {cat?.name || 'Uncategorized'}
+                        </span>
                       </div>
                     </td>
-                    <td className="p-4 text-gray-600 dark:text-gray-400">{t.note || '-'}</td>
-                    <td className={`p-4 text-right font-medium ${t.type === 'income' ? 'text-green-500' : 'text-gray-900 dark:text-white'}`}>
+                    <td className="p-4 text-gray-700 dark:text-gray-300 font-medium">{t.note || '-'}</td>
+                    <td className={`p-4 text-right font-semibold whitespace-nowrap ${t.type === 'income' ? 'text-green-500' : 'text-gray-900 dark:text-white'}`}>
                       {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                     </td>
                     <td className="p-4 text-right">
@@ -334,9 +370,13 @@ const Transactions = () => {
       </div>
 
       {/* Mobile Stacked List View */}
-      <div className="md:hidden pb-24">
+      <div className="md:hidden pb-24 space-y-3">
         {filteredTransactions.map(t => {
           const cat = categories.find(c => c.id === t.categoryId);
+          const hasNote = Boolean(t.note && t.note.trim());
+          const categoryName = cat?.name || 'Uncategorized';
+          const categoryColor = cat?.color || '#888888';
+
           return (
             <SwipeableItem 
               key={t.id} 
@@ -344,21 +384,44 @@ const Transactions = () => {
               onDelete={() => requestDelete(t.id)}
               resetToken={swipeResetToken}
             >
-              <div className="glass p-4 flex items-center gap-3">
-                <div className="w-12 h-12 shrink-0 rounded-full flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: cat?.color || '#ccc' }}>
-                  <FontAwesomeIcon icon={cat?.icon || 'fa-circle'} className="text-xl" />
+              <div className="glass p-4 flex items-center gap-3.5">
+                {/* Category Icon Circle */}
+                <div 
+                  className="w-12 h-12 shrink-0 rounded-full flex items-center justify-center text-white shadow-md" 
+                  style={{ backgroundColor: categoryColor }}
+                >
+                  <FontAwesomeIcon icon={getCategoryIcon(cat?.icon)} className="text-lg" />
                 </div>
                 
-                <div className="flex-1 min-w-0 py-1">
-                  <p className="font-semibold text-gray-900 dark:text-white text-base leading-snug line-clamp-2">
-                    {t.note || cat?.name}
+                {/* Info Block */}
+                <div className="flex-1 min-w-0 py-0.5">
+                  {/* Primary text: Note if provided, else Category Name */}
+                  <p className="font-semibold text-gray-900 dark:text-white text-base leading-snug break-words">
+                    {hasNote ? t.note : categoryName}
                   </p>
-                  <p className="text-sm text-gray-500 mt-1 truncate">
-                    {new Date(t.date).toLocaleDateString()} &bull; {cat?.name}
-                  </p>
+                  
+                  {/* Metadata: Date and full non-truncated Category badge */}
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 text-xs">
+                    <span className="text-gray-500 dark:text-gray-400 whitespace-nowrap font-normal">
+                      {new Date(t.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </span>
+                    
+                    <span className="text-gray-300 dark:text-gray-600 select-none">&bull;</span>
+                    <span 
+                      className="inline-flex items-center px-2 py-0.5 rounded-md font-medium text-xs break-words"
+                      style={{ 
+                        backgroundColor: `${categoryColor}18`,
+                        color: categoryColor,
+                        border: `1px solid ${categoryColor}35`
+                      }}
+                    >
+                      {categoryName}
+                    </span>
+                  </div>
                 </div>
                 
-                <div className="text-right shrink-0 ml-2">
+                {/* Amount */}
+                <div className="text-right shrink-0 ml-1 self-center">
                   <p className={`font-bold text-base whitespace-nowrap ${t.type === 'income' ? 'text-green-500' : 'text-gray-900 dark:text-white'}`}>
                     {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                   </p>
@@ -368,7 +431,7 @@ const Transactions = () => {
           );
         })}
         {filteredTransactions.length === 0 && (
-          <div className="text-center p-8 text-gray-500">No transactions found.</div>
+          <div className="text-center p-8 text-gray-500 glass rounded-2xl">No transactions found.</div>
         )}
       </div>
 

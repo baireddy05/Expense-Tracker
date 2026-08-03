@@ -6,6 +6,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 import { Doughnut, Line } from 'react-chartjs-2';
 import { DashboardSkeleton } from '../components/ui/Skeleton';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
+import { getCategoryIcon } from '../utils/categoryIcons';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler);
 
@@ -260,19 +261,39 @@ const Dashboard = () => {
                return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
              }).slice(0, 5).map(t => {
                const cat = categories.find(c => c.id === t.categoryId);
+               const hasNote = Boolean(t.note && t.note.trim());
+               const categoryName = cat?.name || 'Uncategorized';
+               const categoryColor = cat?.color || '#888888';
+
                return (
-                 <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                   <div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: cat?.color || '#ccc' }}>
-                     <FontAwesomeIcon icon={cat?.icon || 'fa-circle'} />
+                 <div key={t.id} className="flex items-center gap-3.5 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                   <div 
+                     className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white text-sm shadow-sm" 
+                     style={{ backgroundColor: categoryColor }}
+                   >
+                     <FontAwesomeIcon icon={getCategoryIcon(cat?.icon)} />
                    </div>
                    
                    <div className="flex-1 min-w-0">
-                     <p className="font-medium text-gray-900 dark:text-white leading-snug line-clamp-2">
-                       {t.note || cat?.name}
+                     <p className="font-medium text-gray-900 dark:text-white leading-snug break-words">
+                       {hasNote ? t.note : categoryName}
                      </p>
-                     <p className="text-xs text-gray-500 mt-0.5 truncate">
-                       {new Date(t.date).toLocaleDateString()}
-                     </p>
+                     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-xs">
+                       <span className="text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                         {new Date(t.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                       </span>
+                       <span className="text-gray-300 dark:text-gray-600 select-none">&bull;</span>
+                       <span 
+                         className="inline-flex items-center px-1.5 py-0.2 rounded font-medium text-[11px]"
+                         style={{ 
+                           backgroundColor: `${categoryColor}18`,
+                           color: categoryColor,
+                           border: `1px solid ${categoryColor}35`
+                         }}
+                       >
+                         {categoryName}
+                       </span>
+                     </div>
                    </div>
                    
                    <div className="text-right shrink-0 ml-2">
