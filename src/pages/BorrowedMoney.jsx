@@ -17,7 +17,7 @@ import {
   faPaperPlane, 
   faTrash, 
   faEdit, 
-  faDownload, 
+  faFilePdf, 
   faChevronDown, 
   faChevronUp, 
   faHistory,
@@ -29,7 +29,8 @@ import {
   faArrowRotateLeft,
   faComments
 } from '@fortawesome/free-solid-svg-icons';
-import Papa from 'papaparse';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import toast from 'react-hot-toast';
 
 const BorrowedMoney = () => {
@@ -48,6 +49,7 @@ const BorrowedMoney = () => {
   
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null, name: '' });
   const [settleConfirm, setSettleConfirm] = useState({ isOpen: false, id: null, name: '', amount: 0 });
+  const [pdfConfirmOpen, setPdfConfirmOpen] = useState(false);
 
   const [expandedHistories, setExpandedHistories] = useState({});
   const [cardActivityTabs, setCardActivityTabs] = useState({}); // recordId -> 'all' | 'borrows' | 'repayments'
@@ -225,51 +227,97 @@ const BorrowedMoney = () => {
     }
   };
 
-  const handleExportCSV = () => {
-    if (borrowedRecords.length === 0) {
-      toast.error('No borrowed records to export');
-      return;
-    }
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
+  };
 
-    const exportData = borrowedRecords.map(r => {
+  const formatCurrencyPDF = (amount) => {
+    return 'Rs. ' + (parseFloat(amount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    
+    // Nice Header
+    doc.setFontSize(22);
+    doc.setTextColor(31, 41, 55); // gray-800
+    doc.text("Borrowed Money Report (Debts Owed to Friends)", 14, 22);
+    
+    // Subtext
+    doc.setFontSize(11);
+    doc.setTextColor(107, 114, 128); // gray-500
+    doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN', { dateStyle: 'long' })}`, 14, 32);
+    doc.text(`Filters: Status: ${statusFilter.toUpperCase()} | Sort: ${sortBy} | Search: "${search || 'None'}"`, 14, 38);
+
+    // Separator line
+    doc.setDrawColor(229, 231, 235); // gray-200
+    doc.setLineWidth(0.5);
+    doc.line(14, 42, 196, 42);
+
+    const tableColumn = ["Lender", "Date Borrowed", "Total Borrowed", "Repaid", "Debt Owed", "Promise Due Date", "Status"];
+    const tableRows = [];
+
+    let totalBorrowedSum = 0;
+    let totalReturnedSum = 0;
+    let totalPendingDebtSum = 0;
+
+    filteredRecords.forEach(r => {
       const total = parseFloat(r.amount) || 0;
       const returned = parseFloat(r.returnedAmount) || 0;
       const remaining = Math.max(0, total - returned);
-      const status = getRecordStatus(r);
-      const borrows = getRecordBorrows(r);
-      const repayments = r.repayments || [];
+      const status = getRecordStatus(r).toUpperCase();
 
-      return {
-        'Lender Name': r.lenderName,
-        'Total Amount Borrowed (INR)': total,
-        'Repaid Amount (INR)': returned,
-        'Pending Debt Owed (INR)': remaining,
-        'Date Borrowed': r.dateBorrowed,
-        'Promise Due Date': r.dueDate || 'N/A',
-        'Status': status.toUpperCase(),
-        'Phone': r.phone || 'N/A',
-        'Reason / Note': r.note || '',
-        'Borrow Logs Count': borrows.length,
-        'Borrow Logs Detail': borrows.map((b, i) => `#${i + 1}: ₹${b.amount} on ${b.date} (${b.note || 'No note'})`).join(' | '),
-        'Repayments Made Count': repayments.length,
-        'Repayments Detail': repayments.map((rep, i) => `#${i + 1}: ₹${rep.amount} on ${rep.date} (${rep.note || 'Repayment'})`).join(' | ')
-      };
+      totalBorrowedSum += total;
+      totalReturnedSum += returned;
+      totalPendingDebtSum += remaining;
+
+      tableRows.push([
+        r.lenderName,
+        r.dateBorrowed ? new Date(r.dateBorrowed).toLocaleDateString('en-IN') : 'N/A',
+        formatCurrencyPDF(total),
+        formatCurrencyPDF(returned),
+        formatCurrencyPDF(remaining),
+        r.dueDate ? new Date(r.dueDate).toLocaleDateString('en-IN') : 'N/A',
+        status
+      ]);
     });
 
-    const csv = Papa.unparse(exportData);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `borrowed_money_tracker_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success('Borrowed records exported to CSV');
+    tableRows.push(['TOTALS', '', formatCurrencyPDF(totalBorrowedSum), formatCurrencyPDF(totalReturnedSum), formatCurrencyPDF(totalPendingDebtSum), '', '']);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 48,
+      theme: 'grid',
+      styles: { fontSize: 9, cellPadding: 3, textColor: [55, 65, 81] },
+      headStyles: { fillColor: [147, 51, 234], textColor: 255, fontStyle: 'bold' }, // purple-600
+      alternateRowStyles: { fillColor: [250, 245, 255] }, // purple-50/bg
+      columnStyles: {
+        2: { halign: 'right' },
+        3: { halign: 'right' },
+        4: { halign: 'right', fontStyle: 'bold' }
+      },
+      didParseCell: function(data) {
+        if (data.row.index === filteredRecords.length) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fillColor = [243, 244, 246];
+          data.cell.styles.textColor = [17, 24, 39];
+          if (data.column.index === 4) {
+            data.cell.styles.textColor = [225, 29, 72]; // rose-600
+          }
+        }
+      }
+    });
+
+    doc.save(`borrowed_money_report_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
+  const handleExportPDF = () => {
+    if (filteredRecords.length === 0) {
+      toast.error('No borrowed records to export');
+      return;
+    }
+    setPdfConfirmOpen(true);
   };
 
   const getAvatarColor = (name) => {
@@ -308,12 +356,12 @@ const BorrowedMoney = () => {
         <div className="flex items-center gap-3 self-start sm:self-auto">
           {borrowedRecords.length > 0 && (
             <button
-              onClick={handleExportCSV}
-              className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium rounded-xl transition-colors flex items-center gap-2 text-sm cursor-pointer"
-              title="Export to CSV"
+              onClick={handleExportPDF}
+              className="px-4 py-2.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium rounded-xl transition-colors flex items-center gap-2 text-sm cursor-pointer shadow-xs"
+              title="Export to PDF"
             >
-              <FontAwesomeIcon icon={faDownload} />
-              <span className="hidden sm:inline">Export CSV</span>
+              <FontAwesomeIcon icon={faFilePdf} className="text-red-500" />
+              <span className="hidden sm:inline">Export PDF</span>
             </button>
           )}
 
@@ -993,6 +1041,16 @@ const BorrowedMoney = () => {
         title="Mark Debt as Fully Paid Back"
         message={`Confirm that you have fully returned the remaining debt of ₹${settleConfirm.amount.toLocaleString('en-IN')} to ${settleConfirm.name}?`}
         confirmText="Yes, Mark Settled"
+        isDestructive={false}
+      />
+
+      <ConfirmModal 
+        isOpen={pdfConfirmOpen}
+        onClose={() => setPdfConfirmOpen(false)}
+        onConfirm={exportToPDF}
+        title="Export to PDF"
+        message={`Are you sure you want to generate and download a PDF report containing ${filteredRecords.length} borrowed record(s)?`}
+        confirmText="Export PDF"
         isDestructive={false}
       />
     </div>
