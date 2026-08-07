@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useTransactions } from '../context/TransactionContext';
 import LentFormModal from '../components/lent/LentFormModal';
+import LendMoreModal from '../components/lent/LendMoreModal';
 import RepaymentModal from '../components/lent/RepaymentModal';
 import ReminderModal from '../components/lent/ReminderModal';
 import ConfirmModal from '../components/ui/ConfirmModal';
@@ -23,7 +24,10 @@ import {
   faMoneyBillWave,
   faUserFriends,
   faCalendarAlt,
-  faPhone
+  faPhone,
+  faCoins,
+  faReceipt,
+  faArrowTrendUp
 } from '@fortawesome/free-solid-svg-icons';
 import Papa from 'papaparse';
 import toast from 'react-hot-toast';
@@ -32,11 +36,12 @@ const LentMoney = () => {
   const { lentRecords = [], deleteLentRecord, settleLentRecord, loading } = useTransactions();
 
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // all, pending, partial, overdue, settled
+  const [statusFilter, setStatusFilter] = useState('all'); // all, active, pending, partial, overdue, settled
   const [sortBy, setSortBy] = useState('date-desc'); // date-desc, date-asc, amount-desc, pending-desc, due-asc
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [lendMoreTarget, setLendMoreTarget] = useState(null);
   
   const [repayTarget, setRepayTarget] = useState(null);
   const [reminderTarget, setReminderTarget] = useState(null);
@@ -45,9 +50,14 @@ const LentMoney = () => {
   const [settleConfirm, setSettleConfirm] = useState({ isOpen: false, id: null, name: '', amount: 0 });
 
   const [expandedHistories, setExpandedHistories] = useState({});
+  const [cardActivityTabs, setCardActivityTabs] = useState({}); // recordId -> 'all' | 'loans' | 'repayments'
 
   const toggleHistory = (id) => {
     setExpandedHistories(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const setCardTab = (id, tab) => {
+    setCardActivityTabs(prev => ({ ...prev, [id]: tab }));
   };
 
   // Helper to determine real-time status including overdue
@@ -69,6 +79,21 @@ const LentMoney = () => {
     return 'pending';
   };
 
+  // Helper to extract synthesized loan logs if not present
+  const getRecordLoans = (record) => {
+    if (record.loans && Array.isArray(record.loans) && record.loans.length > 0) {
+      return record.loans;
+    }
+    return [
+      {
+        id: 'loan_init_' + record.id,
+        amount: parseFloat(record.amount) || 0,
+        date: record.dateLent || (record.createdAt ? record.createdAt.split('T')[0] : 'N/A'),
+        note: record.note || 'Initial loan'
+      }
+    ];
+  };
+
   // Aggregated KPIs
   const stats = useMemo(() => {
     let totalLent = 0;
@@ -76,14 +101,17 @@ const LentMoney = () => {
     let activeLoansCount = 0;
     let settledLoansCount = 0;
     let overdueCount = 0;
+    let totalDisbursements = 0;
 
     lentRecords.forEach(r => {
       const total = parseFloat(r.amount) || 0;
       const returned = parseFloat(r.returnedAmount) || 0;
-      const remaining = Math.max(0, total - returned);
 
       totalLent += total;
       totalReturned += returned;
+
+      const loansList = getRecordLoans(r);
+      totalDisbursements += loansList.length;
 
       const status = getRecordStatus(r);
       if (status === 'settled') {
@@ -104,6 +132,7 @@ const LentMoney = () => {
       activeLoansCount,
       settledLoansCount,
       overdueCount,
+      totalDisbursements,
       recoveryRate
     };
   }, [lentRecords]);
@@ -115,7 +144,8 @@ const LentMoney = () => {
         const matchesSearch = 
           r.borrowerName?.toLowerCase().includes(search.toLowerCase()) ||
           r.note?.toLowerCase().includes(search.toLowerCase()) ||
-          r.phone?.includes(search);
+          r.phone?.includes(search) ||
+          (r.loans && r.loans.some(l => l.note?.toLowerCase().includes(search.toLowerCase())));
 
         const currentStatus = getRecordStatus(r);
         const matchesStatus = 
@@ -206,18 +236,23 @@ const LentMoney = () => {
       const returned = parseFloat(r.returnedAmount) || 0;
       const remaining = Math.max(0, total - returned);
       const status = getRecordStatus(r);
+      const loans = getRecordLoans(r);
+      const repayments = r.repayments || [];
 
       return {
         'Borrower Name': r.borrowerName,
-        'Amount Lent (INR)': total,
+        'Total Amount Lent (INR)': total,
         'Returned Amount (INR)': returned,
         'Pending Amount (INR)': remaining,
-        'Date Lent': r.dateLent,
+        'Initial Date Lent': r.dateLent,
         'Due Date': r.dueDate || 'N/A',
         'Status': status.toUpperCase(),
         'Phone': r.phone || 'N/A',
         'Reason / Note': r.note || '',
-        'Repayments Count': (r.repayments || []).length
+        'Lending Instances Count': loans.length,
+        'Lending Logs Detail': loans.map((l, i) => `#${i + 1}: ₹${l.amount} on ${l.date} (${l.note || 'No note'})`).join(' | '),
+        'Repayments Count': repayments.length,
+        'Repayments Detail': repayments.map((rep, i) => `#${i + 1}: ₹${rep.amount} on ${rep.date} (${rep.note || 'Repayment'})`).join(' | ')
       };
     });
 
@@ -266,7 +301,7 @@ const LentMoney = () => {
             Lent to Friends
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Track money lent to friends & collect repayments without affecting daily living expenses
+            Track money lent to friends, log multiple top-ups & collect repayments effortlessly
           </p>
         </div>
 
@@ -274,7 +309,7 @@ const LentMoney = () => {
           {lentRecords.length > 0 && (
             <button
               onClick={handleExportCSV}
-              className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium rounded-xl transition-colors flex items-center gap-2 text-sm"
+              className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium rounded-xl transition-colors flex items-center gap-2 text-sm cursor-pointer"
               title="Export to CSV"
             >
               <FontAwesomeIcon icon={faDownload} />
@@ -287,7 +322,7 @@ const LentMoney = () => {
               setEditingRecord(null);
               setIsFormOpen(true);
             }}
-            className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold rounded-xl shadow-lg shadow-amber-500/25 transition-all flex items-center gap-2 text-sm"
+            className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold rounded-xl shadow-lg shadow-amber-500/25 transition-all flex items-center gap-2 text-sm cursor-pointer"
           >
             <FontAwesomeIcon icon={faPlus} />
             <span>Lend Money</span>
@@ -364,7 +399,7 @@ const LentMoney = () => {
             </div>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            Across {lentRecords.length} total loan record{lentRecords.length === 1 ? '' : 's'}
+            {stats.totalDisbursements} disbursement{stats.totalDisbursements === 1 ? '' : 's'} across {lentRecords.length} friend{lentRecords.length === 1 ? '' : 's'}
           </p>
         </div>
 
@@ -400,7 +435,7 @@ const LentMoney = () => {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by friend's name, note, or phone..."
+            placeholder="Search by friend's name, lending note, or phone..."
             className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm dark:text-white"
           />
         </div>
@@ -418,7 +453,7 @@ const LentMoney = () => {
             <button
               key={tab.id}
               onClick={() => setStatusFilter(tab.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
                 statusFilter === tab.id
                   ? 'bg-amber-500 text-white shadow-sm shadow-amber-500/30'
                   : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
@@ -434,7 +469,7 @@ const LentMoney = () => {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="w-full md:w-auto px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-xs font-medium dark:text-white"
+            className="w-full md:w-auto px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-xs font-medium dark:text-white cursor-pointer"
           >
             <option value="date-desc">Newest Lent Date</option>
             <option value="date-asc">Oldest Lent Date</option>
@@ -453,8 +488,26 @@ const LentMoney = () => {
           const remaining = Math.max(0, total - returned);
           const percentRepaid = total > 0 ? Math.min((returned / total) * 100, 100) : 0;
           const status = getRecordStatus(record);
+          const loans = getRecordLoans(record);
           const repayments = record.repayments || [];
           const isExpanded = !!expandedHistories[record.id];
+          const currentTab = cardActivityTabs[record.id] || 'all';
+
+          // Combined chronological ledger events
+          const combinedTimeline = [
+            ...loans.map((l, idx) => ({
+              ...l,
+              eventType: 'loan',
+              eventTitle: idx === 0 ? 'Initial Loan' : `Top-up #${idx + 1}`,
+              sortDate: new Date(l.date || record.dateLent || 0)
+            })),
+            ...repayments.map((rep, idx) => ({
+              ...rep,
+              eventType: 'repayment',
+              eventTitle: `Repayment #${idx + 1}`,
+              sortDate: new Date(rep.date || 0)
+            }))
+          ].sort((a, b) => b.sortDate - a.sortDate);
 
           return (
             <div 
@@ -502,13 +555,21 @@ const LentMoney = () => {
                           Pending Return
                         </span>
                       )}
+
+                      {/* Loans count badge */}
+                      {loans.length > 1 && (
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 flex items-center gap-1">
+                          <FontAwesomeIcon icon={faCoins} className="text-[10px]" />
+                          <span>{loans.length} Loans Logged</span>
+                        </span>
+                      )}
                     </div>
 
                     {/* Metadata Subtitle */}
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                       <span className="flex items-center gap-1">
                         <FontAwesomeIcon icon={faCalendarAlt} className="text-[10px]" />
-                        Lent on {new Date(record.dateLent).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        First Lent: {new Date(record.dateLent || (loans[0] && loans[0].date) || 0).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </span>
                       {record.dueDate && (
                         <>
@@ -545,7 +606,7 @@ const LentMoney = () => {
                       {remaining > 0 ? formatCurrency(remaining) : 'Paid in Full'}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      of {formatCurrency(total)} total
+                      of {formatCurrency(total)} total lent
                     </p>
                   </div>
                 </div>
@@ -578,66 +639,248 @@ const LentMoney = () => {
               {/* Note if present */}
               {record.note && (
                 <div className="mt-3 text-xs bg-gray-50 dark:bg-gray-900/60 p-2.5 rounded-xl text-gray-600 dark:text-gray-300 border border-gray-100 dark:border-gray-800 flex items-start gap-2">
-                  <span className="font-semibold text-gray-500 shrink-0">Reason:</span>
+                  <span className="font-semibold text-gray-500 shrink-0">Note:</span>
                   <span className="italic">{record.note}</span>
                 </div>
               )}
 
-              {/* Repayments History Accordion */}
-              {repayments.length > 0 && (
-                <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-800">
-                  <button
-                    onClick={() => toggleHistory(record.id)}
-                    className="text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1.5"
-                  >
-                    <FontAwesomeIcon icon={faHistory} />
-                    <span>Repayment History ({repayments.length} payment{repayments.length === 1 ? '' : 's'})</span>
+              {/* Comprehensive Activity & Lending Logs Accordion */}
+              <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-800">
+                <button
+                  onClick={() => toggleHistory(record.id)}
+                  className="text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center justify-between w-full py-1 cursor-pointer transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <FontAwesomeIcon icon={faHistory} className="text-amber-500" />
+                    <span>
+                      Activity Logs ({loans.length} loan{loans.length === 1 ? '' : 's'} given, {repayments.length} return{repayments.length === 1 ? '' : 's'})
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-gray-400">
+                    <span className="text-[11px]">{isExpanded ? 'Hide Logs' : 'View Logs & History'}</span>
                     <FontAwesomeIcon icon={isExpanded ? faChevronUp : faChevronDown} className="text-[10px]" />
-                  </button>
+                  </div>
+                </button>
 
-                  {isExpanded && (
-                    <div className="mt-2 space-y-1.5 pl-2 border-l-2 border-green-500/30">
-                      {repayments.map((rep, idx) => (
-                        <div key={rep.id || idx} className="flex justify-between items-center text-xs py-1 text-gray-600 dark:text-gray-300">
-                          <div className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                            <span>{new Date(rep.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                            {rep.note && <span className="text-gray-400">({rep.note})</span>}
-                          </div>
-                          <span className="font-semibold text-green-600 dark:text-green-400">
-                            +{formatCurrency(rep.amount)}
-                          </span>
-                        </div>
-                      ))}
+                {isExpanded && (
+                  <div className="mt-2.5 pt-2 border-t border-dashed border-gray-200 dark:border-gray-800 animate-fade-in space-y-3">
+                    {/* Filter tabs inside history */}
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800/80 p-1 rounded-xl text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setCardTab(record.id, 'all')}
+                          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+                            currentTab === 'all'
+                              ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-xs font-semibold'
+                              : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                          }`}
+                        >
+                          All Logs ({combinedTimeline.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCardTab(record.id, 'loans')}
+                          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+                            currentTab === 'loans'
+                              ? 'bg-amber-500 text-white shadow-xs font-semibold'
+                              : 'text-gray-500 hover:text-amber-600 dark:hover:text-amber-400'
+                          }`}
+                        >
+                          📤 Loans Given ({loans.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCardTab(record.id, 'repayments')}
+                          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+                            currentTab === 'repayments'
+                              ? 'bg-green-600 text-white shadow-xs font-semibold'
+                              : 'text-gray-500 hover:text-green-600 dark:hover:text-green-400'
+                          }`}
+                        >
+                          📥 Returned ({repayments.length})
+                        </button>
+                      </div>
+
+                      {/* Quick Lend More trigger from inside logs */}
+                      <button
+                        type="button"
+                        onClick={() => setLendMoreTarget(record)}
+                        className="text-xs text-amber-600 dark:text-amber-400 font-semibold hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
+                        <span>Add Another Loan / Top-up</span>
+                      </button>
                     </div>
-                  )}
-                </div>
-              )}
+
+                    {/* Timeline List */}
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                      {/* All logs or filtered */}
+                      {currentTab === 'all' && (
+                        combinedTimeline.map((item, idx) => (
+                          <div 
+                            key={item.id || idx} 
+                            className={`flex items-center justify-between p-2.5 rounded-xl border text-xs ${
+                              item.eventType === 'loan'
+                                ? 'bg-amber-500/5 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/40'
+                                : 'bg-green-500/5 dark:bg-green-950/20 border-green-200/60 dark:border-green-900/40'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                                item.eventType === 'loan'
+                                  ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400'
+                                  : 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400'
+                              }`}>
+                                <FontAwesomeIcon icon={item.eventType === 'loan' ? faHandHoldingDollar : faCheckCircle} />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-semibold text-gray-900 dark:text-white">
+                                    {item.eventTitle}
+                                  </span>
+                                  <span className="text-[11px] text-gray-400">
+                                    &bull; {new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                  </span>
+                                </div>
+                                {item.note && (
+                                  <p className="text-[11px] text-gray-500 dark:text-gray-400 italic mt-0.5">
+                                    "{item.note}"
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <span className={`font-bold text-sm shrink-0 ${
+                              item.eventType === 'loan'
+                                ? 'text-amber-600 dark:text-amber-400'
+                                : 'text-green-600 dark:text-green-400'
+                            }`}>
+                              {item.eventType === 'loan' ? '-' : '+'} {formatCurrency(item.amount)}
+                            </span>
+                          </div>
+                        ))
+                      )}
+
+                      {/* Only loans */}
+                      {currentTab === 'loans' && (
+                        loans.map((l, idx) => (
+                          <div 
+                            key={l.id || idx} 
+                            className="flex items-center justify-between p-2.5 rounded-xl border bg-amber-500/5 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/40 text-xs"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-xs shrink-0">
+                                <FontAwesomeIcon icon={faHandHoldingDollar} />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-semibold text-gray-900 dark:text-white">
+                                    {idx === 0 ? 'Initial Loan' : `Disbursement Top-up #${idx + 1}`}
+                                  </span>
+                                  <span className="text-[11px] text-gray-400">
+                                    &bull; {new Date(l.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                  </span>
+                                </div>
+                                {l.note && (
+                                  <p className="text-[11px] text-gray-500 dark:text-gray-400 italic mt-0.5">
+                                    "{l.note}"
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <span className="font-bold text-sm text-amber-600 dark:text-amber-400 shrink-0">
+                              Lent: {formatCurrency(l.amount)}
+                            </span>
+                          </div>
+                        ))
+                      )}
+
+                      {/* Only repayments */}
+                      {currentTab === 'repayments' && (
+                        repayments.length > 0 ? (
+                          repayments.map((rep, idx) => (
+                            <div 
+                              key={rep.id || idx} 
+                              className="flex items-center justify-between p-2.5 rounded-xl border bg-green-500/5 dark:bg-green-950/20 border-green-200/60 dark:border-green-900/40 text-xs"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-lg bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 flex items-center justify-center font-bold text-xs shrink-0">
+                                  <FontAwesomeIcon icon={faCheckCircle} />
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-semibold text-gray-900 dark:text-white">
+                                      Repayment #{idx + 1}
+                                    </span>
+                                    <span className="text-[11px] text-gray-400">
+                                      &bull; {new Date(rep.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                    </span>
+                                  </div>
+                                  {rep.note && (
+                                    <p className="text-[11px] text-gray-500 dark:text-gray-400 italic mt-0.5">
+                                      "{rep.note}"
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <span className="font-bold text-sm text-green-600 dark:text-green-400 shrink-0">
+                                + {formatCurrency(rep.amount)}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-4 text-center text-xs text-gray-400">
+                            No repayments logged yet for this friend.
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Action Buttons */}
               <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Lend More Button */}
+                  <button
+                    type="button"
+                    onClick={() => setLendMoreTarget(record)}
+                    className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-semibold shadow-sm shadow-amber-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                    title="Lend more money to this same person and record a disbursement log"
+                  >
+                    <FontAwesomeIcon icon={faPlus} />
+                    <span>Lend More</span>
+                  </button>
+
+                  {/* Return Button */}
                   {remaining > 0 && (
                     <>
                       <button
+                        type="button"
                         onClick={() => setRepayTarget(record)}
                         className="px-3.5 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
                       >
-                        <FontAwesomeIcon icon={faPlus} />
+                        <FontAwesomeIcon icon={faCheckCircle} />
                         <span>Record Return</span>
                       </button>
 
                       <button
+                        type="button"
                         onClick={() => handleSettlePrompt(record)}
-                        className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5"
+                        className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
                       >
                         <FontAwesomeIcon icon={faCheckCircle} className="text-green-500" />
                         <span>Settle All</span>
                       </button>
 
                       <button
+                        type="button"
                         onClick={() => setReminderTarget(record)}
-                        className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5"
+                        className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
                       >
                         <FontAwesomeIcon icon={faPaperPlane} />
                         <span>Remind</span>
@@ -654,15 +897,17 @@ const LentMoney = () => {
 
                 <div className="flex items-center gap-1">
                   <button
+                    type="button"
                     onClick={() => handleEdit(record)}
-                    className="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-xs"
-                    title="Edit Record"
+                    className="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-xs cursor-pointer"
+                    title="Edit Record Details"
                   >
                     <FontAwesomeIcon icon={faEdit} />
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleDelete(record.id, record.borrowerName)}
-                    className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors text-xs"
+                    className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors text-xs cursor-pointer"
                     title="Delete Record"
                   >
                     <FontAwesomeIcon icon={faTrash} />
@@ -686,16 +931,17 @@ const LentMoney = () => {
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-xs mx-auto">
                 {search || statusFilter !== 'all'
                   ? 'Try adjusting your search or clearing the status filter'
-                  : 'Whenever you lend money to friends or colleagues, record it here to track returns without interfering with daily living expenses.'}
+                  : 'Whenever you lend money to friends or colleagues, record it here to track returns and top-ups without interfering with daily living expenses.'}
               </p>
             </div>
             {(!search && statusFilter === 'all') && (
               <button
+                type="button"
                 onClick={() => {
                   setEditingRecord(null);
                   setIsFormOpen(true);
                 }}
-                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold rounded-xl shadow-lg shadow-amber-500/25 transition-all inline-flex items-center gap-2 text-sm"
+                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold rounded-xl shadow-lg shadow-amber-500/25 transition-all inline-flex items-center gap-2 text-sm cursor-pointer"
               >
                 <FontAwesomeIcon icon={faPlus} />
                 <span>Lend Money to a Friend</span>
@@ -710,6 +956,12 @@ const LentMoney = () => {
         isOpen={isFormOpen}
         onClose={handleCloseForm}
         initialData={editingRecord}
+      />
+
+      <LendMoreModal
+        isOpen={!!lendMoreTarget}
+        onClose={() => setLendMoreTarget(null)}
+        record={lendMoreTarget}
       />
 
       <RepaymentModal

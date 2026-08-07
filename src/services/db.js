@@ -141,11 +141,24 @@ export const DataService = {
   },
 
   async addLentRecord(record) {
+    const amountVal = parseFloat(record.amount) || 0;
+    const initialLoans = (record.loans && Array.isArray(record.loans) && record.loans.length > 0)
+      ? record.loans
+      : [
+          {
+            id: 'loan_' + Date.now(),
+            amount: amountVal,
+            date: record.dateLent || new Date().toISOString().split('T')[0],
+            note: record.note ? record.note.trim() : 'Initial loan'
+          }
+        ];
+
     const newRecord = {
       ...record,
-      amount: parseFloat(record.amount) || 0,
+      amount: amountVal,
       returnedAmount: parseFloat(record.returnedAmount) || 0,
       repayments: record.repayments || [],
+      loans: initialLoans,
       createdAt: new Date().toISOString()
     };
 

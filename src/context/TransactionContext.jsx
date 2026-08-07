@@ -155,6 +155,55 @@ export const TransactionProvider = ({ children }) => {
     }
   };
 
+  const lendMoreMoney = async (id, loanDetails) => {
+    try {
+      const current = lentRecords.find(r => r.id === id);
+      if (!current) throw new Error('Record not found');
+
+      const addAmount = parseFloat(loanDetails.amount) || 0;
+      if (addAmount <= 0) throw new Error('Invalid loan amount');
+
+      const initialLoan = {
+        id: 'loan_init_' + (current.createdAt ? new Date(current.createdAt).getTime() : Date.now()),
+        amount: parseFloat(current.amount) || 0,
+        date: current.dateLent || (current.createdAt ? current.createdAt.split('T')[0] : new Date().toISOString().split('T')[0]),
+        note: current.note || 'Initial loan'
+      };
+
+      const existingLoans = (current.loans && Array.isArray(current.loans) && current.loans.length > 0)
+        ? current.loans
+        : [initialLoan];
+
+      const newLoanEntry = {
+        id: 'loan_' + Date.now(),
+        amount: addAmount,
+        date: loanDetails.date || new Date().toISOString().split('T')[0],
+        note: loanDetails.note ? loanDetails.note.trim() : 'Additional loan'
+      };
+
+      const updatedLoans = [...existingLoans, newLoanEntry];
+      const newTotalAmount = updatedLoans.reduce((sum, l) => sum + (parseFloat(l.amount) || 0), 0);
+      const currentReturned = parseFloat(current.returnedAmount) || 0;
+
+      const updates = {
+        amount: newTotalAmount,
+        loans: updatedLoans,
+        status: currentReturned >= newTotalAmount ? 'settled' : (currentReturned > 0 ? 'partial' : 'pending')
+      };
+
+      if (loanDetails.dueDate !== undefined) {
+        updates.dueDate = loanDetails.dueDate || null;
+      }
+
+      await DataService.updateLentRecord(id, updates);
+      setLentRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+      return updates;
+    } catch (err) {
+      setError('Failed to lend more money');
+      throw err;
+    }
+  };
+
   const settleLentRecord = async (id) => {
     try {
       const current = lentRecords.find(r => r.id === id);
@@ -205,6 +254,7 @@ export const TransactionProvider = ({ children }) => {
       addLentRecord,
       updateLentRecord,
       deleteLentRecord,
+      lendMoreMoney,
       recordRepayment,
       settleLentRecord,
       refreshData: fetchData

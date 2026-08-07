@@ -65,13 +65,22 @@ const LentFormModal = ({ isOpen, onClose, initialData = null }) => {
         await updateLentRecord(initialData.id, recordPayload);
         toast.success('Lending record updated!');
       } else {
+        const initialAmount = parseFloat(amount);
         await addLentRecord({
           ...recordPayload,
           returnedAmount: 0,
           status: 'pending',
-          repayments: []
+          repayments: [],
+          loans: [
+            {
+              id: 'loan_' + Date.now(),
+              amount: initialAmount,
+              date: dateLent,
+              note: note.trim() || 'Initial loan'
+            }
+          ]
         });
-        toast.success(`Lent ₹${parseFloat(amount).toLocaleString('en-IN')} to ${borrowerName.trim()}!`);
+        toast.success(`Lent ₹${initialAmount.toLocaleString('en-IN')} to ${borrowerName.trim()}!`);
       }
       onClose();
     } catch (err) {
