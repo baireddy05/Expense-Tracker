@@ -55,7 +55,6 @@ export const DataService = {
       const defaultCategories = [
         { name: 'Food', color: '#ef4444', icon: 'fa-utensils', type: 'expense' },
         { name: 'Groceries', color: '#f97316', icon: 'fa-shopping-cart', type: 'expense' },
-        { name: 'Lend money to friends', color: '#6366f1', icon: 'fa-hand-holding-dollar', type: 'expense' },
         { name: 'Travel', color: '#eab308', icon: 'fa-plane', type: 'expense' },
         { name: 'Entertainment', color: '#8b5cf6', icon: 'fa-film', type: 'expense' },
         { name: 'Medical', color: '#ec4899', icon: 'fa-notes-medical', type: 'expense' },
@@ -122,5 +121,90 @@ export const DataService = {
     const settingsRef = doc(db, "settings", id);
     await updateDoc(settingsRef, updates);
     return { id, ...updates };
+  },
+
+  async getLentRecords() {
+    if (!db) {
+      const local = localStorage.getItem('lent_records');
+      return local ? JSON.parse(local) : [];
+    }
+    try {
+      const querySnapshot = await getDocs(collection(db, "lent_records"));
+      const records = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      localStorage.setItem('lent_records', JSON.stringify(records));
+      return records;
+    } catch (e) {
+      console.warn("Failed to fetch lent records from Firestore, using local fallback", e);
+      const local = localStorage.getItem('lent_records');
+      return local ? JSON.parse(local) : [];
+    }
+  },
+
+  async addLentRecord(record) {
+    const newRecord = {
+      ...record,
+      amount: parseFloat(record.amount) || 0,
+      returnedAmount: parseFloat(record.returnedAmount) || 0,
+      repayments: record.repayments || [],
+      createdAt: new Date().toISOString()
+    };
+
+    if (!db) {
+      const id = 'local_' + Date.now();
+      const saved = { id, ...newRecord };
+      const existing = JSON.parse(localStorage.getItem('lent_records') || '[]');
+      existing.unshift(saved);
+      localStorage.setItem('lent_records', JSON.stringify(existing));
+      return saved;
+    }
+
+    try {
+      const docRef = await addDoc(collection(db, "lent_records"), newRecord);
+      const saved = { id: docRef.id, ...newRecord };
+      const existing = JSON.parse(localStorage.getItem('lent_records') || '[]');
+      existing.unshift(saved);
+      localStorage.setItem('lent_records', JSON.stringify(existing));
+      return saved;
+    } catch (e) {
+      console.warn("Firebase write failed, using local storage fallback", e);
+      const id = 'local_' + Date.now();
+      const saved = { id, ...newRecord };
+      const existing = JSON.parse(localStorage.getItem('lent_records') || '[]');
+      existing.unshift(saved);
+      localStorage.setItem('lent_records', JSON.stringify(existing));
+      return saved;
+    }
+  },
+
+  async updateLentRecord(id, updates) {
+    const existing = JSON.parse(localStorage.getItem('lent_records') || '[]');
+    const updatedList = existing.map(item => item.id === id ? { ...item, ...updates } : item);
+    localStorage.setItem('lent_records', JSON.stringify(updatedList));
+
+    if (db && !id.startsWith('local_')) {
+      try {
+        const recordRef = doc(db, "lent_records", id);
+        await updateDoc(recordRef, updates);
+      } catch (e) {
+        console.warn("Failed to update Firestore lent record", e);
+      }
+    }
+    return { id, ...updates };
+  },
+
+  async deleteLentRecord(id) {
+    const existing = JSON.parse(localStorage.getItem('lent_records') || '[]');
+    const updatedList = existing.filter(item => item.id !== id);
+    localStorage.setItem('lent_records', JSON.stringify(updatedList));
+
+    if (db && !id.startsWith('local_')) {
+      try {
+        const recordRef = doc(db, "lent_records", id);
+        await deleteDoc(recordRef);
+      } catch (e) {
+        console.warn("Failed to delete Firestore lent record", e);
+      }
+    }
+    return true;
   }
 };

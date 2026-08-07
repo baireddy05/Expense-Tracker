@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHome, faList, faChartPie, faCog, faMoon, faSun, faWallet } from '@fortawesome/free-solid-svg-icons';
+import { faHome, faList, faChartPie, faCog, faMoon, faSun, faWallet, faHandHoldingDollar } from '@fortawesome/free-solid-svg-icons';
 import { useTheme } from '../../context/ThemeContext';
 
 const Sidebar = () => {
@@ -10,6 +10,7 @@ const Sidebar = () => {
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: faHome },
     { name: 'Transactions', path: '/transactions', icon: faList },
+    { name: 'Lent to Friends', path: '/lent', icon: faHandHoldingDollar },
     { name: 'Analytics', path: '/analytics', icon: faChartPie },
     { name: 'Settings', path: '/settings', icon: faCog },
   ];

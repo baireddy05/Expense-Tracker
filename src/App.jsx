@@ -5,6 +5,7 @@ import { TransactionProvider } from './context/TransactionContext';
 import AppShell from './components/layout/AppShell';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
+import LentMoney from './pages/LentMoney';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import { Toaster } from 'react-hot-toast';
@@ -19,6 +20,7 @@ function App() {
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="transactions" element={<Transactions />} />
+              <Route path="lent" element={<LentMoney />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="settings" element={<Settings />} />
             </Route>

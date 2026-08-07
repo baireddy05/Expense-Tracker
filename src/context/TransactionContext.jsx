@@ -6,6 +6,7 @@ const TransactionContext = createContext();
 export const TransactionProvider = ({ children }) => {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [lentRecords, setLentRecords] = useState([]);
   const [settings, setSettings] = useState({ monthlyBudget: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -13,14 +14,16 @@ export const TransactionProvider = ({ children }) => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [txData, catData, settingsData] = await Promise.all([
+      const [txData, catData, settingsData, lentData] = await Promise.all([
         DataService.getTransactions(),
         DataService.getCategories(),
-        DataService.getSettings()
+        DataService.getSettings(),
+        DataService.getLentRecords()
       ]);
       setTransactions(txData);
       setCategories(catData);
       setSettings(settingsData);
+      setLentRecords(lentData || []);
       setError(null);
     } catch (err) {
       setError(err.message || 'Failed to load data');
@@ -87,10 +90,110 @@ export const TransactionProvider = ({ children }) => {
     }
   };
 
+  // Lent Money Actions
+  const addLentRecord = async (record) => {
+    try {
+      const saved = await DataService.addLentRecord(record);
+      setLentRecords(prev => [saved, ...prev]);
+      return saved;
+    } catch (err) {
+      setError('Failed to add lent record');
+      throw err;
+    }
+  };
+
+  const updateLentRecord = async (id, updates) => {
+    try {
+      await DataService.updateLentRecord(id, updates);
+      setLentRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+      return { id, ...updates };
+    } catch (err) {
+      setError('Failed to update lent record');
+      throw err;
+    }
+  };
+
+  const deleteLentRecord = async (id) => {
+    try {
+      await DataService.deleteLentRecord(id);
+      setLentRecords(prev => prev.filter(r => r.id !== id));
+    } catch (err) {
+      setError('Failed to delete lent record');
+      throw err;
+    }
+  };
+
+  const recordRepayment = async (id, repayment) => {
+    try {
+      const current = lentRecords.find(r => r.id === id);
+      if (!current) throw new Error('Record not found');
+
+      const repayAmount = parseFloat(repayment.amount) || 0;
+      const newReturned = (parseFloat(current.returnedAmount) || 0) + repayAmount;
+      const newRepayments = [
+        ...(current.repayments || []),
+        {
+          id: 'rep_' + Date.now(),
+          amount: repayAmount,
+          date: repayment.date || new Date().toISOString().split('T')[0],
+          note: repayment.note || ''
+        }
+      ];
+
+      const updates = {
+        returnedAmount: newReturned,
+        repayments: newRepayments,
+        status: newReturned >= parseFloat(current.amount) ? 'settled' : 'partial'
+      };
+
+      await DataService.updateLentRecord(id, updates);
+      setLentRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+      return updates;
+    } catch (err) {
+      setError('Failed to record repayment');
+      throw err;
+    }
+  };
+
+  const settleLentRecord = async (id) => {
+    try {
+      const current = lentRecords.find(r => r.id === id);
+      if (!current) throw new Error('Record not found');
+
+      const totalAmount = parseFloat(current.amount) || 0;
+      const currentReturned = parseFloat(current.returnedAmount) || 0;
+      const remaining = Math.max(0, totalAmount - currentReturned);
+
+      const newRepayments = remaining > 0 ? [
+        ...(current.repayments || []),
+        {
+          id: 'rep_' + Date.now(),
+          amount: remaining,
+          date: new Date().toISOString().split('T')[0],
+          note: 'Marked fully settled'
+        }
+      ] : (current.repayments || []);
+
+      const updates = {
+        returnedAmount: totalAmount,
+        repayments: newRepayments,
+        status: 'settled'
+      };
+
+      await DataService.updateLentRecord(id, updates);
+      setLentRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+      return updates;
+    } catch (err) {
+      setError('Failed to settle loan');
+      throw err;
+    }
+  };
+
   return (
     <TransactionContext.Provider value={{
       transactions,
       categories,
+      lentRecords,
       settings,
       loading,
       error,
@@ -99,6 +202,11 @@ export const TransactionProvider = ({ children }) => {
       updateTransaction,
       deleteTransaction,
       addCategory,
+      addLentRecord,
+      updateLentRecord,
+      deleteLentRecord,
+      recordRepayment,
+      settleLentRecord,
       refreshData: fetchData
     }}>
       {children}
