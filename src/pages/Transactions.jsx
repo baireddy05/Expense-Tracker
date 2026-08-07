@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTransactions } from '../context/TransactionContext';
+import { useUI } from '../context/UIContext';
 import TransactionForm from '../components/transactions/TransactionForm';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -13,6 +14,7 @@ import toast from 'react-hot-toast';
 
 const Transactions = () => {
   const { transactions, categories, deleteTransaction, loading } = useTransactions();
+  const { isPrivacyMode } = useUI();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
   
@@ -116,6 +118,9 @@ const Transactions = () => {
   };
 
   const formatCurrency = (amount) => {
+    if (isPrivacyMode) {
+      return '₹••••••';
+    }
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
   };
 

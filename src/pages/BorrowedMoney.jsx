@@ -32,9 +32,11 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import toast from 'react-hot-toast';
+import { useUI } from '../context/UIContext';
 
 const BorrowedMoney = () => {
   const { borrowedRecords = [], deleteBorrowedRecord, settleBorrowedRecord, loading } = useTransactions();
+  const { isPrivacyMode } = useUI();
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // all, active, pending, partial, overdue, settled
@@ -228,6 +230,9 @@ const BorrowedMoney = () => {
   };
 
   const formatCurrency = (amount) => {
+    if (isPrivacyMode) {
+      return '₹••••••';
+    }
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
   };
 

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTransactions } from '../context/TransactionContext';
+import { useUI } from '../context/UIContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faWallet, 
@@ -9,12 +10,10 @@ import {
   faHandHoldingDollar, 
   faHandHolding, 
   faClock, 
-  faExclamationTriangle,
-  faArrowRight,
-  faPaperPlane,
-  faCoins,
-  faPiggyBank,
-  faReceipt
+  faExclamationTriangle, 
+  faArrowRight, 
+  faCoins, 
+  faReceipt 
 } from '@fortawesome/free-solid-svg-icons';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
@@ -26,7 +25,15 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 
 const Dashboard = () => {
   const { transactions, categories, lentRecords = [], borrowedRecords = [], loading, settings } = useTransactions();
+  const { isPrivacyMode } = useUI();
   const navigate = useNavigate();
+
+  const formatCurrency = (amount) => {
+    if (isPrivacyMode) {
+      return '₹••••••';
+    }
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
+  };
 
   const stats = useMemo(() => {
     let income = 0;
@@ -221,10 +228,6 @@ const Dashboard = () => {
     ]
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
-  };
-
   if (loading) return <DashboardSkeleton />;
 
   return (
@@ -327,7 +330,7 @@ const Dashboard = () => {
             </div>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            +₹{stats.totalLentPending.toLocaleString('en-IN')} Lent &bull; -₹{stats.totalBorrowedPending.toLocaleString('en-IN')} Debt
+            {isPrivacyMode ? '+₹•••• Lent • -₹•••• Debt' : `+₹${stats.totalLentPending.toLocaleString('en-IN')} Lent • -₹${stats.totalBorrowedPending.toLocaleString('en-IN')} Debt`}
           </p>
         </div>
       </div>
@@ -365,7 +368,7 @@ const Dashboard = () => {
                     </span>
                   </div>
                   <p className="font-bold text-sm mt-0.5 text-gray-900 dark:text-white">
-                    ₹{alert.amount.toLocaleString('en-IN')}
+                    {formatCurrency(alert.amount)}
                   </p>
                   <p className={`text-[11px] mt-0.5 ${alert.isOverdue ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
                     {alert.isOverdue ? `Overdue by ${Math.abs(alert.diffDays)} day(s)` : `Due in ${alert.diffDays} day(s)`}

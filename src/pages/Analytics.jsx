@@ -14,11 +14,13 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { getCategoryIcon } from '../utils/categoryIcons';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
+import { useUI } from '../context/UIContext';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement);
 
 const Analytics = () => {
   const { transactions, categories, lentRecords = [], borrowedRecords = [] } = useTransactions();
+  const { isPrivacyMode } = useUI();
 
   const stats = useMemo(() => {
     let income = 0;
@@ -112,6 +114,9 @@ const Analytics = () => {
   };
 
   const formatCurrency = (amount) => {
+    if (isPrivacyMode) {
+      return '₹••••••';
+    }
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
   };
 
@@ -156,10 +161,10 @@ const Analytics = () => {
         <div className="glass rounded-2xl p-5 border-l-4 border-l-amber-500">
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Receivable vs Debt</p>
           <h2 className="text-2xl font-bold mt-1 text-amber-600 dark:text-amber-400">
-            +₹{stats.totalLentPending.toLocaleString('en-IN')}
+            {isPrivacyMode ? '+₹••••' : `+₹${stats.totalLentPending.toLocaleString('en-IN')}`}
           </h2>
           <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-            Debt Owed: -₹{stats.totalBorrowedPending.toLocaleString('en-IN')}
+            Debt Owed: {isPrivacyMode ? '-₹••••' : `-₹${stats.totalBorrowedPending.toLocaleString('en-IN')}`}
           </p>
         </div>
       </div>
