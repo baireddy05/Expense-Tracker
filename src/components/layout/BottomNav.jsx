@@ -1,13 +1,14 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHome, faList, faChartPie, faCog, faHandHoldingDollar } from '@fortawesome/free-solid-svg-icons';
+import { faHome, faList, faChartPie, faCog, faHandHoldingDollar, faHandHolding } from '@fortawesome/free-solid-svg-icons';
 
 const BottomNav = () => {
   const navItems = [
     { name: 'Home', path: '/dashboard', icon: faHome },
     { name: 'Txns', path: '/transactions', icon: faList },
     { name: 'Lent', path: '/lent', icon: faHandHoldingDollar },
+    { name: 'Borrowed', path: '/borrowed', icon: faHandHolding },
     { name: 'Stats', path: '/analytics', icon: faChartPie },
     { name: 'Settings', path: '/settings', icon: faCog },
   ];

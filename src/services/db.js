@@ -219,5 +219,104 @@ export const DataService = {
       }
     }
     return true;
+  },
+
+  // Borrowed Money Actions (Money borrowed from friends)
+  async getBorrowedRecords() {
+    if (!db) {
+      const local = localStorage.getItem('borrowed_records');
+      return local ? JSON.parse(local) : [];
+    }
+    try {
+      const querySnapshot = await getDocs(collection(db, "borrowed_records"));
+      const records = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      localStorage.setItem('borrowed_records', JSON.stringify(records));
+      return records;
+    } catch (e) {
+      console.warn("Failed to fetch borrowed records from Firestore, using local fallback", e);
+      const local = localStorage.getItem('borrowed_records');
+      return local ? JSON.parse(local) : [];
+    }
+  },
+
+  async addBorrowedRecord(record) {
+    const amountVal = parseFloat(record.amount) || 0;
+    const initialBorrows = (record.borrows && Array.isArray(record.borrows) && record.borrows.length > 0)
+      ? record.borrows
+      : [
+          {
+            id: 'borrow_' + Date.now(),
+            amount: amountVal,
+            date: record.dateBorrowed || new Date().toISOString().split('T')[0],
+            note: record.note ? record.note.trim() : 'Initial borrowed money'
+          }
+        ];
+
+    const newRecord = {
+      ...record,
+      amount: amountVal,
+      returnedAmount: parseFloat(record.returnedAmount) || 0,
+      repayments: record.repayments || [],
+      borrows: initialBorrows,
+      createdAt: new Date().toISOString()
+    };
+
+    if (!db) {
+      const id = 'local_borrow_' + Date.now();
+      const saved = { id, ...newRecord };
+      const existing = JSON.parse(localStorage.getItem('borrowed_records') || '[]');
+      existing.unshift(saved);
+      localStorage.setItem('borrowed_records', JSON.stringify(existing));
+      return saved;
+    }
+
+    try {
+      const docRef = await addDoc(collection(db, "borrowed_records"), newRecord);
+      const saved = { id: docRef.id, ...newRecord };
+      const existing = JSON.parse(localStorage.getItem('borrowed_records') || '[]');
+      existing.unshift(saved);
+      localStorage.setItem('borrowed_records', JSON.stringify(existing));
+      return saved;
+    } catch (e) {
+      console.warn("Firebase write failed, using local storage fallback for borrowed record", e);
+      const id = 'local_borrow_' + Date.now();
+      const saved = { id, ...newRecord };
+      const existing = JSON.parse(localStorage.getItem('borrowed_records') || '[]');
+      existing.unshift(saved);
+      localStorage.setItem('borrowed_records', JSON.stringify(existing));
+      return saved;
+    }
+  },
+
+  async updateBorrowedRecord(id, updates) {
+    const existing = JSON.parse(localStorage.getItem('borrowed_records') || '[]');
+    const updatedList = existing.map(item => item.id === id ? { ...item, ...updates } : item);
+    localStorage.setItem('borrowed_records', JSON.stringify(updatedList));
+
+    if (db && !id.startsWith('local_')) {
+      try {
+        const recordRef = doc(db, "borrowed_records", id);
+        await updateDoc(recordRef, updates);
+      } catch (e) {
+        console.warn("Failed to update Firestore borrowed record", e);
+      }
+    }
+    return { id, ...updates };
+  },
+
+  async deleteBorrowedRecord(id) {
+    const existing = JSON.parse(localStorage.getItem('borrowed_records') || '[]');
+    const updatedList = existing.filter(item => item.id !== id);
+    localStorage.setItem('borrowed_records', JSON.stringify(updatedList));
+
+    if (db && !id.startsWith('local_')) {
+      try {
+        const recordRef = doc(db, "borrowed_records", id);
+        await deleteDoc(recordRef);
+      } catch (e) {
+        console.warn("Failed to delete Firestore borrowed record", e);
+      }
+    }
+    return true;
   }
 };

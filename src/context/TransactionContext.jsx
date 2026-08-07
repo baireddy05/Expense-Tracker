@@ -7,6 +7,7 @@ export const TransactionProvider = ({ children }) => {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [lentRecords, setLentRecords] = useState([]);
+  const [borrowedRecords, setBorrowedRecords] = useState([]);
   const [settings, setSettings] = useState({ monthlyBudget: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -14,16 +15,18 @@ export const TransactionProvider = ({ children }) => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [txData, catData, settingsData, lentData] = await Promise.all([
+      const [txData, catData, settingsData, lentData, borrowData] = await Promise.all([
         DataService.getTransactions(),
         DataService.getCategories(),
         DataService.getSettings(),
-        DataService.getLentRecords()
+        DataService.getLentRecords(),
+        DataService.getBorrowedRecords()
       ]);
       setTransactions(txData);
       setCategories(catData);
       setSettings(settingsData);
       setLentRecords(lentData || []);
+      setBorrowedRecords(borrowData || []);
       setError(null);
     } catch (err) {
       setError(err.message || 'Failed to load data');
@@ -93,7 +96,25 @@ export const TransactionProvider = ({ children }) => {
   // Lent Money Actions
   const addLentRecord = async (record) => {
     try {
-      const saved = await DataService.addLentRecord(record);
+      const initialAmount = parseFloat(record.amount) || 0;
+      const initialLoans = (record.loans && record.loans.length > 0)
+        ? record.loans
+        : [
+            {
+              id: 'loan_' + Date.now(),
+              amount: initialAmount,
+              date: record.dateLent || new Date().toISOString().split('T')[0],
+              note: record.note ? record.note.trim() : 'Initial loan'
+            }
+          ];
+
+      const payload = {
+        ...record,
+        amount: initialAmount,
+        loans: initialLoans
+      };
+
+      const saved = await DataService.addLentRecord(payload);
       setLentRecords(prev => [saved, ...prev]);
       return saved;
     } catch (err) {
@@ -238,11 +259,180 @@ export const TransactionProvider = ({ children }) => {
     }
   };
 
+  // ==========================================
+  // Borrowed Money Actions (Debts owed to friends)
+  // ==========================================
+  const addBorrowedRecord = async (record) => {
+    try {
+      const initialAmount = parseFloat(record.amount) || 0;
+      const initialBorrows = (record.borrows && record.borrows.length > 0)
+        ? record.borrows
+        : [
+            {
+              id: 'borrow_' + Date.now(),
+              amount: initialAmount,
+              date: record.dateBorrowed || new Date().toISOString().split('T')[0],
+              note: record.note ? record.note.trim() : 'Initial borrowed money'
+            }
+          ];
+
+      const payload = {
+        ...record,
+        amount: initialAmount,
+        borrows: initialBorrows
+      };
+
+      const saved = await DataService.addBorrowedRecord(payload);
+      setBorrowedRecords(prev => [saved, ...prev]);
+      return saved;
+    } catch (err) {
+      setError('Failed to add borrowed record');
+      throw err;
+    }
+  };
+
+  const updateBorrowedRecord = async (id, updates) => {
+    try {
+      await DataService.updateBorrowedRecord(id, updates);
+      setBorrowedRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+      return { id, ...updates };
+    } catch (err) {
+      setError('Failed to update borrowed record');
+      throw err;
+    }
+  };
+
+  const deleteBorrowedRecord = async (id) => {
+    try {
+      await DataService.deleteBorrowedRecord(id);
+      setBorrowedRecords(prev => prev.filter(r => r.id !== id));
+    } catch (err) {
+      setError('Failed to delete borrowed record');
+      throw err;
+    }
+  };
+
+  const borrowMoreMoney = async (id, borrowDetails) => {
+    try {
+      const current = borrowedRecords.find(r => r.id === id);
+      if (!current) throw new Error('Record not found');
+
+      const addAmount = parseFloat(borrowDetails.amount) || 0;
+      if (addAmount <= 0) throw new Error('Invalid borrow amount');
+
+      const initialBorrow = {
+        id: 'borrow_init_' + (current.createdAt ? new Date(current.createdAt).getTime() : Date.now()),
+        amount: parseFloat(current.amount) || 0,
+        date: current.dateBorrowed || (current.createdAt ? current.createdAt.split('T')[0] : new Date().toISOString().split('T')[0]),
+        note: current.note || 'Initial borrowed money'
+      };
+
+      const existingBorrows = (current.borrows && Array.isArray(current.borrows) && current.borrows.length > 0)
+        ? current.borrows
+        : [initialBorrow];
+
+      const newBorrowEntry = {
+        id: 'borrow_' + Date.now(),
+        amount: addAmount,
+        date: borrowDetails.date || new Date().toISOString().split('T')[0],
+        note: borrowDetails.note ? borrowDetails.note.trim() : 'Additional borrowed money'
+      };
+
+      const updatedBorrows = [...existingBorrows, newBorrowEntry];
+      const newTotalAmount = updatedBorrows.reduce((sum, b) => sum + (parseFloat(b.amount) || 0), 0);
+      const currentReturned = parseFloat(current.returnedAmount) || 0;
+
+      const updates = {
+        amount: newTotalAmount,
+        borrows: updatedBorrows,
+        status: currentReturned >= newTotalAmount ? 'settled' : (currentReturned > 0 ? 'partial' : 'pending')
+      };
+
+      if (borrowDetails.dueDate !== undefined) {
+        updates.dueDate = borrowDetails.dueDate || null;
+      }
+
+      await DataService.updateBorrowedRecord(id, updates);
+      setBorrowedRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+      return updates;
+    } catch (err) {
+      setError('Failed to borrow more money');
+      throw err;
+    }
+  };
+
+  const recordBorrowedRepayment = async (id, repayment) => {
+    try {
+      const current = borrowedRecords.find(r => r.id === id);
+      if (!current) throw new Error('Record not found');
+
+      const repayAmount = parseFloat(repayment.amount) || 0;
+      const newReturned = (parseFloat(current.returnedAmount) || 0) + repayAmount;
+      const newRepayments = [
+        ...(current.repayments || []),
+        {
+          id: 'rep_' + Date.now(),
+          amount: repayAmount,
+          date: repayment.date || new Date().toISOString().split('T')[0],
+          note: repayment.note || ''
+        }
+      ];
+
+      const updates = {
+        returnedAmount: newReturned,
+        repayments: newRepayments,
+        status: newReturned >= parseFloat(current.amount) ? 'settled' : 'partial'
+      };
+
+      await DataService.updateBorrowedRecord(id, updates);
+      setBorrowedRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+      return updates;
+    } catch (err) {
+      setError('Failed to record repayment');
+      throw err;
+    }
+  };
+
+  const settleBorrowedRecord = async (id) => {
+    try {
+      const current = borrowedRecords.find(r => r.id === id);
+      if (!current) throw new Error('Record not found');
+
+      const totalAmount = parseFloat(current.amount) || 0;
+      const currentReturned = parseFloat(current.returnedAmount) || 0;
+      const remaining = Math.max(0, totalAmount - currentReturned);
+
+      const newRepayments = remaining > 0 ? [
+        ...(current.repayments || []),
+        {
+          id: 'rep_' + Date.now(),
+          amount: remaining,
+          date: new Date().toISOString().split('T')[0],
+          note: 'Marked fully paid back'
+        }
+      ] : (current.repayments || []);
+
+      const updates = {
+        returnedAmount: totalAmount,
+        repayments: newRepayments,
+        status: 'settled'
+      };
+
+      await DataService.updateBorrowedRecord(id, updates);
+      setBorrowedRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+      return updates;
+    } catch (err) {
+      setError('Failed to settle borrowed money');
+      throw err;
+    }
+  };
+
   return (
     <TransactionContext.Provider value={{
       transactions,
       categories,
       lentRecords,
+      borrowedRecords,
       settings,
       loading,
       error,
@@ -257,6 +447,12 @@ export const TransactionProvider = ({ children }) => {
       lendMoreMoney,
       recordRepayment,
       settleLentRecord,
+      addBorrowedRecord,
+      updateBorrowedRecord,
+      deleteBorrowedRecord,
+      borrowMoreMoney,
+      recordBorrowedRepayment,
+      settleBorrowedRecord,
       refreshData: fetchData
     }}>
       {children}
