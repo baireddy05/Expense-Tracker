@@ -196,6 +196,22 @@ const Transactions = () => {
     return filteredTransactions;
   }, [filteredTransactions, timeFilter, selectedDateGroup]);
 
+  const summaryStats = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    displayedTransactions.forEach(t => {
+      const amt = parseFloat(t.amount) || 0;
+      if (t.type === 'income') income += amt;
+      else expense += amt;
+    });
+    return {
+      income,
+      expense,
+      net: income - expense,
+      count: displayedTransactions.length
+    };
+  }, [displayedTransactions]);
+
   // Reset selected date if timeFilter changes
   useEffect(() => {
     if (timeFilter !== 'all') {
@@ -487,6 +503,44 @@ const Transactions = () => {
         )}
       </div>
 
+      {/* Financial Summary Cards for Current Selection (Total Income, Total Expense, Net Balance) */}
+      {displayedTransactions.length > 0 && (
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
+          <div className="glass p-3 sm:p-4 rounded-2xl border border-gray-200/80 dark:border-gray-800/80 text-center sm:text-left">
+            <p className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Total Income
+            </p>
+            <p className="text-xs sm:text-base md:text-lg font-bold text-green-600 dark:text-green-400 mt-1 truncate">
+              +{formatCurrency(summaryStats.income)}
+            </p>
+          </div>
+
+          <div className="glass p-3 sm:p-4 rounded-2xl border border-gray-200/80 dark:border-gray-800/80 text-center sm:text-left">
+            <p className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Total Expense
+            </p>
+            <p className="text-xs sm:text-base md:text-lg font-bold text-rose-600 dark:text-rose-400 mt-1 truncate">
+              -{formatCurrency(summaryStats.expense)}
+            </p>
+          </div>
+
+          <div className="glass p-3 sm:p-4 rounded-2xl border border-gray-200/80 dark:border-gray-800/80 text-center sm:text-left">
+            <p className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Net Balance
+            </p>
+            <p className={`text-xs sm:text-base md:text-lg font-bold mt-1 truncate ${
+              summaryStats.net > 0 
+                ? 'text-emerald-600 dark:text-emerald-400' 
+                : summaryStats.net < 0 
+                  ? 'text-rose-600 dark:text-rose-400' 
+                  : 'text-gray-900 dark:text-white'
+            }`}>
+              {summaryStats.net > 0 ? '+' : ''}{formatCurrency(summaryStats.net)}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ALL TIME VIEW: Interactive Collapsible Date Dropdowns / Accordions */}
       {timeFilter === 'all' ? (
         <div className="space-y-4">
@@ -548,45 +602,62 @@ const Transactions = () => {
                   <button
                     type="button"
                     onClick={() => toggleDateExpand(g.dateKey)}
-                    className="w-full text-left p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 bg-white/70 dark:bg-gray-900/70 hover:bg-gray-50/90 dark:hover:bg-gray-800/60 transition-colors cursor-pointer select-none"
+                    className="w-full text-left p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 bg-white/70 dark:bg-gray-900/70 hover:bg-gray-50/90 dark:hover:bg-gray-800/60 transition-colors cursor-pointer select-none"
                   >
-                    {/* Left: Icon, Date Name & Tx Count */}
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 shrink-0 rounded-xl bg-primary-50 dark:bg-primary-950/60 border border-primary-100 dark:border-primary-900/40 text-primary-600 dark:text-primary-400 flex items-center justify-center text-sm shadow-xs">
-                        <FontAwesomeIcon icon={faCalendarDay} />
+                    {/* Top Row on mobile / Left on desktop: Icon, Date Name & Tx Count */}
+                    <div className="flex items-center justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 rounded-xl bg-primary-50 dark:bg-primary-950/60 border border-primary-100 dark:border-primary-900/40 text-primary-600 dark:text-primary-400 flex items-center justify-center text-xs sm:text-sm shadow-xs">
+                          <FontAwesomeIcon icon={faCalendarDay} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-gray-900 dark:text-white text-sm sm:text-base leading-tight">
+                              {formatDateHeader(g.dateKey)}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                              {g.items.length} {g.items.length === 1 ? 'item' : 'items'}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-gray-900 dark:text-white text-base">
-                            {formatDateHeader(g.dateKey)}
-                          </span>
-                          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-                            {g.items.length} {g.items.length === 1 ? 'item' : 'items'}
-                          </span>
+
+                      {/* Mobile Chevron indicator */}
+                      <div className="sm:hidden flex items-center gap-1 text-gray-400 dark:text-gray-500">
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                          <FontAwesomeIcon icon={isExpanded ? faChevronUp : faChevronDown} className="text-xs" />
                         </div>
                       </div>
                     </div>
 
-                    {/* Right: Income / Expense / Net badges & Chevron */}
-                    <div className="flex items-center gap-2.5 sm:gap-3.5 ml-auto">
-                      {g.totalIncome > 0 && (
-                        <span className="text-xs font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40 px-2 py-0.5 rounded-md border border-green-200/50 dark:border-green-800/40">
-                          +{formatCurrency(g.totalIncome)}
+                    {/* Bottom Row on mobile / Right on desktop: Income / Expense / Net badges & Chevron */}
+                    <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2.5 flex-wrap sm:ml-auto w-full sm:w-auto pt-1 sm:pt-0 border-t border-gray-100/60 dark:border-gray-800/40 sm:border-0">
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                        {g.totalIncome > 0 && (
+                          <span className="text-[11px] sm:text-xs font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40 px-1.5 sm:px-2 py-0.5 rounded-md border border-green-200/50 dark:border-green-800/40 whitespace-nowrap">
+                            +{formatCurrency(g.totalIncome)}
+                          </span>
+                        )}
+                        {g.totalExpense > 0 && (
+                          <span className="text-[11px] sm:text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-1.5 sm:px-2 py-0.5 rounded-md border border-rose-200/50 dark:border-rose-800/40 whitespace-nowrap">
+                            -{formatCurrency(g.totalExpense)}
+                          </span>
+                        )}
+                        {/* Net Daily Badge - Visible on both Mobile & Desktop */}
+                        <span className={`text-[11px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-md border inline-flex items-center whitespace-nowrap ${
+                          netTotal > 0 
+                            ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800/60' 
+                            : netTotal < 0 
+                              ? 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-800/60'
+                              : 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                        }`}>
+                          Net: {netTotal > 0 ? '+' : ''}{formatCurrency(netTotal)}
                         </span>
-                      )}
-                      {g.totalExpense > 0 && (
-                        <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-md border border-rose-200/50 dark:border-rose-800/40">
-                          -{formatCurrency(g.totalExpense)}
-                        </span>
-                      )}
-                      {g.totalIncome > 0 && g.totalExpense > 0 && (
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-md border hidden md:inline-flex ${netTotal >= 0 ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/50 dark:border-emerald-800/40' : 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200/50 dark:border-gray-700'}`}>
-                          Net {netTotal >= 0 ? '+' : ''}{formatCurrency(netTotal)}
-                        </span>
-                      )}
+                      </div>
 
-                      <div className="flex items-center gap-1.5 pl-1 text-gray-400 dark:text-gray-500">
-                        <span className="text-xs hidden sm:inline">{isExpanded ? 'Hide' : 'View'}</span>
+                      {/* Desktop Chevron */}
+                      <div className="hidden sm:flex items-center gap-1.5 pl-1 text-gray-400 dark:text-gray-500">
+                        <span className="text-xs">{isExpanded ? 'Hide' : 'View'}</span>
                         <div className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
                           <FontAwesomeIcon icon={isExpanded ? faChevronUp : faChevronDown} className="text-xs" />
                         </div>
