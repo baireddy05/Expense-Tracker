@@ -44,7 +44,7 @@ const Transactions = () => {
 
   const [filterType, setFilterType] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [timeFilter, setTimeFilter] = useState('today');
+  const [timeFilter, setTimeFilter] = useState('all');
   const [customDate, setCustomDate] = useState(getLocalToday());
   const [selectedDateGroup, setSelectedDateGroup] = useState('all');
   const [expandedDates, setExpandedDates] = useState({});
