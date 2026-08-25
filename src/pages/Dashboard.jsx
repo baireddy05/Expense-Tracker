@@ -16,6 +16,7 @@ import {
   faReceipt 
 } from '@fortawesome/free-solid-svg-icons';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler } from 'chart.js';
+import { Doughnut, Line } from 'react-chartjs-2';
 import { DashboardSkeleton } from '../components/ui/Skeleton';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
 import { getCategoryIcon, resolveCategory } from '../utils/categoryIcons';
