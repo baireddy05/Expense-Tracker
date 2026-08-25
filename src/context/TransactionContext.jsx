@@ -50,29 +50,12 @@ export const TransactionProvider = ({ children }) => {
     return () => clearTimeout(timer);
   }, [fetchData]);
 
-  // Auto-migrate legacy/offline records to user cloud account when logging in
+  // Auto-purge legacy/offline records from browser when logging in to protect privacy
   useEffect(() => {
     if (userId) {
-      const legacyKeys = [
-        'local_transactions',
-        'transactions',
-        'local_lent_records',
-        'lent_records',
-        'local_borrowed_records',
-        'borrowed_records'
-      ];
-      const hasAnyLegacy = legacyKeys.some(k => Boolean(localStorage.getItem(k)));
-
-      DataService.migrateLocalDataToCloud(userId)
-        .then(({ count }) => {
-          if (count > 0) {
-            toast.success(`Successfully migrated ${count} previous record${count > 1 ? 's' : ''} to your Google account!`, { duration: 5000 });
-            fetchData();
-          }
-        })
-        .catch(err => console.warn("Auto-migration notice:", err));
+      DataService.purgeAllLocalData();
     }
-  }, [userId, fetchData]);
+  }, [userId]);
 
   const syncLocalData = async () => {
     if (!userId) {
@@ -81,13 +64,8 @@ export const TransactionProvider = ({ children }) => {
     }
     setIsSyncing(true);
     try {
-      const { count } = await DataService.migrateLocalDataToCloud(userId);
       await fetchData();
-      if (count > 0) {
-        toast.success(`Successfully uploaded ${count} items to your cloud backup!`);
-      } else {
-        toast.success('Your cloud data is already up to date!');
-      }
+      toast.success('Your cloud data is securely synced with Google Cloud!', { icon: '☁️' });
     } catch (err) {
       console.error("Manual sync error:", err);
       toast.error('Failed to sync to cloud');

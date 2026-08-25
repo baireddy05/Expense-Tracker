@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { TransactionProvider } from './context/TransactionContext';
 import { UIProvider } from './context/UIContext';
 import AppShell from './components/layout/AppShell';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { Toaster } from 'react-hot-toast';
 
 // Optimized Lazy Route Splitting
@@ -23,62 +24,64 @@ const PageLoader = () => (
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <TransactionProvider>
-          <UIProvider>
-            <Router>
-              <Routes>
-                <Route path="/" element={<AppShell />}>
-                  <Route index element={<Navigate to="/dashboard" replace />} />
-                  <Route path="dashboard" element={
-                    <Suspense fallback={<PageLoader />}>
-                      <Dashboard />
-                    </Suspense>
-                  } />
-                  <Route path="transactions" element={
-                    <Suspense fallback={<PageLoader />}>
-                      <Transactions />
-                    </Suspense>
-                  } />
-                  <Route path="lent" element={
-                    <Suspense fallback={<PageLoader />}>
-                      <LentMoney />
-                    </Suspense>
-                  } />
-                  <Route path="borrowed" element={
-                    <Suspense fallback={<PageLoader />}>
-                      <BorrowedMoney />
-                    </Suspense>
-                  } />
-                  <Route path="analytics" element={
-                    <Suspense fallback={<PageLoader />}>
-                      <Analytics />
-                    </Suspense>
-                  } />
-                  <Route path="settings" element={
-                    <Suspense fallback={<PageLoader />}>
-                      <Settings />
-                    </Suspense>
-                  } />
-                </Route>
-              </Routes>
-              <Toaster 
-                position="bottom-center"
-                toastOptions={{
-                  className: 'dark:bg-gray-800 dark:text-white',
-                  style: {
-                    borderRadius: '12px',
-                    background: '#333',
-                    color: '#fff',
-                  }
-                }}
-              />
-            </Router>
-          </UIProvider>
-        </TransactionProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <TransactionProvider>
+            <UIProvider>
+              <Router>
+                <Routes>
+                  <Route path="/" element={<AppShell />}>
+                    <Route index element={<Navigate to="/dashboard" replace />} />
+                    <Route path="dashboard" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <Dashboard />
+                      </Suspense>
+                    } />
+                    <Route path="transactions" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <Transactions />
+                      </Suspense>
+                    } />
+                    <Route path="lent" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <LentMoney />
+                      </Suspense>
+                    } />
+                    <Route path="borrowed" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <BorrowedMoney />
+                      </Suspense>
+                    } />
+                    <Route path="analytics" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <Analytics />
+                      </Suspense>
+                    } />
+                    <Route path="settings" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <Settings />
+                      </Suspense>
+                    } />
+                  </Route>
+                </Routes>
+                <Toaster 
+                  position="bottom-center"
+                  toastOptions={{
+                    className: 'dark:bg-gray-800 dark:text-white',
+                    style: {
+                      borderRadius: '12px',
+                      background: '#333',
+                      color: '#fff',
+                    }
+                  }}
+                />
+              </Router>
+            </UIProvider>
+          </TransactionProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

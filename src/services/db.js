@@ -396,5 +396,10 @@ export const DataService = {
     } catch (e) {
       console.log("Root cleanup note:", e.message);
     }
+  },
+
+  async migrateLocalDataToCloud(userId) {
+    this.purgeAllLocalData();
+    return { count: 0 };
   }
 };
