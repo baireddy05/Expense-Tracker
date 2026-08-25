@@ -590,78 +590,76 @@ const BorrowedMoney = () => {
           return (
             <div 
               key={record.id}
-              className={`glass rounded-2xl p-5 transition-all border ${
+              className={`glass rounded-2xl p-4 sm:p-5 transition-all border ${
                 status === 'overdue' 
-                  ? 'border-red-300 dark:border-red-900/50 bg-red-50/20 dark:bg-red-950/10'
+                  ? 'border-rose-300 dark:border-rose-900/50 bg-rose-50/20 dark:bg-rose-950/10'
                   : status === 'settled'
-                  ? 'border-gray-200 dark:border-gray-800/80 opacity-90'
-                  : 'border-gray-200 dark:border-gray-800'
+                  ? 'border-zinc-200 dark:border-zinc-800/80 opacity-90'
+                  : 'border-zinc-200 dark:border-zinc-800'
               }`}
             >
               {/* Card Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-gray-800/80">
-                <div className="flex items-center gap-3.5">
+              <div className="flex items-start justify-between gap-3 pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
+                <div className="flex items-start gap-3 min-w-0 flex-1">
                   {/* Lender Avatar */}
-                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-base shadow-sm shrink-0 ${getAvatarColor(record.lenderName)}`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-2xs shrink-0 ${getAvatarColor(record.lenderName)}`}>
                     {(record.lenderName || 'L').charAt(0).toUpperCase()}
                   </div>
 
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h3 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-white truncate">
                         {record.lenderName}
                       </h3>
 
                       {/* Status Badge */}
                       {status === 'settled' && (
-                        <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 flex items-center gap-1">
-                          <FontAwesomeIcon icon={faCheckCircle} /> Fully Paid Back
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                          <FontAwesomeIcon icon={faCheckCircle} className="text-[9px]" /> Paid Back
                         </span>
                       )}
                       {status === 'overdue' && (
-                        <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 flex items-center gap-1 animate-pulse">
-                          <FontAwesomeIcon icon={faExclamationTriangle} /> Return Overdue
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/15 text-rose-700 dark:text-rose-400 flex items-center gap-1 animate-pulse">
+                          <FontAwesomeIcon icon={faExclamationTriangle} className="text-[9px]" /> Overdue
                         </span>
                       )}
                       {status === 'partial' && (
-                        <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                          Partially Repaid ({percentRepaid.toFixed(0)}%)
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/15 text-blue-700 dark:text-blue-400">
+                          {percentRepaid.toFixed(0)}% Repaid
                         </span>
                       )}
                       {status === 'pending' && (
-                        <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/15 text-indigo-700 dark:text-indigo-400">
                           Pending Repayment
-                        </span>
-                      )}
-
-                      {/* Borrows count badge */}
-                      {borrows.length > 1 && (
-                        <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 flex items-center gap-1">
-                          <FontAwesomeIcon icon={faCoins} className="text-[10px]" />
-                          <span>{borrows.length} Borrow Logs</span>
                         </span>
                       )}
                     </div>
 
                     {/* Metadata Subtitle */}
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1 text-[11px] text-zinc-400">
+                      {borrows.length > 1 && (
+                        <span className="px-1.5 py-0.5 rounded-md text-[10px] font-medium liquid-glass-subtle text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                          <FontAwesomeIcon icon={faCoins} className="text-[9px]" />
+                          <span>{borrows.length} Borrows</span>
+                        </span>
+                      )}
                       <span className="flex items-center gap-1">
-                        <FontAwesomeIcon icon={faCalendarAlt} className="text-[10px]" />
-                        First Borrowed: {new Date(record.dateBorrowed || (borrows[0] && borrows[0].date) || 0).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        <FontAwesomeIcon icon={faCalendarAlt} className="text-[9px]" />
+                        {new Date(record.dateBorrowed || (borrows[0] && borrows[0].date) || 0).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                       </span>
                       {record.dueDate && (
                         <>
                           <span>&bull;</span>
-                          <span className={status === 'overdue' ? 'text-red-600 dark:text-red-400 font-semibold' : ''}>
-                            Due to Pay: {new Date(record.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          <span className={status === 'overdue' ? 'text-rose-500 font-semibold' : ''}>
+                            Due: {new Date(record.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                           </span>
                         </>
                       )}
                       {record.phone && (
                         <>
                           <span>&bull;</span>
-                          <span className="flex items-center gap-1">
-                            <FontAwesomeIcon icon={faPhone} className="text-[10px]" />
+                          <span className="flex items-center gap-1 truncate">
+                            <FontAwesomeIcon icon={faPhone} className="text-[9px]" />
                             {record.phone}
                           </span>
                         </>
@@ -671,43 +669,41 @@ const BorrowedMoney = () => {
                 </div>
 
                 {/* Amounts Breakdown */}
-                <div className="flex items-center gap-4 self-end sm:self-auto text-right">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold">
-                      {remaining > 0 ? 'Pending Debt Owed' : 'Status'}
-                    </p>
-                    <p className={`text-lg sm:text-xl font-bold ${
-                      remaining > 0 
-                        ? (status === 'overdue' ? 'text-red-600 dark:text-red-400' : 'text-rose-600 dark:text-rose-400')
-                        : 'text-green-600 dark:text-green-400'
-                    }`}>
-                      {remaining > 0 ? formatCurrency(remaining) : 'Paid in Full'}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      of {formatCurrency(total)} total borrowed
-                    </p>
-                  </div>
+                <div className="text-right shrink-0">
+                  <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">
+                    {remaining > 0 ? 'Debt Owed' : 'Status'}
+                  </p>
+                  <p className={`text-sm sm:text-lg font-bold leading-tight ${
+                    remaining > 0 
+                      ? (status === 'overdue' ? 'text-rose-500' : 'text-indigo-600 dark:text-indigo-400')
+                      : 'text-emerald-600 dark:text-emerald-400'
+                  }`}>
+                    {remaining > 0 ? formatCurrency(remaining) : 'Paid in Full'}
+                  </p>
+                  <p className="text-[10px] text-zinc-400 mt-0.5">
+                    of {formatCurrency(total)}
+                  </p>
                 </div>
               </div>
 
               {/* Progress Bar */}
               <div className="mt-3">
                 <div className="flex justify-between items-center text-xs mb-1">
-                  <span className="text-gray-500 dark:text-gray-400">
-                    Repaid: <strong className="text-green-600 dark:text-green-400">{formatCurrency(returned)}</strong>
+                  <span className="text-zinc-500 dark:text-zinc-400 text-[11px]">
+                    Repaid: <strong className="text-emerald-600 dark:text-emerald-400">{formatCurrency(returned)}</strong>
                   </span>
-                  <span className="font-semibold text-gray-700 dark:text-gray-300">
+                  <span className="font-semibold text-zinc-700 dark:text-zinc-300 text-[11px]">
                     {percentRepaid.toFixed(0)}%
                   </span>
                 </div>
-                <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-1.5 sm:h-2 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
                   <div 
                     className={`h-full transition-all duration-500 ${
                       percentRepaid >= 100 
-                        ? 'bg-green-500' 
+                        ? 'bg-emerald-500' 
                         : status === 'overdue'
-                        ? 'bg-gradient-to-r from-red-500 to-rose-500'
-                        : 'bg-gradient-to-r from-purple-500 to-green-500'
+                        ? 'bg-gradient-to-r from-rose-500 to-amber-500'
+                        : 'bg-gradient-to-r from-indigo-500 to-emerald-500'
                     }`}
                     style={{ width: `${percentRepaid}%` }}
                   />
@@ -716,27 +712,27 @@ const BorrowedMoney = () => {
 
               {/* Note if present */}
               {record.note && (
-                <div className="mt-3 text-xs bg-gray-50 dark:bg-gray-900/60 p-2.5 rounded-xl text-gray-600 dark:text-gray-300 border border-gray-100 dark:border-gray-800 flex items-start gap-2">
-                  <span className="font-semibold text-gray-500 shrink-0">Reason:</span>
-                  <span className="italic">{record.note}</span>
+                <div className="mt-2.5 text-xs liquid-glass-subtle p-2 sm:p-2.5 rounded-xl text-zinc-600 dark:text-zinc-300 flex items-start gap-2">
+                  <span className="font-semibold text-zinc-400 shrink-0 text-[11px]">Reason:</span>
+                  <span className="italic text-[11px] truncate">{record.note}</span>
                 </div>
               )}
 
               {/* Comprehensive Activity & Borrow Logs Accordion */}
-              <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-800">
+              <div className="mt-3 pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
                 <button
                   onClick={() => toggleHistory(record.id)}
-                  className="text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center justify-between w-full py-1 cursor-pointer transition-colors"
+                  className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white flex items-center justify-between w-full py-1 cursor-pointer transition-colors"
                 >
                   <div className="flex items-center gap-2">
-                    <FontAwesomeIcon icon={faHistory} className="text-purple-500" />
-                    <span>
-                      Activity Logs ({borrows.length} borrow{borrows.length === 1 ? '' : 's'}, {repayments.length} repayment{repayments.length === 1 ? '' : 's'} made)
+                    <FontAwesomeIcon icon={faHistory} className="text-indigo-500 text-xs" />
+                    <span className="text-[11px] sm:text-xs">
+                      Activity Logs ({borrows.length} borrow{borrows.length === 1 ? '' : 's'}, {repayments.length} repayment{repayments.length === 1 ? '' : 's'})
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-gray-400">
-                    <span className="text-[11px]">{isExpanded ? 'Hide Logs' : 'View Logs & History'}</span>
-                    <FontAwesomeIcon icon={isExpanded ? faChevronUp : faChevronDown} className="text-[10px]" />
+                  <div className="flex items-center gap-1.5 text-zinc-400">
+                    <span className="text-[10px] sm:text-[11px]">{isExpanded ? 'Hide' : 'View Logs'}</span>
+                    <FontAwesomeIcon icon={isExpanded ? faChevronUp : faChevronDown} className="text-[9px]" />
                   </div>
                 </button>
 
@@ -744,39 +740,39 @@ const BorrowedMoney = () => {
                   <div className="mt-2.5 pt-2 border-t border-dashed border-zinc-200 dark:border-zinc-800 animate-page-enter gpu-accelerated space-y-3">
                     {/* Filter tabs inside history */}
                     <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800/80 p-1 rounded-xl text-xs">
+                      <div className="flex items-center gap-1 liquid-glass-subtle p-1 rounded-xl text-xs">
                         <button
                           type="button"
                           onClick={() => setCardTab(record.id, 'all')}
-                          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+                          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer text-[11px] ${
                             currentTab === 'all'
-                              ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-xs font-semibold'
-                              : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                              ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-xs font-semibold'
+                              : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
                           }`}
                         >
-                          All Logs ({combinedTimeline.length})
+                          All ({combinedTimeline.length})
                         </button>
                         <button
                           type="button"
                           onClick={() => setCardTab(record.id, 'borrows')}
-                          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+                          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer text-[11px] ${
                             currentTab === 'borrows'
-                              ? 'bg-purple-600 text-white shadow-xs font-semibold'
-                              : 'text-gray-500 hover:text-purple-600 dark:hover:text-purple-400'
+                              ? 'bg-indigo-600 text-white shadow-xs font-semibold'
+                              : 'text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400'
                           }`}
                         >
-                          📥 Borrowed ({borrows.length})
+                          Borrows ({borrows.length})
                         </button>
                         <button
                           type="button"
                           onClick={() => setCardTab(record.id, 'repayments')}
-                          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+                          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer text-[11px] ${
                             currentTab === 'repayments'
-                              ? 'bg-green-600 text-white shadow-xs font-semibold'
-                              : 'text-gray-500 hover:text-green-600 dark:hover:text-green-400'
+                              ? 'bg-emerald-600 text-white shadow-xs font-semibold'
+                              : 'text-zinc-500 hover:text-emerald-600 dark:hover:text-emerald-400'
                           }`}
                         >
-                          📤 Repaid ({repayments.length})
+                          Repaid ({repayments.length})
                         </button>
                       </div>
 
@@ -784,55 +780,55 @@ const BorrowedMoney = () => {
                       <button
                         type="button"
                         onClick={() => setBorrowMoreTarget(record)}
-                        className="text-xs text-purple-600 dark:text-purple-400 font-semibold hover:underline flex items-center gap-1 cursor-pointer"
+                        className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1 cursor-pointer"
                       >
-                        <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
-                        <span>Add Borrow Top-up</span>
+                        <FontAwesomeIcon icon={faPlus} className="text-[9px]" />
+                        <span>Add Borrow Log</span>
                       </button>
                     </div>
 
                     {/* Timeline List */}
                     <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                      {/* All logs */}
+                      {/* All logs or filtered */}
                       {currentTab === 'all' && (
                         combinedTimeline.map((item, idx) => (
                           <div 
                             key={item.id || idx} 
                             className={`flex items-center justify-between p-2.5 rounded-xl border text-xs ${
                               item.eventType === 'borrow'
-                                ? 'bg-purple-500/5 dark:bg-purple-950/20 border-purple-200/60 dark:border-purple-900/40'
-                                : 'bg-green-500/5 dark:bg-green-950/20 border-green-200/60 dark:border-green-900/40'
+                                ? 'bg-indigo-500/5 dark:bg-indigo-950/20 border-indigo-200/60 dark:border-indigo-900/40'
+                                : 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40'
                             }`}
                           >
-                            <div className="flex items-center gap-2.5">
+                            <div className="flex items-center gap-2.5 min-w-0">
                               <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
                                 item.eventType === 'borrow'
-                                  ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400'
-                                  : 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400'
+                                  ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
+                                  : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
                               }`}>
                                 <FontAwesomeIcon icon={item.eventType === 'borrow' ? faHandHolding : faCheckCircle} />
                               </div>
-                              <div>
+                              <div className="min-w-0">
                                 <div className="flex items-center gap-1.5">
-                                  <span className="font-semibold text-gray-900 dark:text-white">
+                                  <span className="font-semibold text-zinc-900 dark:text-white truncate">
                                     {item.eventTitle}
                                   </span>
-                                  <span className="text-[11px] text-gray-400">
-                                    &bull; {new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                  <span className="text-[10px] text-zinc-400 shrink-0">
+                                    &bull; {new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                                   </span>
                                 </div>
                                 {item.note && (
-                                  <p className="text-[11px] text-gray-500 dark:text-gray-400 italic mt-0.5">
+                                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 italic truncate mt-0.5">
                                     "{item.note}"
                                   </p>
                                 )}
                               </div>
                             </div>
 
-                            <span className={`font-bold text-sm shrink-0 ${
+                            <span className={`font-bold text-xs sm:text-sm shrink-0 ml-2 ${
                               item.eventType === 'borrow'
-                                ? 'text-purple-600 dark:text-purple-400'
-                                : 'text-green-600 dark:text-green-400'
+                                ? 'text-indigo-600 dark:text-indigo-400'
+                                : 'text-emerald-600 dark:text-emerald-400'
                             }`}>
                               {item.eventType === 'borrow' ? '+' : '-'} {formatCurrency(item.amount)}
                             </span>
@@ -845,31 +841,31 @@ const BorrowedMoney = () => {
                         borrows.map((b, idx) => (
                           <div 
                             key={b.id || idx} 
-                            className="flex items-center justify-between p-2.5 rounded-xl border bg-purple-500/5 dark:bg-purple-950/20 border-purple-200/60 dark:border-purple-900/40 text-xs"
+                            className="flex items-center justify-between p-2.5 rounded-xl border bg-indigo-500/5 dark:bg-indigo-950/20 border-indigo-200/60 dark:border-indigo-900/40 text-xs"
                           >
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0">
                                 <FontAwesomeIcon icon={faHandHolding} />
                               </div>
-                              <div>
+                              <div className="min-w-0">
                                 <div className="flex items-center gap-1.5">
-                                  <span className="font-semibold text-gray-900 dark:text-white">
-                                    {idx === 0 ? 'Initial Borrow' : `Borrow Top-up #${idx + 1}`}
+                                  <span className="font-semibold text-zinc-900 dark:text-white truncate">
+                                    {idx === 0 ? 'Initial Borrow' : `Disbursement #${idx + 1}`}
                                   </span>
-                                  <span className="text-[11px] text-gray-400">
-                                    &bull; {new Date(b.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                  <span className="text-[10px] text-zinc-400 shrink-0">
+                                    &bull; {new Date(b.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                                   </span>
                                 </div>
                                 {b.note && (
-                                  <p className="text-[11px] text-gray-500 dark:text-gray-400 italic mt-0.5">
+                                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 italic truncate mt-0.5">
                                     "{b.note}"
                                   </p>
                                 )}
                               </div>
                             </div>
 
-                            <span className="font-bold text-sm text-purple-600 dark:text-purple-400 shrink-0">
-                              + {formatCurrency(b.amount)}
+                            <span className="font-bold text-xs sm:text-sm text-indigo-600 dark:text-indigo-400 shrink-0 ml-2">
+                              Borrowed: {formatCurrency(b.amount)}
                             </span>
                           </div>
                         ))
@@ -881,36 +877,36 @@ const BorrowedMoney = () => {
                           repayments.map((rep, idx) => (
                             <div 
                               key={rep.id || idx} 
-                              className="flex items-center justify-between p-2.5 rounded-xl border bg-green-500/5 dark:bg-green-950/20 border-green-200/60 dark:border-green-900/40 text-xs"
+                              className="flex items-center justify-between p-2.5 rounded-xl border bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40 text-xs"
                             >
-                              <div className="flex items-center gap-2.5">
-                                <div className="w-7 h-7 rounded-lg bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 flex items-center justify-center font-bold text-xs shrink-0">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0">
                                   <FontAwesomeIcon icon={faCheckCircle} />
                                 </div>
-                                <div>
+                                <div className="min-w-0">
                                   <div className="flex items-center gap-1.5">
-                                    <span className="font-semibold text-gray-900 dark:text-white">
+                                    <span className="font-semibold text-zinc-900 dark:text-white truncate">
                                       Repayment #{idx + 1}
                                     </span>
-                                    <span className="text-[11px] text-gray-400">
-                                      &bull; {new Date(rep.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                    <span className="text-[10px] text-zinc-400 shrink-0">
+                                      &bull; {new Date(rep.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                                     </span>
                                   </div>
                                   {rep.note && (
-                                    <p className="text-[11px] text-gray-500 dark:text-gray-400 italic mt-0.5">
+                                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 italic truncate mt-0.5">
                                       "{rep.note}"
                                     </p>
                                   )}
                                 </div>
                               </div>
 
-                              <span className="font-bold text-sm text-green-600 dark:text-green-400 shrink-0">
+                              <span className="font-bold text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 shrink-0 ml-2">
                                 Repaid: {formatCurrency(rep.amount)}
                               </span>
                             </div>
                           ))
                         ) : (
-                          <div className="p-4 text-center text-xs text-gray-400">
+                          <div className="p-4 text-center text-xs text-zinc-400">
                             No repayments logged yet for this debt.
                           </div>
                         )
@@ -921,16 +917,16 @@ const BorrowedMoney = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 flex-wrap">
+              <div className="mt-3.5 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap flex-1 min-w-0">
                   {/* Borrow More Button */}
                   <button
                     type="button"
                     onClick={() => setBorrowMoreTarget(record)}
-                    className="px-3.5 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm shadow-purple-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
-                    title="Borrow more money from this friend & log disbursement"
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer touch-feedback"
+                    title="Borrow more money from this friend"
                   >
-                    <FontAwesomeIcon icon={faPlus} />
+                    <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
                     <span>Borrow More</span>
                   </button>
 
@@ -940,55 +936,56 @@ const BorrowedMoney = () => {
                       <button
                         type="button"
                         onClick={() => setRepayTarget(record)}
-                        className="px-3.5 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer touch-feedback"
                       >
-                        <FontAwesomeIcon icon={faArrowRotateLeft} />
+                        <FontAwesomeIcon icon={faArrowRotateLeft} className="text-[10px]" />
                         <span>Record Repayment</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleSettlePrompt(record)}
-                        className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
+                        className="px-2.5 py-1.5 liquid-glass-subtle text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white rounded-xl text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer touch-feedback"
                       >
-                        <FontAwesomeIcon icon={faCheckCircle} className="text-green-500" />
-                        <span>Settle All</span>
+                        <FontAwesomeIcon icon={faCheckCircle} className="text-emerald-500 text-[10px]" />
+                        <span className="hidden xs:inline">Settle</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => setReminderTarget(record)}
-                        className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/30 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
+                        className="px-2.5 py-1.5 liquid-glass-subtle text-indigo-600 dark:text-indigo-400 rounded-xl text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer touch-feedback"
                       >
-                        <FontAwesomeIcon icon={faComments} />
-                        <span>Message Lender</span>
+                        <FontAwesomeIcon icon={faComments} className="text-[10px]" />
+                        <span>Message</span>
                       </button>
                     </>
                   )}
 
                   {remaining <= 0 && (
-                    <span className="text-xs text-green-600 dark:text-green-400 font-semibold flex items-center gap-1">
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
                       <FontAwesomeIcon icon={faCheckCircle} /> Debt Fully Paid Back
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-1">
+                {/* Edit & Delete Action Cluster */}
+                <div className="flex items-center gap-1 shrink-0 ml-auto">
                   <button
                     type="button"
                     onClick={() => handleEdit(record)}
-                    className="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-xs cursor-pointer"
-                    title="Edit Record Details"
+                    className="w-8 h-8 rounded-xl liquid-glass-subtle text-zinc-400 hover:text-zinc-900 dark:hover:text-white flex items-center justify-center transition-colors touch-feedback cursor-pointer"
+                    title="Edit record"
                   >
-                    <FontAwesomeIcon icon={faEdit} />
+                    <FontAwesomeIcon icon={faEdit} className="text-xs" />
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDelete(record.id, record.lenderName)}
-                    className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors text-xs cursor-pointer"
-                    title="Delete Record"
+                    onClick={() => handleDeletePrompt(record)}
+                    className="w-8 h-8 rounded-xl liquid-glass-subtle text-zinc-400 hover:text-rose-500 flex items-center justify-center transition-colors touch-feedback cursor-pointer"
+                    title="Delete record"
                   >
-                    <FontAwesomeIcon icon={faTrash} />
+                    <FontAwesomeIcon icon={faTrash} className="text-xs" />
                   </button>
                 </div>
               </div>
