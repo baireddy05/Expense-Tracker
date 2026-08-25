@@ -20,7 +20,8 @@ import {
   faSignOutAlt,
   faKey,
   faSync,
-  faLock
+  faLock,
+  faBroom
 } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 
@@ -36,7 +37,8 @@ const Settings = () => {
     addLentRecord, 
     addBorrowedRecord,
     isSyncing,
-    syncLocalData
+    syncLocalData,
+    purgeLocalCache
   } = useTransactions();
   
   const { theme, setTheme } = useTheme();
@@ -306,6 +308,24 @@ const Settings = () => {
                   <FontAwesomeIcon icon={faKey} />
                   <span>{isSendingReset ? 'Sending...' : 'Reset Password'}</span>
                 </button>
+              </div>
+
+              {/* Local Storage & Cache Security Purge */}
+              <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Local Cache & Device Storage</p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">Wipe all unencrypted browser cache. Cloud data remains safe.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={purgeLocalCache}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    <FontAwesomeIcon icon={faBroom} />
+                    <span>Purge Cache</span>
+                  </button>
+                </div>
               </div>
 
               <div className="pt-2 border-t border-gray-100 dark:border-gray-800 flex justify-end">

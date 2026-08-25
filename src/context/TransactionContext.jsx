@@ -480,6 +480,11 @@ export const TransactionProvider = ({ children }) => {
     }
   };
 
+  const purgeLocalCache = () => {
+    DataService.purgeAllLocalData();
+    toast.success('Local browser cache purged! Your data is protected in Cloud Firestore.', { icon: '🛡️' });
+  };
+
   return (
     <TransactionContext.Provider value={{
       transactions,
@@ -491,6 +496,7 @@ export const TransactionProvider = ({ children }) => {
       error,
       isSyncing,
       syncLocalData,
+      purgeLocalCache,
       updateSettings,
       addTransaction,
       updateTransaction,

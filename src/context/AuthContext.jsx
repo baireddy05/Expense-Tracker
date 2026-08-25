@@ -10,6 +10,7 @@ import {
   updateProfile,
   onAuthStateChanged 
 } from '../services/firebase';
+import { DataService } from '../services/db';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
@@ -120,8 +121,9 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await signOut(auth);
+      DataService.purgeAllLocalData();
       setCurrentUser(null);
-      toast.success('Signed out successfully');
+      toast.success('Signed out and cleared local cache');
     } catch (error) {
       console.error("Logout error:", error);
       toast.error('Failed to log out');

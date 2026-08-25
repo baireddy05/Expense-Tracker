@@ -25,98 +25,57 @@ const DEFAULT_CATEGORIES = [
 
 export const DataService = {
   // ----------------------------------------------------
-  // Transactions (users/{userId}/transactions + root fallback)
+  // Privacy & Local Cache Purge
+  // ----------------------------------------------------
+  purgeAllLocalData() {
+    const keysToPurge = [
+      'local_transactions',
+      'transactions',
+      'local_lent_records',
+      'lent_records',
+      'local_borrowed_records',
+      'borrowed_records',
+      'local_categories',
+      'local_settings',
+      'extrack_guest_mode'
+    ];
+
+    keysToPurge.forEach(k => localStorage.removeItem(k));
+
+    // Also remove any cache_* keys dynamically
+    const allKeys = Object.keys(localStorage);
+    allKeys.forEach(k => {
+      if (k.startsWith('cache_')) {
+        localStorage.removeItem(k);
+      }
+    });
+
+    sessionStorage.clear();
+    return true;
+  },
+
+  // ----------------------------------------------------
+  // Transactions (users/{userId}/transactions)
   // ----------------------------------------------------
   async getTransactions(userId) {
-    if (!db) {
+    if (!userId || !db) {
       const local = localStorage.getItem('local_transactions') || localStorage.getItem('transactions');
       return local ? JSON.parse(local) : [];
     }
 
-    let userTxList = [];
-    let rootTxList = [];
-    const seenTxKeys = new Set();
-    const mergedList = [];
-
-    // 1. Fetch from user's subcollection if logged in
-    if (userId) {
-      try {
-        const colRef = collection(db, "users", userId, "transactions");
-        const q = query(colRef, orderBy("date", "desc"));
-        const snapshot = await getDocs(q);
-        userTxList = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        userTxList.forEach(t => {
-          const key = `${t.date}_${t.amount}_${t.categoryId || ''}_${t.note || ''}`;
-          seenTxKeys.add(key);
-          mergedList.push(t);
-        });
-      } catch (e) {
-        console.warn("Error fetching user transactions:", e);
-      }
-    }
-
-    // 2. Fetch from root transactions collection (previous/legacy database)
     try {
-      const rootColRef = collection(db, "transactions");
-      const rootSnapshot = await getDocs(rootColRef);
-      rootTxList = rootSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const colRef = collection(db, "users", userId, "transactions");
+      const q = query(colRef, orderBy("date", "desc"));
+      const snapshot = await getDocs(q);
+      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-      const toSyncToUser = [];
-      rootTxList.forEach(t => {
-        const key = `${t.date}_${t.amount}_${t.categoryId || ''}_${t.note || ''}`;
-        if (!seenTxKeys.has(key)) {
-          seenTxKeys.add(key);
-          mergedList.push(t);
-          if (userId) {
-            toSyncToUser.push(t);
-          }
-        }
-      });
-
-      // Background sync missing root transactions to the logged in user
-      if (userId && toSyncToUser.length > 0) {
-        const batch = writeBatch(db);
-        toSyncToUser.forEach(item => {
-          const { id, ...data } = item;
-          const newDocRef = doc(collection(db, "users", userId, "transactions"));
-          batch.set(newDocRef, data);
-        });
-        batch.commit().catch(err => console.warn("Background sync error:", err));
-      }
+      // Automatically purge any remaining plain local storage copies for security
+      this.purgeAllLocalData();
+      return list;
     } catch (e) {
-      console.log("Root transactions not accessible or empty:", e.message);
+      console.warn("Firestore fetch transactions error:", e);
+      return [];
     }
-
-    // 3. Merge any localStorage legacy transactions
-    const localTx = JSON.parse(localStorage.getItem('local_transactions') || localStorage.getItem('transactions') || '[]');
-    if (localTx.length > 0) {
-      const toSyncFromLocal = [];
-      localTx.forEach(t => {
-        const key = `${t.date}_${t.amount}_${t.categoryId || ''}_${t.note || ''}`;
-        if (!seenTxKeys.has(key)) {
-          seenTxKeys.add(key);
-          mergedList.push(t);
-          if (userId) toSyncFromLocal.push(t);
-        }
-      });
-      if (userId && toSyncFromLocal.length > 0) {
-        const batch = writeBatch(db);
-        toSyncFromLocal.forEach(item => {
-          const { id, ...data } = item;
-          const newDocRef = doc(collection(db, "users", userId, "transactions"));
-          batch.set(newDocRef, data);
-        });
-        batch.commit().catch(err => console.warn("Local sync error:", err));
-      }
-    }
-
-    // Sort descending by date
-    mergedList.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-
-    if (userId) {
-      localStorage.setItem(`cache_transactions_${userId}`, JSON.stringify(mergedList));
-    }
-    return mergedList;
   },
 
   async addTransaction(transaction, userId) {
@@ -134,14 +93,9 @@ export const DataService = {
       return item;
     }
 
-    try {
-      const colRef = collection(db, "users", userId, "transactions");
-      const docRef = await addDoc(colRef, newTx);
-      return { id: docRef.id, ...newTx };
-    } catch (e) {
-      console.error("Failed to add transaction to Firestore", e);
-      throw e;
-    }
+    const colRef = collection(db, "users", userId, "transactions");
+    const docRef = await addDoc(colRef, newTx);
+    return { id: docRef.id, ...newTx };
   },
 
   async updateTransaction(id, updates, userId) {
@@ -152,18 +106,8 @@ export const DataService = {
       return { id, ...updates };
     }
 
-    try {
-      const docRef = doc(db, "users", userId, "transactions", id);
-      await updateDoc(docRef, updates);
-    } catch (err) {
-      // If doc exists in root collection
-      try {
-        const rootDocRef = doc(db, "transactions", id);
-        await updateDoc(rootDocRef, updates);
-      } catch (e) {
-        console.warn("Failed to update transaction doc", e);
-      }
-    }
+    const docRef = doc(db, "users", userId, "transactions", id);
+    await updateDoc(docRef, updates);
     return { id, ...updates };
   },
 
@@ -175,99 +119,43 @@ export const DataService = {
       return true;
     }
 
-    try {
-      const docRef = doc(db, "users", userId, "transactions", id);
-      await deleteDoc(docRef);
-    } catch (err) {
-      try {
-        const rootDocRef = doc(db, "transactions", id);
-        await deleteDoc(rootDocRef);
-      } catch (e) {
-        console.warn("Failed to delete transaction doc", e);
-      }
-    }
+    const docRef = doc(db, "users", userId, "transactions", id);
+    await deleteDoc(docRef);
     return true;
   },
 
   // ----------------------------------------------------
-  // Categories (users/{userId}/categories + root fallback)
+  // Categories (users/{userId}/categories)
   // ----------------------------------------------------
   async getCategories(userId) {
-    if (!db) {
+    if (!userId || !db) {
       const local = localStorage.getItem('local_categories');
       if (local) return JSON.parse(local);
       return DEFAULT_CATEGORIES.map((c, i) => ({ id: 'cat_' + i, ...c }));
     }
 
-    const mergedCategories = [];
-    const seenCatIds = new Set();
-    const seenCatNames = new Set();
-
-    // 1. Fetch root categories (previous database with original document IDs)
     try {
-      const rootColRef = collection(db, "categories");
-      const rootSnapshot = await getDocs(rootColRef);
-      const rootCats = rootSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      rootCats.forEach(c => {
-        if (!seenCatIds.has(c.id)) {
-          seenCatIds.add(c.id);
-          const nameKey = (c.name || '').toLowerCase() + '_' + (c.type || 'expense');
-          seenCatNames.add(nameKey);
-          mergedCategories.push(c);
-        }
-      });
-
-      // Background sync root categories to user's collection preserving exact doc IDs
-      if (userId && rootCats.length > 0) {
+      const colRef = collection(db, "users", userId, "categories");
+      const snapshot = await getDocs(colRef);
+      
+      if (snapshot.empty) {
+        // Seed default categories for this user
         const batch = writeBatch(db);
-        rootCats.forEach(cat => {
-          const { id, ...data } = cat;
-          const userCatDoc = doc(db, "users", userId, "categories", id);
-          batch.set(userCatDoc, data, { merge: true });
-        });
-        batch.commit().catch(err => console.log("Category sync note:", err.message));
-      }
-    } catch (e) {
-      console.log("Root categories query skipped:", e.message);
-    }
-
-    // 2. Fetch user categories if logged in
-    if (userId) {
-      try {
-        const colRef = collection(db, "users", userId, "categories");
-        const snapshot = await getDocs(colRef);
-        const userCats = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        userCats.forEach(c => {
-          if (!seenCatIds.has(c.id)) {
-            seenCatIds.add(c.id);
-            const nameKey = (c.name || '').toLowerCase() + '_' + (c.type || 'expense');
-            seenCatNames.add(nameKey);
-            mergedCategories.push(c);
-          }
-        });
-      } catch (e) {
-        console.warn("Error fetching user categories:", e);
-      }
-    }
-
-    // 3. Fallback to default categories if empty
-    if (mergedCategories.length === 0) {
-      DEFAULT_CATEGORIES.forEach((c, i) => {
-        mergedCategories.push({ id: 'cat_' + i, ...c });
-      });
-
-      if (userId) {
-        const batch = writeBatch(db);
-        const colRef = collection(db, "users", userId, "categories");
+        const seeded = [];
         for (const cat of DEFAULT_CATEGORIES) {
           const newDocRef = doc(colRef);
           batch.set(newDocRef, cat);
+          seeded.push({ id: newDocRef.id, ...cat });
         }
-        batch.commit().catch(console.warn);
+        await batch.commit();
+        return seeded;
       }
-    }
 
-    return mergedCategories;
+      return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      console.warn("Firestore fetch categories error:", e);
+      return DEFAULT_CATEGORIES.map((c, i) => ({ id: 'cat_' + i, ...c }));
+    }
   },
 
   async addCategory(category, userId) {
@@ -286,42 +174,27 @@ export const DataService = {
   },
 
   // ----------------------------------------------------
-  // Settings (users/{userId}/settings/config + root fallback)
+  // Settings (users/{userId}/settings/config)
   // ----------------------------------------------------
   async getSettings(userId) {
     const defaultSettings = { monthlyBudget: 0 };
-    if (!db) {
+    if (!userId || !db) {
       const local = localStorage.getItem('local_settings');
       return local ? JSON.parse(local) : defaultSettings;
     }
 
-    if (userId) {
-      try {
-        const docRef = doc(db, "users", userId, "settings", "config");
-        const snap = await getDoc(docRef);
-        if (snap.exists()) {
-          return { id: snap.id, ...snap.data() };
-        }
-      } catch (e) {
-        console.warn("User settings fetch error:", e);
-      }
-    }
-
-    // Try root settings
     try {
-      const rootSnap = await getDocs(collection(db, "settings"));
-      if (!rootSnap.empty) {
-        const data = rootSnap.docs[0].data();
-        if (userId) {
-          await setDoc(doc(db, "users", userId, "settings", "config"), data, { merge: true });
-        }
-        return { id: rootSnap.docs[0].id, ...data };
+      const docRef = doc(db, "users", userId, "settings", "config");
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        return { id: snap.id, ...snap.data() };
       }
+      await setDoc(docRef, defaultSettings);
+      return { id: 'config', ...defaultSettings };
     } catch (e) {
-      console.log("Root settings query skipped:", e.message);
+      console.warn("User settings fetch error:", e);
+      return defaultSettings;
     }
-
-    return defaultSettings;
   },
 
   async updateSettings(updates, userId) {
@@ -338,59 +211,22 @@ export const DataService = {
   },
 
   // ----------------------------------------------------
-  // Lent Records (users/{userId}/lent_records + root + local fallback)
+  // Lent Records (users/{userId}/lent_records)
   // ----------------------------------------------------
   async getLentRecords(userId) {
-    const mergedList = [];
-    const seenKeys = new Set();
-
-    // 1. User collection
-    if (userId && db) {
-      try {
-        const colRef = collection(db, "users", userId, "lent_records");
-        const snapshot = await getDocs(colRef);
-        snapshot.docs.forEach(d => {
-          const item = { id: d.id, ...d.data() };
-          const key = `${item.borrowerName || item.personName || ''}_${item.amount}`;
-          seenKeys.add(key);
-          mergedList.push(item);
-        });
-      } catch (e) {
-        console.warn("Error fetching user lent records:", e);
-      }
+    if (!userId || !db) {
+      const local = JSON.parse(localStorage.getItem('local_lent_records') || localStorage.getItem('lent_records') || '[]');
+      return local;
     }
 
-    // 2. Root Firestore lent_records
-    if (db) {
-      try {
-        const rootSnap = await getDocs(collection(db, "lent_records"));
-        rootSnap.docs.forEach(d => {
-          const item = { id: d.id, ...d.data() };
-          const key = `${item.borrowerName || item.personName || ''}_${item.amount}`;
-          if (!seenKeys.has(key)) {
-            seenKeys.add(key);
-            mergedList.push(item);
-          }
-        });
-      } catch (e) {
-        console.log("Root lent_records skipped:", e.message);
-      }
+    try {
+      const colRef = collection(db, "users", userId, "lent_records");
+      const snapshot = await getDocs(colRef);
+      return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      console.warn("Error fetching user lent records:", e);
+      return [];
     }
-
-    // 3. LocalStorage
-    const local = JSON.parse(localStorage.getItem('local_lent_records') || localStorage.getItem('lent_records') || '[]');
-    local.forEach(item => {
-      const key = `${item.borrowerName || item.personName || ''}_${item.amount}`;
-      if (!seenKeys.has(key)) {
-        seenKeys.add(key);
-        mergedList.push(item);
-      }
-    });
-
-    if (userId) {
-      localStorage.setItem(`cache_lent_${userId}`, JSON.stringify(mergedList));
-    }
-    return mergedList;
   },
 
   async addLentRecord(record, userId) {
@@ -437,17 +273,8 @@ export const DataService = {
       return { id, ...updates };
     }
 
-    try {
-      const docRef = doc(db, "users", userId, "lent_records", id);
-      await updateDoc(docRef, updates);
-    } catch (err) {
-      try {
-        const rootDocRef = doc(db, "lent_records", id);
-        await updateDoc(rootDocRef, updates);
-      } catch (e) {
-        console.warn("Failed to update lent doc", e);
-      }
-    }
+    const docRef = doc(db, "users", userId, "lent_records", id);
+    await updateDoc(docRef, updates);
     return { id, ...updates };
   },
 
@@ -459,74 +286,28 @@ export const DataService = {
       return true;
     }
 
-    try {
-      const docRef = doc(db, "users", userId, "lent_records", id);
-      await deleteDoc(docRef);
-    } catch (err) {
-      try {
-        const rootDocRef = doc(db, "lent_records", id);
-        await deleteDoc(rootDocRef);
-      } catch (e) {
-        console.warn("Failed to delete lent doc", e);
-      }
-    }
+    const docRef = doc(db, "users", userId, "lent_records", id);
+    await deleteDoc(docRef);
     return true;
   },
 
   // ----------------------------------------------------
-  // Borrowed Records (users/{userId}/borrowed_records + root + local fallback)
+  // Borrowed Records (users/{userId}/borrowed_records)
   // ----------------------------------------------------
   async getBorrowedRecords(userId) {
-    const mergedList = [];
-    const seenKeys = new Set();
-
-    // 1. User collection
-    if (userId && db) {
-      try {
-        const colRef = collection(db, "users", userId, "borrowed_records");
-        const snapshot = await getDocs(colRef);
-        snapshot.docs.forEach(d => {
-          const item = { id: d.id, ...d.data() };
-          const key = `${item.lenderName || item.personName || ''}_${item.amount}`;
-          seenKeys.add(key);
-          mergedList.push(item);
-        });
-      } catch (e) {
-        console.warn("Error fetching user borrowed records:", e);
-      }
+    if (!userId || !db) {
+      const local = JSON.parse(localStorage.getItem('local_borrowed_records') || localStorage.getItem('borrowed_records') || '[]');
+      return local;
     }
 
-    // 2. Root Firestore borrowed_records
-    if (db) {
-      try {
-        const rootSnap = await getDocs(collection(db, "borrowed_records"));
-        rootSnap.docs.forEach(d => {
-          const item = { id: d.id, ...d.data() };
-          const key = `${item.lenderName || item.personName || ''}_${item.amount}`;
-          if (!seenKeys.has(key)) {
-            seenKeys.add(key);
-            mergedList.push(item);
-          }
-        });
-      } catch (e) {
-        console.log("Root borrowed_records skipped:", e.message);
-      }
+    try {
+      const colRef = collection(db, "users", userId, "borrowed_records");
+      const snapshot = await getDocs(colRef);
+      return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      console.warn("Error fetching user borrowed records:", e);
+      return [];
     }
-
-    // 3. LocalStorage
-    const local = JSON.parse(localStorage.getItem('local_borrowed_records') || localStorage.getItem('borrowed_records') || '[]');
-    local.forEach(item => {
-      const key = `${item.lenderName || item.personName || ''}_${item.amount}`;
-      if (!seenKeys.has(key)) {
-        seenKeys.add(key);
-        mergedList.push(item);
-      }
-    });
-
-    if (userId) {
-      localStorage.setItem(`cache_borrowed_${userId}`, JSON.stringify(mergedList));
-    }
-    return mergedList;
   },
 
   async addBorrowedRecord(record, userId) {
@@ -573,17 +354,8 @@ export const DataService = {
       return { id, ...updates };
     }
 
-    try {
-      const docRef = doc(db, "users", userId, "borrowed_records", id);
-      await updateDoc(docRef, updates);
-    } catch (err) {
-      try {
-        const rootDocRef = doc(db, "borrowed_records", id);
-        await updateDoc(rootDocRef, updates);
-      } catch (e) {
-        console.warn("Failed to update borrowed doc", e);
-      }
-    }
+    const docRef = doc(db, "users", userId, "borrowed_records", id);
+    await updateDoc(docRef, updates);
     return { id, ...updates };
   },
 
@@ -595,175 +367,28 @@ export const DataService = {
       return true;
     }
 
-    try {
-      const docRef = doc(db, "users", userId, "borrowed_records", id);
-      await deleteDoc(docRef);
-    } catch (err) {
-      try {
-        const rootDocRef = doc(db, "borrowed_records", id);
-        await deleteDoc(rootDocRef);
-      } catch (e) {
-        console.warn("Failed to delete borrowed doc", e);
-      }
-    }
+    const docRef = doc(db, "users", userId, "borrowed_records", id);
+    await deleteDoc(docRef);
     return true;
   },
 
   // ----------------------------------------------------
-  // Cloud Sync & Comprehensive Legacy Data Migration
+  // Clean Legacy Root Firestore Collections
   // ----------------------------------------------------
-  async migrateLocalDataToCloud(userId) {
-    if (!userId || !db) return { count: 0 };
-    let count = 0;
-
+  async cleanRootCollections() {
+    if (!db) return;
     try {
-      // 1. Fetch current user transactions to prevent duplicates
-      const userColRef = collection(db, "users", userId, "transactions");
-      const userTxSnap = await getDocs(userColRef);
-      const existingTxKeys = new Set(
-        userTxSnap.docs.map(d => {
-          const t = d.data();
-          return `${t.date}_${t.amount}_${t.categoryId || ''}_${t.note || ''}`;
-        })
-      );
-
-      const userLentSnap = await getDocs(collection(db, "users", userId, "lent_records"));
-      const existingLentNames = new Set(
-        userLentSnap.docs.map(d => {
-          const l = d.data();
-          return `${l.borrowerName || l.personName || ''}_${l.amount}`;
-        })
-      );
-
-      const userBorrowSnap = await getDocs(collection(db, "users", userId, "borrowed_records"));
-      const existingBorrowNames = new Set(
-        userBorrowSnap.docs.map(d => {
-          const b = d.data();
-          return `${b.lenderName || b.personName || ''}_${b.amount}`;
-        })
-      );
-
-      const batch = writeBatch(db);
-      let batchCount = 0;
-
-      const addToBatch = async (ref, data) => {
-        batch.set(ref, data);
-        batchCount++;
-        count++;
-        if (batchCount >= 450) {
+      const colNames = ["transactions", "lent_records", "borrowed_records"];
+      for (const colName of colNames) {
+        const snap = await getDocs(collection(db, colName));
+        if (!snap.empty) {
+          const batch = writeBatch(db);
+          snap.docs.forEach(d => batch.delete(d.ref));
           await batch.commit();
-          batchCount = 0;
-        }
-      };
-
-      // 2. Check local storage legacy keys
-      const localTx = [
-        ...JSON.parse(localStorage.getItem('local_transactions') || '[]'),
-        ...JSON.parse(localStorage.getItem('transactions') || '[]')
-      ];
-
-      for (const item of localTx) {
-        const key = `${item.date}_${item.amount}_${item.categoryId || ''}_${item.note || ''}`;
-        if (!existingTxKeys.has(key)) {
-          existingTxKeys.add(key);
-          const { id, ...data } = item;
-          const ref = doc(collection(db, "users", userId, "transactions"));
-          await addToBatch(ref, data);
         }
       }
-      localStorage.removeItem('local_transactions');
-      localStorage.removeItem('transactions');
-
-      // Lent records from localStorage
-      const allLocalLent = [
-        ...JSON.parse(localStorage.getItem('local_lent_records') || '[]'),
-        ...JSON.parse(localStorage.getItem('lent_records') || '[]')
-      ];
-
-      for (const item of allLocalLent) {
-        const key = `${item.borrowerName || item.personName || ''}_${item.amount}`;
-        if (!existingLentNames.has(key)) {
-          existingLentNames.add(key);
-          const { id, ...data } = item;
-          const ref = doc(collection(db, "users", userId, "lent_records"));
-          await addToBatch(ref, data);
-        }
-      }
-      localStorage.removeItem('local_lent_records');
-      localStorage.removeItem('lent_records');
-
-      // Borrowed records from localStorage
-      const allLocalBorrow = [
-        ...JSON.parse(localStorage.getItem('local_borrowed_records') || '[]'),
-        ...JSON.parse(localStorage.getItem('borrowed_records') || '[]')
-      ];
-
-      for (const item of allLocalBorrow) {
-        const key = `${item.lenderName || item.personName || ''}_${item.amount}`;
-        if (!existingBorrowNames.has(key)) {
-          existingBorrowNames.add(key);
-          const { id, ...data } = item;
-          const ref = doc(collection(db, "users", userId, "borrowed_records"));
-          await addToBatch(ref, data);
-        }
-      }
-      localStorage.removeItem('local_borrowed_records');
-      localStorage.removeItem('borrowed_records');
-
-      // 3. Check legacy root collections in Firestore
-      try {
-        const rootTxSnap = await getDocs(collection(db, "transactions"));
-        for (const d of rootTxSnap.docs) {
-          const item = d.data();
-          const key = `${item.date}_${item.amount}_${item.categoryId || ''}_${item.note || ''}`;
-          if (!existingTxKeys.has(key)) {
-            existingTxKeys.add(key);
-            const ref = doc(collection(db, "users", userId, "transactions"));
-            await addToBatch(ref, item);
-          }
-        }
-      } catch (err) {
-        console.log("Root Firestore transactions check skipped:", err.message);
-      }
-
-      try {
-        const rootLentSnap = await getDocs(collection(db, "lent_records"));
-        for (const d of rootLentSnap.docs) {
-          const item = d.data();
-          const key = `${item.borrowerName || item.personName || ''}_${item.amount}`;
-          if (!existingLentNames.has(key)) {
-            existingLentNames.add(key);
-            const ref = doc(collection(db, "users", userId, "lent_records"));
-            await addToBatch(ref, item);
-          }
-        }
-      } catch (err) {
-        console.log("Root Firestore lent_records check skipped:", err.message);
-      }
-
-      try {
-        const rootBorrowSnap = await getDocs(collection(db, "borrowed_records"));
-        for (const d of rootBorrowSnap.docs) {
-          const item = d.data();
-          const key = `${item.lenderName || item.personName || ''}_${item.amount}`;
-          if (!existingBorrowNames.has(key)) {
-            existingBorrowNames.add(key);
-            const ref = doc(collection(db, "users", userId, "borrowed_records"));
-            await addToBatch(ref, item);
-          }
-        }
-      } catch (err) {
-        console.log("Root Firestore borrowed_records check skipped:", err.message);
-      }
-
-      if (batchCount > 0) {
-        await batch.commit();
-      }
-
-      return { count };
     } catch (e) {
-      console.error("Migration error:", e);
-      return { count };
+      console.log("Root cleanup note:", e.message);
     }
   }
 };
