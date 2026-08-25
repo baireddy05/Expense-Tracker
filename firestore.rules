@@ -2,29 +2,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // User data is strictly isolated under users/{userId}
+    // STRICT DATA ISOLATION:
+    // A user can ONLY read and write their own documents inside users/{userId}
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Allow reading & writing legacy root collections so all previous transactions are accessible
-    match /transactions/{document=**} {
-      allow read, write: if request.auth != null;
-    }
-    match /categories/{document=**} {
-      allow read, write: if request.auth != null;
-    }
-    match /lent_records/{document=**} {
-      allow read, write: if request.auth != null;
-    }
-    match /borrowed_records/{document=**} {
-      allow read, write: if request.auth != null;
-    }
-    match /settings/{document=**} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Deny all other access by default
+    // DENY ALL OTHER ACCESS:
+    // No user can access root collections or any other user's data
     match /{document=**} {
       allow read, write: if false;
     }
