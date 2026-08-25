@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTransactions } from '../context/TransactionContext';
+import { useAuth } from '../context/AuthContext';
 import BorrowFormModal from '../components/borrow/BorrowFormModal';
 import BorrowMoreModal from '../components/borrow/BorrowMoreModal';
 import BorrowRepaymentModal from '../components/borrow/BorrowRepaymentModal';
@@ -27,7 +28,8 @@ import {
   faPhone,
   faCoins,
   faArrowRotateLeft,
-  faComments
+  faComments,
+  faShieldAlt
 } from '@fortawesome/free-solid-svg-icons';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -37,6 +39,7 @@ import { useUI } from '../context/UIContext';
 const BorrowedMoney = () => {
   const { borrowedRecords = [], deleteBorrowedRecord, settleBorrowedRecord, loading } = useTransactions();
   const { isPrivacyMode } = useUI();
+  const { currentUser, openAuthModal } = useAuth();
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // all, active, pending, partial, overdue, settled
@@ -382,6 +385,28 @@ const BorrowedMoney = () => {
           </button>
         </div>
       </div>
+
+      {/* Guest Mode Cloud Security Banner */}
+      {!currentUser && (
+        <div className="p-4 rounded-2xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-white/10 dark:bg-zinc-900/10 flex items-center justify-center text-xs shrink-0">
+              <FontAwesomeIcon icon={faShieldAlt} />
+            </div>
+            <div>
+              <p className="text-xs font-bold">Cloud Synced Debts Ledger</p>
+              <p className="text-[11px] opacity-80">Sign in with your Google account to view and manage debts owed and repayments safely in the cloud.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => openAuthModal('login')}
+            className="px-3.5 py-1.5 bg-white text-zinc-900 dark:bg-zinc-900 dark:text-white rounded-xl text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shrink-0 touch-feedback"
+          >
+            Sign In with Google
+          </button>
+        </div>
+      )}
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

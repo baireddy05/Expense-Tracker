@@ -50,11 +50,9 @@ export const TransactionProvider = ({ children }) => {
     return () => clearTimeout(timer);
   }, [fetchData]);
 
-  // Auto-purge legacy/offline records from browser when logging in to protect privacy
+  // Auto-purge any legacy/offline unencrypted data from browser storage unconditionally
   useEffect(() => {
-    if (userId) {
-      DataService.purgeAllLocalData();
-    }
+    DataService.purgeAllLocalData();
   }, [userId]);
 
   const syncLocalData = async () => {

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTransactions } from '../context/TransactionContext';
 import { useUI } from '../context/UIContext';
+import { useAuth } from '../context/AuthContext';
 import TransactionForm from '../components/transactions/TransactionForm';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -18,7 +19,8 @@ import {
   faCalendarDay,
   faLayerGroup,
   faExpandAlt,
-  faCompressAlt
+  faCompressAlt,
+  faShieldAlt
 } from '@fortawesome/free-solid-svg-icons';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -30,6 +32,7 @@ import toast from 'react-hot-toast';
 const Transactions = () => {
   const { transactions, categories, deleteTransaction, loading } = useTransactions();
   const { isPrivacyMode } = useUI();
+  const { currentUser, openAuthModal } = useAuth();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
   
@@ -404,6 +407,28 @@ const Transactions = () => {
           </button>
         </div>
       </header>
+
+      {/* Guest Mode Cloud Security Banner */}
+      {!currentUser && (
+        <div className="p-4 rounded-2xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-white/10 dark:bg-zinc-900/10 flex items-center justify-center text-xs shrink-0">
+              <FontAwesomeIcon icon={faShieldAlt} />
+            </div>
+            <div>
+              <p className="text-xs font-bold">Cloud Synced Financial Ledger</p>
+              <p className="text-[11px] opacity-80">Sign in with your Google account to access your encrypted transaction history.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => openAuthModal('login')}
+            className="px-3.5 py-1.5 bg-white text-zinc-900 dark:bg-zinc-900 dark:text-white rounded-xl text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shrink-0 touch-feedback"
+          >
+            Sign In with Google
+          </button>
+        </div>
+      )}
 
       {/* Filters & Search */}
       <div className={`glass-card p-4 grid grid-cols-1 sm:grid-cols-2 ${timeFilter === 'all' ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-2.5 transition-all`}>

@@ -13,6 +13,25 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 
+// Immediate top-level sanitization: wipe all unencrypted device storage
+export const sanitizeLocalStorage = () => {
+  try {
+    const allowedKeys = new Set(['theme', 'extrack_privacy_mode']);
+    const keys = Object.keys(localStorage);
+    keys.forEach(k => {
+      if (!allowedKeys.has(k)) {
+        localStorage.removeItem(k);
+      }
+    });
+    sessionStorage.clear();
+  } catch (e) {
+    // Ignore in restrictive environments
+  }
+};
+
+// Run on module evaluation
+sanitizeLocalStorage();
+
 const DEFAULT_CATEGORIES = [
   { name: 'Food', color: '#ef4444', icon: 'fa-utensils', type: 'expense' },
   { name: 'Groceries', color: '#f97316', icon: 'fa-shopping-cart', type: 'expense' },
@@ -28,29 +47,7 @@ export const DataService = {
   // Privacy & Local Cache Purge
   // ----------------------------------------------------
   purgeAllLocalData() {
-    const keysToPurge = [
-      'local_transactions',
-      'transactions',
-      'local_lent_records',
-      'lent_records',
-      'local_borrowed_records',
-      'borrowed_records',
-      'local_categories',
-      'local_settings',
-      'extrack_guest_mode'
-    ];
-
-    keysToPurge.forEach(k => localStorage.removeItem(k));
-
-    // Also remove any cache_* keys dynamically
-    const allKeys = Object.keys(localStorage);
-    allKeys.forEach(k => {
-      if (k.startsWith('cache_')) {
-        localStorage.removeItem(k);
-      }
-    });
-
-    sessionStorage.clear();
+    sanitizeLocalStorage();
     return true;
   },
 
@@ -58,9 +55,10 @@ export const DataService = {
   // Transactions (users/{userId}/transactions)
   // ----------------------------------------------------
   async getTransactions(userId) {
+    // If not authenticated, NEVER return or read local unencrypted data
     if (!userId || !db) {
-      const local = localStorage.getItem('local_transactions') || localStorage.getItem('transactions');
-      return local ? JSON.parse(local) : [];
+      this.purgeAllLocalData();
+      return [];
     }
 
     try {
@@ -105,8 +103,8 @@ export const DataService = {
 
       uniqueList.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
-      // Automatically purge any remaining plain local storage copies for security
-      DataService.purgeAllLocalData();
+      // Always purge any local device storage copies for complete security
+      this.purgeAllLocalData();
       return uniqueList;
     } catch (e) {
       console.warn("Firestore fetch transactions error:", e);
@@ -121,12 +119,8 @@ export const DataService = {
     };
 
     if (!userId || !db) {
-      const id = 'local_tx_' + Date.now();
-      const item = { id, ...newTx };
-      const local = JSON.parse(localStorage.getItem('local_transactions') || '[]');
-      local.unshift(item);
-      localStorage.setItem('local_transactions', JSON.stringify(local));
-      return item;
+      // In guest mode, do not write to persistent device localStorage
+      return { id: 'transient_' + Date.now(), ...newTx };
     }
 
     const colRef = collection(db, "users", userId, "transactions");
@@ -135,10 +129,7 @@ export const DataService = {
   },
 
   async updateTransaction(id, updates, userId) {
-    if (!userId || !db || id.startsWith('local_')) {
-      const local = JSON.parse(localStorage.getItem('local_transactions') || '[]');
-      const updated = local.map(t => t.id === id ? { ...t, ...updates } : t);
-      localStorage.setItem('local_transactions', JSON.stringify(updated));
+    if (!userId || !db || id.startsWith('transient_') || id.startsWith('local_')) {
       return { id, ...updates };
     }
 
@@ -148,10 +139,7 @@ export const DataService = {
   },
 
   async deleteTransaction(id, userId) {
-    if (!userId || !db || id.startsWith('local_')) {
-      const local = JSON.parse(localStorage.getItem('local_transactions') || '[]');
-      const filtered = local.filter(t => t.id !== id);
-      localStorage.setItem('local_transactions', JSON.stringify(filtered));
+    if (!userId || !db || id.startsWith('transient_') || id.startsWith('local_')) {
       return true;
     }
 
@@ -165,9 +153,7 @@ export const DataService = {
   // ----------------------------------------------------
   async getCategories(userId) {
     if (!userId || !db) {
-      const local = localStorage.getItem('local_categories');
-      if (local) return JSON.parse(local);
-      return DEFAULT_CATEGORIES.map((c, i) => ({ id: 'cat_' + i, ...c }));
+      return DEFAULT_CATEGORIES.map((c, i) => ({ id: 'default_' + i, ...c }));
     }
 
     try {
@@ -178,30 +164,25 @@ export const DataService = {
         // Seed default categories for this user
         const batch = writeBatch(db);
         const seeded = [];
-        for (const cat of DEFAULT_CATEGORIES) {
-          const newDocRef = doc(colRef);
-          batch.set(newDocRef, cat);
-          seeded.push({ id: newDocRef.id, ...cat });
-        }
+        DEFAULT_CATEGORIES.forEach(cat => {
+          const docRef = doc(colRef);
+          batch.set(docRef, cat);
+          seeded.push({ id: docRef.id, ...cat });
+        });
         await batch.commit();
         return seeded;
       }
 
-      return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (e) {
       console.warn("Firestore fetch categories error:", e);
-      return DEFAULT_CATEGORIES.map((c, i) => ({ id: 'cat_' + i, ...c }));
+      return DEFAULT_CATEGORIES.map((c, i) => ({ id: 'default_' + i, ...c }));
     }
   },
 
   async addCategory(category, userId) {
     if (!userId || !db) {
-      const id = 'local_cat_' + Date.now();
-      const newCat = { id, ...category };
-      const local = JSON.parse(localStorage.getItem('local_categories') || '[]');
-      local.push(newCat);
-      localStorage.setItem('local_categories', JSON.stringify(local));
-      return newCat;
+      return { id: 'transient_cat_' + Date.now(), ...category };
     }
 
     const colRef = collection(db, "users", userId, "categories");
@@ -210,35 +191,29 @@ export const DataService = {
   },
 
   // ----------------------------------------------------
-  // Settings (users/{userId}/settings/config)
+  // User Settings & Monthly Budget (users/{userId}/settings/config)
   // ----------------------------------------------------
   async getSettings(userId) {
-    const defaultSettings = { monthlyBudget: 0 };
     if (!userId || !db) {
-      const local = localStorage.getItem('local_settings');
-      return local ? JSON.parse(local) : defaultSettings;
+      return { monthlyBudget: 0 };
     }
 
     try {
       const docRef = doc(db, "users", userId, "settings", "config");
       const snap = await getDoc(docRef);
       if (snap.exists()) {
-        return { id: snap.id, ...snap.data() };
+        return snap.data();
       }
-      await setDoc(docRef, defaultSettings);
-      return { id: 'config', ...defaultSettings };
+      return { monthlyBudget: 0 };
     } catch (e) {
-      console.warn("User settings fetch error:", e);
-      return defaultSettings;
+      console.warn("Firestore fetch settings error:", e);
+      return { monthlyBudget: 0 };
     }
   },
 
   async updateSettings(updates, userId) {
     if (!userId || !db) {
-      const local = JSON.parse(localStorage.getItem('local_settings') || '{"monthlyBudget":0}');
-      const updated = { ...local, ...updates };
-      localStorage.setItem('local_settings', JSON.stringify(updated));
-      return updated;
+      return updates;
     }
 
     const docRef = doc(db, "users", userId, "settings", "config");
@@ -250,9 +225,10 @@ export const DataService = {
   // Lent Records (users/{userId}/lent_records)
   // ----------------------------------------------------
   async getLentRecords(userId) {
+    // If not authenticated, NEVER return or read unencrypted local data
     if (!userId || !db) {
-      const local = JSON.parse(localStorage.getItem('local_lent_records') || localStorage.getItem('lent_records') || '[]');
-      return local;
+      this.purgeAllLocalData();
+      return [];
     }
 
     try {
@@ -285,6 +261,7 @@ export const DataService = {
         batch.commit().catch(e => console.warn("Deduplicate lent error:", e));
       }
 
+      this.purgeAllLocalData();
       return uniqueList;
     } catch (e) {
       console.warn("Error fetching user lent records:", e);
@@ -315,12 +292,7 @@ export const DataService = {
     };
 
     if (!userId || !db) {
-      const id = 'local_lent_' + Date.now();
-      const saved = { id, ...newRecord };
-      const existing = JSON.parse(localStorage.getItem('local_lent_records') || '[]');
-      existing.unshift(saved);
-      localStorage.setItem('local_lent_records', JSON.stringify(existing));
-      return saved;
+      return { id: 'transient_lent_' + Date.now(), ...newRecord };
     }
 
     const colRef = collection(db, "users", userId, "lent_records");
@@ -329,10 +301,7 @@ export const DataService = {
   },
 
   async updateLentRecord(id, updates, userId) {
-    if (!userId || !db || id.startsWith('local_')) {
-      const existing = JSON.parse(localStorage.getItem('local_lent_records') || '[]');
-      const updatedList = existing.map(item => item.id === id ? { ...item, ...updates } : item);
-      localStorage.setItem('local_lent_records', JSON.stringify(updatedList));
+    if (!userId || !db || id.startsWith('transient_') || id.startsWith('local_')) {
       return { id, ...updates };
     }
 
@@ -342,10 +311,7 @@ export const DataService = {
   },
 
   async deleteLentRecord(id, userId) {
-    if (!userId || !db || id.startsWith('local_')) {
-      const existing = JSON.parse(localStorage.getItem('local_lent_records') || '[]');
-      const updatedList = existing.filter(item => item.id !== id);
-      localStorage.setItem('local_lent_records', JSON.stringify(updatedList));
+    if (!userId || !db || id.startsWith('transient_') || id.startsWith('local_')) {
       return true;
     }
 
@@ -358,9 +324,10 @@ export const DataService = {
   // Borrowed Records (users/{userId}/borrowed_records)
   // ----------------------------------------------------
   async getBorrowedRecords(userId) {
+    // If not authenticated, NEVER return or read unencrypted local data
     if (!userId || !db) {
-      const local = JSON.parse(localStorage.getItem('local_borrowed_records') || localStorage.getItem('borrowed_records') || '[]');
-      return local;
+      this.purgeAllLocalData();
+      return [];
     }
 
     try {
@@ -393,6 +360,7 @@ export const DataService = {
         batch.commit().catch(e => console.warn("Deduplicate borrowed error:", e));
       }
 
+      this.purgeAllLocalData();
       return uniqueList;
     } catch (e) {
       console.warn("Error fetching user borrowed records:", e);
@@ -423,12 +391,7 @@ export const DataService = {
     };
 
     if (!userId || !db) {
-      const id = 'local_borrow_' + Date.now();
-      const saved = { id, ...newRecord };
-      const existing = JSON.parse(localStorage.getItem('local_borrowed_records') || '[]');
-      existing.unshift(saved);
-      localStorage.setItem('local_borrowed_records', JSON.stringify(existing));
-      return saved;
+      return { id: 'transient_borrow_' + Date.now(), ...newRecord };
     }
 
     const colRef = collection(db, "users", userId, "borrowed_records");
@@ -437,10 +400,7 @@ export const DataService = {
   },
 
   async updateBorrowedRecord(id, updates, userId) {
-    if (!userId || !db || id.startsWith('local_')) {
-      const existing = JSON.parse(localStorage.getItem('local_borrowed_records') || '[]');
-      const updatedList = existing.map(item => item.id === id ? { ...item, ...updates } : item);
-      localStorage.setItem('local_borrowed_records', JSON.stringify(updatedList));
+    if (!userId || !db || id.startsWith('transient_') || id.startsWith('local_')) {
       return { id, ...updates };
     }
 
@@ -450,10 +410,7 @@ export const DataService = {
   },
 
   async deleteBorrowedRecord(id, userId) {
-    if (!userId || !db || id.startsWith('local_')) {
-      const existing = JSON.parse(localStorage.getItem('local_borrowed_records') || '[]');
-      const updatedList = existing.filter(item => item.id !== id);
-      localStorage.setItem('local_borrowed_records', JSON.stringify(updatedList));
+    if (!userId || !db || id.startsWith('transient_') || id.startsWith('local_')) {
       return true;
     }
 

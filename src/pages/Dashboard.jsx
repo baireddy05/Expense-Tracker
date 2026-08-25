@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTransactions } from '../context/TransactionContext';
 import { useUI } from '../context/UIContext';
+import { useAuth } from '../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faWallet, 
@@ -12,7 +13,8 @@ import {
   faExclamationTriangle, 
   faArrowRight, 
   faCoins, 
-  faReceipt 
+  faReceipt,
+  faShieldAlt
 } from '@fortawesome/free-solid-svg-icons';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
@@ -25,6 +27,7 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 const Dashboard = () => {
   const { transactions, categories, lentRecords = [], borrowedRecords = [], loading, settings } = useTransactions();
   const { isPrivacyMode } = useUI();
+  const { currentUser, openAuthModal } = useAuth();
   const navigate = useNavigate();
 
   const formatCurrency = (amount) => {
@@ -284,6 +287,28 @@ const Dashboard = () => {
           </Link>
         </div>
       </header>
+
+      {/* Guest Mode Cloud Security Banner */}
+      {!currentUser && (
+        <div className="p-4 rounded-2xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-white/10 dark:bg-zinc-900/10 flex items-center justify-center text-xs shrink-0">
+              <FontAwesomeIcon icon={faShieldAlt} />
+            </div>
+            <div>
+              <p className="text-xs font-bold">You are in Guest Mode</p>
+              <p className="text-[11px] opacity-80">Sign in with your Google account to load and protect your cloud finances.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => openAuthModal('login')}
+            className="px-3.5 py-1.5 bg-white text-zinc-900 dark:bg-zinc-900 dark:text-white rounded-xl text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shrink-0 touch-feedback"
+          >
+            Sign In with Google
+          </button>
+        </div>
+      )}
 
       {/* Financial Health & KPI Multi-Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

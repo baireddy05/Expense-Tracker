@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useTransactions } from '../context/TransactionContext';
+import { useAuth } from '../context/AuthContext';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -9,7 +10,8 @@ import {
   faArrowTrendDown, 
   faHandHoldingDollar, 
   faHandHolding, 
-  faTags 
+  faTags,
+  faShieldAlt
 } from '@fortawesome/free-solid-svg-icons';
 import { getCategoryIcon, resolveCategory } from '../utils/categoryIcons';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
@@ -20,6 +22,7 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 const Analytics = () => {
   const { transactions, categories, lentRecords = [], borrowedRecords = [] } = useTransactions();
   const { isPrivacyMode } = useUI();
+  const { currentUser, openAuthModal } = useAuth();
 
   const stats = useMemo(() => {
     let income = 0;
@@ -131,6 +134,28 @@ const Analytics = () => {
           Spending distribution, savings rate & debt position
         </p>
       </header>
+
+      {/* Guest Mode Cloud Security Banner */}
+      {!currentUser && (
+        <div className="p-4 rounded-2xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-white/10 dark:bg-zinc-900/10 flex items-center justify-center text-xs shrink-0">
+              <FontAwesomeIcon icon={faShieldAlt} />
+            </div>
+            <div>
+              <p className="text-xs font-bold">Cloud Analytics & Visual Insights</p>
+              <p className="text-[11px] opacity-80">Sign in with your Google account to compute charts and statistics on your real data.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => openAuthModal('login')}
+            className="px-3.5 py-1.5 bg-white text-zinc-900 dark:bg-zinc-900 dark:text-white rounded-xl text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shrink-0 touch-feedback"
+          >
+            Sign In with Google
+          </button>
+        </div>
+      )}
 
       {/* Analytics Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
