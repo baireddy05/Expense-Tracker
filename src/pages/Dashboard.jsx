@@ -9,7 +9,6 @@ import {
   faArrowTrendDown, 
   faHandHoldingDollar, 
   faHandHolding, 
-  faClock, 
   faExclamationTriangle, 
   faArrowRight, 
   faCoins, 
@@ -38,28 +37,29 @@ const Dashboard = () => {
   const stats = useMemo(() => {
     let income = 0;
     let expense = 0;
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-
     let monthlyIncome = 0;
     let monthlyExpense = 0;
 
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
     transactions.forEach(t => {
       const amount = parseFloat(t.amount) || 0;
-      const isIncome = t.type === 'income';
       const tDate = new Date(t.date);
-      const isCurrentMonth = tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+      const isThisMonth = tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
 
-      if (isIncome) {
+      if (t.type === 'income') {
         income += amount;
-        if (isCurrentMonth) monthlyIncome += amount;
-      } else {
+        if (isThisMonth) monthlyIncome += amount;
+      } else if (t.type === 'expense') {
         expense += amount;
-        if (isCurrentMonth) monthlyExpense += amount;
+        if (isThisMonth) monthlyExpense += amount;
       }
     });
 
-    // Lent stats
+    const balance = income - expense;
+
     let totalLentPending = 0;
     lentRecords.forEach(r => {
       const total = parseFloat(r.amount) || 0;
@@ -67,7 +67,6 @@ const Dashboard = () => {
       totalLentPending += Math.max(0, total - returned);
     });
 
-    // Borrowed stats
     let totalBorrowedPending = 0;
     borrowedRecords.forEach(r => {
       const total = parseFloat(r.amount) || 0;
@@ -75,7 +74,6 @@ const Dashboard = () => {
       totalBorrowedPending += Math.max(0, total - returned);
     });
 
-    const balance = income - expense;
     const netWorth = balance + totalLentPending - totalBorrowedPending;
 
     return {
@@ -160,7 +158,7 @@ const Dashboard = () => {
     expenses.forEach(t => {
       const cat = resolveCategory(t.categoryId, categories, t.note);
       const catName = cat?.name || 'General';
-      const catColor = cat?.color || '#888888';
+      const catColor = cat?.color || '#71717a';
       if (!grouped[catName]) {
         grouped[catName] = { name: catName, amount: 0, color: catColor };
       }
@@ -214,6 +212,7 @@ const Dashboard = () => {
       data: expenseByCategory.map(e => e.amount),
       backgroundColor: expenseByCategory.map(e => e.color),
       borderWidth: 0,
+      hoverOffset: 4
     }]
   }), [expenseByCategory]);
 
@@ -223,18 +222,24 @@ const Dashboard = () => {
       {
         label: 'Income',
         data: trendData.incomeData,
-        borderColor: '#22c55e',
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-        tension: 0.4,
+        borderColor: '#10b981',
+        backgroundColor: 'rgba(16, 185, 129, 0.06)',
+        borderWidth: 2,
+        tension: 0.35,
         fill: true,
+        pointRadius: 3,
+        pointBackgroundColor: '#10b981'
       },
       {
         label: 'Expense',
         data: trendData.expenseData,
-        borderColor: '#ef4444',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        tension: 0.4,
+        borderColor: '#f43f5e',
+        backgroundColor: 'rgba(244, 63, 94, 0.06)',
+        borderWidth: 2,
+        tension: 0.35,
         fill: true,
+        pointRadius: 3,
+        pointBackgroundColor: '#f43f5e'
       }
     ]
   }), [trendData]);
@@ -243,104 +248,124 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header & Quick Action Pills */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Overview of your cash flow, lending & debts</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
+            Dashboard
+          </h1>
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+            Financial position, cash flow & debts
+          </p>
         </div>
 
-        {/* Quick Shortcuts */}
+        {/* Minimalist Quick Shortcuts */}
         <div className="flex items-center gap-2">
           <Link
             to="/transactions"
-            className="px-3.5 py-2 bg-primary-50 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300 font-semibold rounded-xl text-xs hover:bg-primary-100 transition-colors flex items-center gap-1.5"
+            className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold rounded-xl text-xs transition-colors flex items-center gap-1.5 touch-feedback border border-zinc-200/60 dark:border-zinc-700/60"
           >
-            <FontAwesomeIcon icon={faReceipt} />
-            <span>Transactions</span>
+            <FontAwesomeIcon icon={faReceipt} className="text-[11px] text-zinc-400" />
+            <span>Ledger</span>
           </Link>
           <Link
             to="/lent"
-            className="px-3.5 py-2 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 font-semibold rounded-xl text-xs hover:bg-amber-100 transition-colors flex items-center gap-1.5"
+            className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold rounded-xl text-xs transition-colors flex items-center gap-1.5 touch-feedback border border-zinc-200/60 dark:border-zinc-700/60"
           >
-            <FontAwesomeIcon icon={faHandHoldingDollar} />
+            <FontAwesomeIcon icon={faHandHoldingDollar} className="text-[11px] text-zinc-400" />
             <span>Lent</span>
           </Link>
           <Link
             to="/borrowed"
-            className="px-3.5 py-2 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 font-semibold rounded-xl text-xs hover:bg-purple-100 transition-colors flex items-center gap-1.5"
+            className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold rounded-xl text-xs transition-colors flex items-center gap-1.5 touch-feedback border border-zinc-200/60 dark:border-zinc-700/60"
           >
-            <FontAwesomeIcon icon={faHandHolding} />
-            <span>Borrowed</span>
+            <FontAwesomeIcon icon={faHandHolding} className="text-[11px] text-zinc-400" />
+            <span>Debts</span>
           </Link>
         </div>
       </header>
 
-      {/* Financial Health & Net Worth Multi-Card */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Financial Health & KPI Multi-Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Cash Balance */}
-        <div className="glass rounded-2xl p-5 relative overflow-hidden group">
+        <div className="glass-card p-5 transition-all glass-hover">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total Balance</p>
-              <h2 className={`text-2xl lg:text-3xl font-bold mt-1.5 ${stats.balance >= 0 ? 'text-gray-900 dark:text-white' : 'text-red-500'}`}>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                Total Balance
+              </p>
+              <h2 className={`text-2xl font-bold mt-1 tracking-tight ${stats.balance >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-500'}`}>
                 <AnimatedCounter value={stats.balance} isCurrency={true} />
               </h2>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex items-center justify-center text-xs shrink-0">
               <FontAwesomeIcon icon={faWallet} />
             </div>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            Net Monthly: <strong className={stats.monthlyIncome - stats.monthlyExpense >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}>{formatCurrency(stats.monthlyIncome - stats.monthlyExpense)}</strong>
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-2.5 flex items-center gap-1">
+            <span>Net Monthly:</span>
+            <strong className={stats.monthlyIncome - stats.monthlyExpense >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}>
+              {formatCurrency(stats.monthlyIncome - stats.monthlyExpense)}
+            </strong>
           </p>
         </div>
 
         {/* Monthly Income */}
-        <div className="glass rounded-2xl p-5 border-l-4 border-l-green-500">
+        <div className="glass-card p-5 transition-all glass-hover">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Monthly Income</p>
-              <h2 className="text-2xl lg:text-3xl font-bold mt-1.5 text-green-600 dark:text-green-400">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                Monthly Income
+              </p>
+              <h2 className="text-2xl font-bold mt-1 tracking-tight text-emerald-600 dark:text-emerald-400">
                 <AnimatedCounter value={stats.monthlyIncome} isCurrency={true} />
               </h2>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs shrink-0">
               <FontAwesomeIcon icon={faArrowTrendUp} />
             </div>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">All time: {formatCurrency(stats.income)}</p>
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-2.5">
+            Total all time: {formatCurrency(stats.income)}
+          </p>
         </div>
 
         {/* Monthly Expense */}
-        <div className="glass rounded-2xl p-5 border-l-4 border-l-red-500">
+        <div className="glass-card p-5 transition-all glass-hover">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Monthly Expense</p>
-              <h2 className="text-2xl lg:text-3xl font-bold mt-1.5 text-red-600 dark:text-red-400">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                Monthly Expense
+              </p>
+              <h2 className="text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white">
                 <AnimatedCounter value={stats.monthlyExpense} isCurrency={true} />
               </h2>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-500 dark:text-rose-400 flex items-center justify-center text-xs shrink-0">
               <FontAwesomeIcon icon={faArrowTrendDown} />
             </div>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">All time: {formatCurrency(stats.expense)}</p>
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-2.5">
+            Total all time: {formatCurrency(stats.expense)}
+          </p>
         </div>
 
         {/* Net Liquid Worth */}
-        <div className="glass rounded-2xl p-5 border-l-4 border-l-indigo-500">
+        <div className="glass-card p-5 transition-all glass-hover">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Net Liquid Worth</p>
-              <h2 className="text-2xl lg:text-3xl font-bold mt-1.5 text-indigo-600 dark:text-indigo-400">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                Net Liquid Worth
+              </p>
+              <h2 className="text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white">
                 <AnimatedCounter value={stats.netWorth} isCurrency={true} />
               </h2>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs shrink-0">
               <FontAwesomeIcon icon={faCoins} />
             </div>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-2.5 truncate">
             {isPrivacyMode ? '+₹•••• Lent • -₹•••• Debt' : `+₹${stats.totalLentPending.toLocaleString('en-IN')} Lent • -₹${stats.totalBorrowedPending.toLocaleString('en-IN')} Debt`}
           </p>
         </div>
@@ -348,50 +373,50 @@ const Dashboard = () => {
 
       {/* Due Date & Action Alerts (If any) */}
       {dueAlerts.length > 0 && (
-        <div className="glass rounded-2xl p-5 border border-amber-200 dark:border-amber-900/50 bg-amber-50/20 dark:bg-amber-950/10">
+        <div className="glass-card p-4.5 border-amber-200/80 dark:border-amber-900/40 bg-amber-50/20 dark:bg-amber-950/10">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <h3 className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-2">
               <FontAwesomeIcon icon={faExclamationTriangle} className="text-amber-500" />
-              <span>Upcoming Due Dates & Debt Action Alerts</span>
+              <span>Pending Due Date Alerts</span>
             </h3>
-            <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
-              {dueAlerts.length} pending alert{dueAlerts.length === 1 ? '' : 's'}
+            <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+              {dueAlerts.length} item{dueAlerts.length === 1 ? '' : 's'}
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {dueAlerts.map(alert => (
               <div 
                 key={alert.id}
-                className={`p-3.5 rounded-xl border text-xs flex items-center justify-between gap-3 ${
+                className={`p-3 rounded-xl border text-xs flex items-center justify-between gap-3 ${
                   alert.isOverdue 
-                    ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/60'
-                    : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800'
+                    ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50'
+                    : 'bg-white dark:bg-zinc-800/60 border-zinc-200/80 dark:border-zinc-700/60'
                 }`}
               >
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-gray-900 dark:text-white">{alert.person}</span>
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                      alert.type === 'lent' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
+                    <span className="font-semibold text-zinc-900 dark:text-white">{alert.person}</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                      alert.type === 'lent' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300'
                     }`}>
-                      {alert.type === 'lent' ? 'Lent (Collect)' : 'Borrowed (Pay)'}
+                      {alert.type === 'lent' ? 'Lent' : 'Debt'}
                     </span>
                   </div>
-                  <p className="font-bold text-sm mt-0.5 text-gray-900 dark:text-white">
+                  <p className="font-bold text-xs mt-0.5 text-zinc-900 dark:text-white">
                     {formatCurrency(alert.amount)}
                   </p>
-                  <p className={`text-[11px] mt-0.5 ${alert.isOverdue ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
-                    {alert.isOverdue ? `Overdue by ${Math.abs(alert.diffDays)} day(s)` : `Due in ${alert.diffDays} day(s)`}
+                  <p className={`text-[10px] mt-0.5 ${alert.isOverdue ? 'text-rose-600 font-semibold' : 'text-zinc-400'}`}>
+                    {alert.isOverdue ? `Overdue by ${Math.abs(alert.diffDays)}d` : `Due in ${alert.diffDays}d`}
                   </p>
                 </div>
 
                 <Link
                   to={alert.link}
-                  className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold text-xs flex items-center gap-1 shrink-0 transition-colors"
+                  className="px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-700/70 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-semibold text-[11px] flex items-center gap-1 shrink-0 transition-colors touch-feedback"
                 >
-                  <span>Action</span>
-                  <FontAwesomeIcon icon={faArrowRight} className="text-[10px]" />
+                  <span>View</span>
+                  <FontAwesomeIcon icon={faArrowRight} className="text-[9px]" />
                 </Link>
               </div>
             ))}
@@ -400,52 +425,55 @@ const Dashboard = () => {
       )}
 
       {/* Spending Velocity / Budget */}
-      <div className="glass rounded-2xl p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {hasBudget ? 'Budget Progress (This Month)' : 'Spending Velocity (This Month)'}
+      <div className="glass-card p-5">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
+            {hasBudget ? 'Monthly Budget Progress' : 'Monthly Spending Velocity'}
           </h3>
           {hasBudget && (
-            <span className="text-sm font-medium text-gray-500">
+            <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
               {formatCurrency(stats.monthlyExpense)} / {formatCurrency(budgetLimit)}
             </span>
           )}
         </div>
-        <div className="h-4 w-full bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+        <div className="h-2.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
           <div 
-            className={`h-full transition-all duration-1000 ease-out ${
+            className={`h-full transition-all duration-700 ease-out rounded-full ${
               hasBudget 
-                ? (budgetPercentage < 75 ? 'bg-green-500' : budgetPercentage < 90 ? 'bg-yellow-500' : 'bg-red-500')
-                : (velocityMeter < 50 ? 'bg-green-500' : velocityMeter < 80 ? 'bg-yellow-500' : 'bg-red-500')
+                ? (budgetPercentage < 75 ? 'bg-emerald-500' : budgetPercentage < 90 ? 'bg-amber-500' : 'bg-rose-500')
+                : (velocityMeter < 50 ? 'bg-emerald-500' : velocityMeter < 80 ? 'bg-amber-500' : 'bg-rose-500')
             }`}
             style={{ width: `${hasBudget ? budgetPercentage : velocityMeter}%` }}
           />
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
           {hasBudget 
             ? (budgetPercentage >= 100 
-                ? "You've exceeded your monthly budget!" 
-                : `You've used ${budgetPercentage.toFixed(1)}% of your monthly budget.`)
-            : `You've spent ${velocityMeter.toFixed(1)}% of your monthly income.`
+                ? "You have reached your monthly budget limit." 
+                : `${budgetPercentage.toFixed(1)}% of your monthly budget used.`)
+            : `You have spent ${velocityMeter.toFixed(1)}% of your monthly income so far.`
           }
         </p>
       </div>
 
       {/* Trend Line Chart */}
-      <div className="glass rounded-2xl p-6">
-        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Weekly Cash Flow Trend</h3>
-        <div className="w-full h-[250px]">
+      <div className="glass-card p-5">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Weekly Cash Flow Trend</h3>
+          <span className="text-xs text-zinc-400">Past 7 Days</span>
+        </div>
+        <div className="w-full h-[230px]">
           <Line 
             data={lineChartData}
             options={{
               responsive: true,
               maintainAspectRatio: false,
               plugins: {
-                legend: { position: 'top', labels: { color: '#888' } }
+                legend: { position: 'top', labels: { color: '#a1a1aa', font: { family: 'Plus Jakarta Sans', size: 11 } } }
               },
               scales: {
-                y: { grid: { color: 'rgba(200, 200, 200, 0.1)' }, ticks: { color: '#888' } },
-                x: { grid: { display: false }, ticks: { color: '#888' } }
+                y: { grid: { color: 'rgba(161, 161, 170, 0.08)' }, ticks: { color: '#a1a1aa', font: { size: 10 } } },
+                x: { grid: { display: false }, ticks: { color: '#a1a1aa', font: { size: 10 } } }
               }
             }}
           />
@@ -454,72 +482,63 @@ const Dashboard = () => {
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass rounded-2xl p-6 flex flex-col items-center">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white self-start">Expenses by Category</h3>
-          <div className="w-full max-w-[300px] aspect-square relative">
+        {/* Expenses by Category */}
+        <div className="glass-card p-5 flex flex-col items-center">
+          <h3 className="text-sm font-semibold mb-4 text-zinc-900 dark:text-white self-start">Expenses by Category</h3>
+          <div className="w-full max-w-[260px] aspect-square relative my-auto">
             {expenseByCategory.length > 0 ? (
               <Doughnut 
                 data={donutChartData} 
                 options={{
-                  cutout: '70%',
-                  plugins: { legend: { position: 'bottom', labels: { color: '#888' } } }
+                  cutout: '72%',
+                  plugins: { legend: { position: 'bottom', labels: { color: '#a1a1aa', font: { family: 'Plus Jakarta Sans', size: 11 } } } }
                 }} 
               />
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+              <div className="absolute inset-0 flex items-center justify-center text-xs text-zinc-400">
                 No expense data
               </div>
             )}
           </div>
         </div>
         
-        <div className="glass rounded-2xl p-6">
+        {/* Recent Transactions */}
+        <div className="glass-card p-5">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Transactions</h3>
-            <Link to="/transactions" className="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline">
-              View All
+            <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Recent Transactions</h3>
+            <Link to="/transactions" className="text-xs font-semibold text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors">
+              View All &rarr;
             </Link>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {recentTransactions.map(t => {
               const cat = resolveCategory(t.categoryId, categories, t.note);
               const hasNote = Boolean(t.note && t.note.trim());
               const categoryName = cat?.name || 'Uncategorized';
-              const categoryColor = cat?.color || '#888888';
+              const categoryColor = cat?.color || '#71717a';
 
               return (
-                <div key={t.id} className="flex items-center gap-3.5 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                <div key={t.id} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors touch-feedback">
                   <div 
-                    className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white text-sm shadow-sm" 
+                    className="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center text-white text-xs shadow-2xs" 
                     style={{ backgroundColor: categoryColor }}
                   >
                     <FontAwesomeIcon icon={getCategoryIcon(cat?.icon)} />
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 dark:text-white leading-snug break-words">
+                    <p className="font-medium text-xs text-zinc-900 dark:text-white leading-snug truncate">
                       {hasNote ? t.note : categoryName}
                     </p>
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-xs">
-                      <span className="text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                        {new Date(t.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </span>
-                      <span className="text-gray-300 dark:text-gray-600 select-none">&bull;</span>
-                      <span 
-                        className="inline-flex items-center px-1.5 py-0.2 rounded font-medium text-[11px]"
-                        style={{ 
-                          backgroundColor: `${categoryColor}18`,
-                          color: categoryColor,
-                          border: `1px solid ${categoryColor}35`
-                        }}
-                      >
-                        {categoryName}
-                      </span>
+                    <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-zinc-400">
+                      <span>{new Date(t.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
+                      <span>&bull;</span>
+                      <span className="truncate">{categoryName}</span>
                     </div>
                   </div>
                   
                   <div className="text-right shrink-0 ml-2">
-                    <span className={`font-semibold whitespace-nowrap ${t.type === 'income' ? 'text-green-500' : 'text-gray-900 dark:text-white'}`}>
+                    <span className={`font-semibold text-xs whitespace-nowrap ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-900 dark:text-white'}`}>
                       {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                     </span>
                   </div>
@@ -527,7 +546,7 @@ const Dashboard = () => {
               );
             })}
             {transactions.length === 0 && (
-              <p className="text-gray-500 text-center py-6 text-sm">No transactions recorded yet.</p>
+              <p className="text-zinc-400 text-center py-8 text-xs">No transactions recorded yet.</p>
             )}
           </div>
         </div>

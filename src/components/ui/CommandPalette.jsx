@@ -12,7 +12,6 @@ import {
   faHandHolding, 
   faChartPie, 
   faCog, 
-  faPlus, 
   faMoon, 
   faSun, 
   faEye, 
@@ -62,7 +61,7 @@ const CommandPalette = () => {
 
     // Quick Actions
     const actions = [
-      { id: 'act_theme', category: 'Quick Actions', title: theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode', subtitle: 'Appearance setting', icon: theme === 'dark' ? faSun : faMoon, action: () => setTheme(theme === 'dark' ? 'light' : 'dark') },
+      { id: 'act_theme', category: 'Quick Actions', title: theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme', subtitle: 'Appearance setting', icon: theme === 'dark' ? faSun : faMoon, action: () => setTheme(theme === 'dark' ? 'light' : 'dark') },
       { id: 'act_privacy', category: 'Quick Actions', title: isPrivacyMode ? 'Disable Privacy Mode (Show Balances)' : 'Enable Privacy Mode (Mask Balances)', subtitle: 'Hide sensitive currency numbers', icon: isPrivacyMode ? faEye : faEyeSlash, action: togglePrivacyMode },
     ];
     actions.forEach(a => {
@@ -103,7 +102,7 @@ const CommandPalette = () => {
     if (q) {
       transactions.slice(0, 8).forEach(t => {
         const cat = resolveCategory(t.categoryId, categories, t.note);
-        if (t.note?.toLowerCase().includes(q) || cat?.name.toLowerCase().includes(q)) {
+        if (t.note?.toLowerCase().includes(q) || cat?.name?.toLowerCase().includes(q)) {
           list.push({
             id: `tx_${t.id}`,
             category: 'Transactions',
@@ -145,12 +144,12 @@ const CommandPalette = () => {
       onClick={closeCommandPalette}
     >
       <div 
-        className="bg-white dark:bg-gray-900 w-full max-w-xl rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col max-h-[80vh] animate-scale-up"
+        className="bg-white dark:bg-zinc-900 w-full max-w-xl rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[80vh] animate-slide-up sm:animate-fade-in"
         onClick={e => e.stopPropagation()}
       >
         {/* Search input header */}
-        <div className="relative border-b border-gray-100 dark:border-gray-800 flex items-center px-4">
-          <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-base mr-3" />
+        <div className="relative border-b border-zinc-100 dark:border-zinc-800/80 flex items-center px-4.5">
+          <FontAwesomeIcon icon={faSearch} className="text-zinc-400 text-sm mr-3" />
           <input
             ref={inputRef}
             type="text"
@@ -160,22 +159,22 @@ const CommandPalette = () => {
               setSelectedIndex(0);
             }}
             onKeyDown={handleKeyDown}
-            placeholder="Type a command, page, friend, or transaction... (ESC to exit)"
-            className="w-full py-4 bg-transparent outline-none text-base text-gray-900 dark:text-white placeholder-gray-400"
+            placeholder="Type a page, friend, command, or transaction... (ESC to exit)"
+            className="w-full py-4 bg-transparent outline-none text-sm font-medium text-zinc-900 dark:text-white placeholder-zinc-400"
           />
           <button
             onClick={closeCommandPalette}
-            className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-lg"
+            className="p-1.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-xl"
           >
-            <FontAwesomeIcon icon={faTimes} />
+            <FontAwesomeIcon icon={faTimes} className="text-xs" />
           </button>
         </div>
 
         {/* Results list */}
         <div className="overflow-y-auto p-2 flex-1 space-y-1">
           {items.length === 0 ? (
-            <div className="p-8 text-center text-sm text-gray-400">
-              No matching commands or records found for "{query}"
+            <div className="p-8 text-center text-xs text-zinc-400">
+              No matching records found for "{query}"
             </div>
           ) : (
             items.map((item, idx) => {
@@ -185,30 +184,30 @@ const CommandPalette = () => {
                   key={item.id}
                   onClick={() => handleSelect(item)}
                   onMouseEnter={() => setSelectedIndex(idx)}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl cursor-pointer transition-colors ${
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-2xl cursor-pointer transition-colors ${
                     isSelected 
-                      ? 'bg-primary-50 dark:bg-primary-950/40 text-primary-900 dark:text-primary-100 border border-primary-200 dark:border-primary-800/60'
-                      : 'hover:bg-gray-50 dark:hover:bg-gray-800/60 text-gray-700 dark:text-gray-300 border border-transparent'
+                      ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white'
+                      : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs shrink-0 ${
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs shrink-0 ${
                       isSelected
-                        ? 'bg-primary-500 text-white shadow-xs'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                        ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs'
+                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
                     }`}>
                       <FontAwesomeIcon icon={item.icon} />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm truncate text-gray-900 dark:text-white">
+                        <span className="font-semibold text-xs truncate text-zinc-900 dark:text-white">
                           {item.title}
                         </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 shrink-0 font-medium">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200/60 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 shrink-0 font-medium">
                           {item.category}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                      <p className="text-[11px] text-zinc-400 truncate mt-0.5">
                         {item.subtitle}
                       </p>
                     </div>
@@ -216,7 +215,7 @@ const CommandPalette = () => {
 
                   <FontAwesomeIcon 
                     icon={faArrowRight} 
-                    className={`text-xs transition-opacity ${isSelected ? 'opacity-100 text-primary-500' : 'opacity-0'}`} 
+                    className={`text-[10px] transition-opacity ${isSelected ? 'opacity-100 text-zinc-900 dark:text-white' : 'opacity-0'}`} 
                   />
                 </div>
               );
@@ -225,13 +224,13 @@ const CommandPalette = () => {
         </div>
 
         {/* Footer shortcuts */}
-        <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-950/60 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-[11px] text-gray-400">
+        <div className="px-4.5 py-2.5 bg-zinc-50 dark:bg-zinc-950/60 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400">
           <div className="flex items-center gap-3">
-            <span><kbd className="px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-800 text-[10px] font-semibold text-gray-700 dark:text-gray-300">↑↓</kbd> Navigate</span>
-            <span><kbd className="px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-800 text-[10px] font-semibold text-gray-700 dark:text-gray-300">Enter</kbd> Select</span>
-            <span><kbd className="px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-800 text-[10px] font-semibold text-gray-700 dark:text-gray-300">Esc</kbd> Close</span>
+            <span><kbd className="px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-700 dark:text-zinc-300">↑↓</kbd> Navigate</span>
+            <span><kbd className="px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-700 dark:text-zinc-300">Enter</kbd> Select</span>
+            <span><kbd className="px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-700 dark:text-zinc-300">Esc</kbd> Close</span>
           </div>
-          <span className="font-medium text-primary-600 dark:text-primary-400">ExTrack Pro Search</span>
+          <span className="font-semibold text-zinc-600 dark:text-zinc-400">ExTrack Spotlight</span>
         </div>
       </div>
     </div>

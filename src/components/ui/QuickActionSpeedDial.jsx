@@ -20,9 +20,9 @@ const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) =>
   const actions = [
     {
       id: 'search',
-      label: 'Search (Cmd+K)',
+      label: 'Spotlight Search',
       icon: faSearch,
-      color: 'bg-gray-800 text-white dark:bg-gray-100 dark:text-gray-900',
+      color: 'bg-zinc-800 text-white dark:bg-zinc-700',
       onClick: () => {
         setIsOpen(false);
         openCommandPalette();
@@ -30,9 +30,9 @@ const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) =>
     },
     {
       id: 'borrow',
-      label: 'Borrow Money',
+      label: 'Record Borrowed Money',
       icon: faHandHolding,
-      color: 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white',
+      color: 'bg-indigo-600 text-white',
       onClick: () => {
         setIsOpen(false);
         if (onAddBorrowed) onAddBorrowed();
@@ -41,9 +41,9 @@ const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) =>
     },
     {
       id: 'lend',
-      label: 'Lend Money',
+      label: 'Record Lent Money',
       icon: faHandHoldingDollar,
-      color: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white',
+      color: 'bg-amber-600 text-white',
       onClick: () => {
         setIsOpen(false);
         if (onAddLent) onAddLent();
@@ -65,7 +65,7 @@ const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) =>
       id: 'expense',
       label: 'Add Expense',
       icon: faArrowTrendDown,
-      color: 'bg-rose-600 text-white',
+      color: 'bg-rose-500 text-white',
       onClick: () => {
         setIsOpen(false);
         if (onAddTransaction) onAddTransaction('expense');
@@ -75,7 +75,7 @@ const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) =>
   ];
 
   return (
-    <div className="fixed bottom-20 md:bottom-8 right-6 z-40 flex flex-col items-end">
+    <div className="fixed bottom-20 md:bottom-8 right-5 md:right-8 z-40 flex flex-col items-end">
       {/* Expanded Speed-Dial items */}
       {isOpen && (
         <div className="mb-3 space-y-2.5 flex flex-col items-end animate-fade-in">
@@ -83,16 +83,16 @@ const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) =>
             <div
               key={act.id}
               onClick={act.onClick}
-              className="flex items-center gap-3 cursor-pointer group"
+              className="flex items-center gap-3 cursor-pointer group touch-feedback"
             >
-              <span className="px-3 py-1.5 rounded-xl bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 text-xs font-semibold shadow-lg border border-gray-100 dark:border-gray-800 opacity-95 group-hover:opacity-100 transition-opacity">
+              <span className="px-3 py-1.5 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 text-xs font-semibold shadow-md border border-zinc-200/80 dark:border-zinc-800/80 transition-all group-hover:border-zinc-300 dark:group-hover:border-zinc-700">
                 {act.label}
               </span>
               <button
                 type="button"
-                className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg transition-transform active:scale-95 group-hover:scale-105 cursor-pointer ${act.color}`}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-md transition-transform duration-150 active:scale-95 group-hover:scale-105 cursor-pointer ${act.color}`}
               >
-                <FontAwesomeIcon icon={act.icon} className="text-sm" />
+                <FontAwesomeIcon icon={act.icon} className="text-xs" />
               </button>
             </div>
           ))}
@@ -103,14 +103,14 @@ const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) =>
       <button
         type="button"
         onClick={() => setIsOpen(prev => !prev)}
-        className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl shadow-primary-500/30 text-white transition-all duration-300 active:scale-95 cursor-pointer ${
+        className={`w-13 h-13 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-200 touch-feedback cursor-pointer ${
           isOpen 
-            ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rotate-90' 
-            : 'bg-gradient-to-tr from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-600'
+            ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rotate-90 scale-95' 
+            : 'bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 shadow-zinc-950/20'
         }`}
-        title={isOpen ? 'Close Quick Actions' : 'Quick Actions (Ctrl+N)'}
+        title={isOpen ? 'Close Quick Actions' : 'Quick Actions'}
       >
-        <FontAwesomeIcon icon={isOpen ? faTimes : faPlus} className="text-xl transition-transform" />
+        <FontAwesomeIcon icon={isOpen ? faTimes : faPlus} className="text-lg transition-transform" />
       </button>
     </div>
   );

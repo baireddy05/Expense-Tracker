@@ -382,53 +382,53 @@ const Transactions = () => {
     <div className="space-y-6 relative h-full">
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Transactions</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your income and expenses</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">Transactions</h1>
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">Comprehensive income & expense log</p>
         </div>
         
-        <div className="flex gap-3 w-full md:w-auto">
+        <div className="flex gap-2.5 w-full sm:w-auto">
           <button 
             onClick={handleExportPDF}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 px-5 py-2.5 rounded-xl font-medium transition-colors cursor-pointer"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all touch-feedback cursor-pointer shadow-2xs"
           >
-            <FontAwesomeIcon icon={faFilePdf} className="text-red-500" />
-            <span className="hidden sm:inline">Export PDF</span>
+            <FontAwesomeIcon icon={faFilePdf} className="text-rose-500 text-xs" />
+            <span>Export PDF</span>
           </button>
           
           <button 
             onClick={() => setIsFormOpen(true)}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-500 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-lg shadow-primary-500/20 cursor-pointer"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 px-4.5 py-2.5 rounded-xl text-xs font-semibold transition-all touch-feedback shadow-xs cursor-pointer"
           >
-            <FontAwesomeIcon icon={faPlus} />
-            <span className="hidden sm:inline">Add Transaction</span>
+            <FontAwesomeIcon icon={faPlus} className="text-xs" />
+            <span>New Transaction</span>
           </button>
         </div>
       </header>
 
       {/* Filters & Search */}
-      <div className={`glass rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 ${timeFilter === 'all' ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3 transition-all`}>
+      <div className={`glass-card p-4 grid grid-cols-1 sm:grid-cols-2 ${timeFilter === 'all' ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-2.5 transition-all`}>
         {/* Search */}
         <div className="relative sm:col-span-2 lg:col-span-1">
-          <FontAwesomeIcon icon={faSearch} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          <FontAwesomeIcon icon={faSearch} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-xs" />
           <input 
             type="text" 
-            placeholder="Search transactions..." 
+            placeholder="Search records..." 
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white text-sm"
+            className="w-full pl-9 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white text-xs"
           />
         </div>
 
         {/* Time Period Filter */}
         <div className="relative">
-          <FontAwesomeIcon icon={faCalendarAlt} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          <FontAwesomeIcon icon={faCalendarAlt} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-xs" />
           <select 
             value={timeFilter}
             onChange={e => {
               setTimeFilter(e.target.value);
               if (e.target.value !== 'all') setSelectedDateGroup('all');
             }}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white appearance-none text-sm cursor-pointer"
+            className="w-full pl-9 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white appearance-none text-xs cursor-pointer"
           >
             <option value="all">All Time</option>
             <option value="today">Today</option>
@@ -443,7 +443,7 @@ const Transactions = () => {
         {/* Dropdown for each recorded date when All Time is selected */}
         {timeFilter === 'all' && (
           <div className="relative animate-fade-in sm:col-span-2 lg:col-span-1">
-            <FontAwesomeIcon icon={faCalendarDay} className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-500" />
+            <FontAwesomeIcon icon={faCalendarDay} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
             <select 
               value={selectedDateGroup}
               onChange={e => {
@@ -453,7 +453,7 @@ const Transactions = () => {
                   setExpandedDates(prev => ({ ...prev, [val]: true }));
                 }
               }}
-              className="w-full pl-10 pr-8 py-2.5 bg-gray-50 dark:bg-gray-950 border border-primary-300 dark:border-primary-800/70 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white appearance-none text-sm cursor-pointer font-medium"
+              className="w-full pl-9 pr-8 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-300/80 dark:border-zinc-700/80 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white appearance-none text-xs cursor-pointer font-medium"
             >
               <option value="all">📅 All Dates ({dateGroups.length} days)</option>
               {dateGroups.map(g => (
@@ -462,7 +462,7 @@ const Transactions = () => {
                 </option>
               ))}
             </select>
-            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400 text-[10px]">
               ▼
             </div>
           </div>
@@ -470,11 +470,11 @@ const Transactions = () => {
 
         {/* Category Filter */}
         <div className="relative">
-          <FontAwesomeIcon icon={faTags} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          <FontAwesomeIcon icon={faTags} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-xs" />
           <select 
             value={categoryFilter}
             onChange={e => setCategoryFilter(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white appearance-none text-sm cursor-pointer"
+            className="w-full pl-9 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white appearance-none text-xs cursor-pointer"
           >
             <option value="all">All Categories</option>
             {categories.map(cat => (
@@ -485,11 +485,11 @@ const Transactions = () => {
 
         {/* Type Filter */}
         <div className="relative">
-          <FontAwesomeIcon icon={faFilter} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          <FontAwesomeIcon icon={faFilter} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-xs" />
           <select 
             value={filterType}
             onChange={e => setFilterType(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white appearance-none text-sm cursor-pointer"
+            className="w-full pl-9 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white appearance-none text-xs cursor-pointer"
           >
             <option value="all">All Types</option>
             <option value="expense">Expense</option>
@@ -503,43 +503,43 @@ const Transactions = () => {
               type="date" 
               value={customDate}
               onChange={e => setCustomDate(e.target.value)}
-              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white text-sm"
+              className="w-full px-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white text-xs"
             />
           </div>
         )}
       </div>
 
-      {/* Financial Summary Cards for Current Selection (Total Income, Total Expense, Net Balance) */}
+      {/* Financial Summary Cards for Current Selection */}
       {displayedTransactions.length > 0 && (
         <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
-          <div className="glass p-3 sm:p-4 rounded-2xl border border-gray-200/80 dark:border-gray-800/80 text-center sm:text-left">
-            <p className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <div className="glass-card p-3.5 sm:p-4 text-center sm:text-left">
+            <p className="text-[10px] sm:text-xs font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
               Total Income
             </p>
-            <p className="text-xs sm:text-base md:text-lg font-bold text-green-600 dark:text-green-400 mt-1 truncate">
+            <p className="text-xs sm:text-base md:text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-1 truncate">
               +{formatCurrency(summaryStats.income)}
             </p>
           </div>
 
-          <div className="glass p-3 sm:p-4 rounded-2xl border border-gray-200/80 dark:border-gray-800/80 text-center sm:text-left">
-            <p className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <div className="glass-card p-3.5 sm:p-4 text-center sm:text-left">
+            <p className="text-[10px] sm:text-xs font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
               Total Expense
             </p>
-            <p className="text-xs sm:text-base md:text-lg font-bold text-rose-600 dark:text-rose-400 mt-1 truncate">
+            <p className="text-xs sm:text-base md:text-lg font-bold text-zinc-900 dark:text-white mt-1 truncate">
               -{formatCurrency(summaryStats.expense)}
             </p>
           </div>
 
-          <div className="glass p-3 sm:p-4 rounded-2xl border border-gray-200/80 dark:border-gray-800/80 text-center sm:text-left">
-            <p className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <div className="glass-card p-3.5 sm:p-4 text-center sm:text-left">
+            <p className="text-[10px] sm:text-xs font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
               Net Balance
             </p>
             <p className={`text-xs sm:text-base md:text-lg font-bold mt-1 truncate ${
               summaryStats.net > 0 
                 ? 'text-emerald-600 dark:text-emerald-400' 
                 : summaryStats.net < 0 
-                  ? 'text-rose-600 dark:text-rose-400' 
-                  : 'text-gray-900 dark:text-white'
+                  ? 'text-rose-500' 
+                  : 'text-zinc-900 dark:text-white'
             }`}>
               {summaryStats.net > 0 ? '+' : ''}{formatCurrency(summaryStats.net)}
             </p>

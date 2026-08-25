@@ -345,28 +345,28 @@ const BorrowedMoney = () => {
   return (
     <div className="space-y-6 pb-20 md:pb-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <span className="p-2 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
-              <FontAwesomeIcon icon={faHandHolding} className="text-2xl" />
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-3">
+            <span className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 flex items-center justify-center text-sm shadow-2xs">
+              <FontAwesomeIcon icon={faHandHolding} />
             </span>
             Borrowed from Friends
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Track debts owed to friends, log borrow top-ups & record repayments you make
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+            Track debts owed to friends, log top-ups & record repayments
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start sm:self-auto">
+        <div className="flex items-center gap-2.5 self-start sm:self-auto w-full sm:w-auto">
           {borrowedRecords.length > 0 && (
             <button
               onClick={handleExportPDF}
-              className="px-4 py-2.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium rounded-xl transition-colors flex items-center gap-2 text-sm cursor-pointer shadow-xs"
+              className="flex-1 sm:flex-none px-4 py-2.5 bg-white dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-semibold rounded-xl transition-all flex items-center justify-center gap-2 text-xs cursor-pointer shadow-2xs touch-feedback"
               title="Export to PDF"
             >
-              <FontAwesomeIcon icon={faFilePdf} className="text-red-500" />
-              <span className="hidden sm:inline">Export PDF</span>
+              <FontAwesomeIcon icon={faFilePdf} className="text-rose-500 text-xs" />
+              <span>Export PDF</span>
             </button>
           )}
 
@@ -375,9 +375,9 @@ const BorrowedMoney = () => {
               setEditingRecord(null);
               setIsFormOpen(true);
             }}
-            className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-purple-500/25 transition-all flex items-center gap-2 text-sm cursor-pointer"
+            className="flex-1 sm:flex-none px-4.5 py-2.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 text-xs cursor-pointer touch-feedback"
           >
-            <FontAwesomeIcon icon={faPlus} />
+            <FontAwesomeIcon icon={faPlus} className="text-xs" />
             <span>Borrow Money</span>
           </button>
         </div>
@@ -386,110 +386,110 @@ const BorrowedMoney = () => {
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Debt Owed */}
-        <div className="glass rounded-2xl p-5 border-l-4 border-l-rose-500 relative overflow-hidden">
+        <div className="glass-card p-5 transition-all glass-hover">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Pending Debt to Pay Back
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                Pending Debt Owed
               </p>
-              <h2 className="text-2xl lg:text-3xl font-bold mt-1.5 text-rose-600 dark:text-rose-400">
+              <h2 className="text-2xl font-bold mt-1 tracking-tight text-rose-500">
                 <AnimatedCounter value={stats.totalPendingDebt} isCurrency={true} />
               </h2>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center text-xs shrink-0">
               <FontAwesomeIcon icon={faClock} />
             </div>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-2.5">
             {stats.activeDebtsCount} active debt{stats.activeDebtsCount === 1 ? '' : 's'}
             {stats.overdueCount > 0 && (
-              <span className="text-red-500 font-semibold ml-1.5">({stats.overdueCount} overdue)</span>
+              <span className="text-rose-500 font-semibold ml-1.5">({stats.overdueCount} overdue)</span>
             )}
           </p>
         </div>
 
         {/* Total Repaid by Me */}
-        <div className="glass rounded-2xl p-5 border-l-4 border-l-green-500 relative overflow-hidden">
+        <div className="glass-card p-5 transition-all glass-hover">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Total Repaid by Me
               </p>
-              <h2 className="text-2xl lg:text-3xl font-bold mt-1.5 text-green-600 dark:text-green-400">
+              <h2 className="text-2xl font-bold mt-1 tracking-tight text-emerald-600 dark:text-emerald-400">
                 <AnimatedCounter value={stats.totalReturned} isCurrency={true} />
               </h2>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs shrink-0">
               <FontAwesomeIcon icon={faCheckCircle} />
             </div>
           </div>
-          <div className="flex items-center gap-2 mt-2">
-            <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className="flex items-center gap-2 mt-2.5">
+            <div className="flex-1 h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-green-500 transition-all duration-700" 
+                className="h-full bg-emerald-500 transition-all duration-700" 
                 style={{ width: `${Math.min(stats.repaidRate, 100)}%` }}
               />
             </div>
-            <span className="text-xs font-semibold text-green-600 dark:text-green-400">
+            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
               {stats.repaidRate.toFixed(0)}%
             </span>
           </div>
         </div>
 
         {/* Total Money Borrowed */}
-        <div className="glass rounded-2xl p-5 border-l-4 border-l-purple-500 relative overflow-hidden">
+        <div className="glass-card p-5 transition-all glass-hover">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Total Money Borrowed
               </p>
-              <h2 className="text-2xl lg:text-3xl font-bold mt-1.5 text-purple-600 dark:text-purple-400">
+              <h2 className="text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white">
                 <AnimatedCounter value={stats.totalBorrowed} isCurrency={true} />
               </h2>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex items-center justify-center text-xs shrink-0">
               <FontAwesomeIcon icon={faMoneyBillWave} />
             </div>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-2.5">
             {stats.totalBorrowLogs} borrow log{stats.totalBorrowLogs === 1 ? '' : 's'} across {borrowedRecords.length} friend{borrowedRecords.length === 1 ? '' : 's'}
           </p>
         </div>
 
         {/* Settled Debts */}
-        <div className="glass rounded-2xl p-5 border-l-4 border-l-blue-500 relative overflow-hidden">
+        <div className="glass-card p-5 transition-all glass-hover">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Fully Settled Debts
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                Settled Debts
               </p>
-              <h2 className="text-2xl lg:text-3xl font-bold mt-1.5 text-blue-600 dark:text-blue-400">
+              <h2 className="text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white">
                 <AnimatedCounter value={stats.settledDebtsCount} isCurrency={false} />
               </h2>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex items-center justify-center text-xs shrink-0">
               <FontAwesomeIcon icon={faUserFriends} />
             </div>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            {stats.settledDebtsCount} debt{stats.settledDebtsCount === 1 ? '' : 's'} fully paid back to friends
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-2.5">
+            {stats.settledDebtsCount} debt{stats.settledDebtsCount === 1 ? '' : 's'} fully cleared
           </p>
         </div>
       </div>
 
       {/* Filter and Search Controls */}
-      <div className="glass rounded-2xl p-4 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+      <div className="glass-card p-4 flex flex-col md:flex-row gap-2.5 items-stretch md:items-center justify-between">
         {/* Search */}
         <div className="relative flex-1">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-xs">
             <FontAwesomeIcon icon={faSearch} />
           </span>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by friend's name, note, or phone..."
-            className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm dark:text-white"
+            placeholder="Search by lender, note, or phone..."
+            className="w-full pl-9 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white"
           />
         </div>
 
@@ -506,10 +506,10 @@ const BorrowedMoney = () => {
             <button
               key={tab.id}
               onClick={() => setStatusFilter(tab.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs transition-all whitespace-nowrap cursor-pointer touch-feedback ${
                 statusFilter === tab.id
-                  ? 'bg-purple-600 text-white shadow-sm shadow-purple-500/30'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 font-semibold shadow-2xs'
+                  : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/80 dark:hover:bg-zinc-800 font-medium'
               }`}
             >
               {tab.label}
@@ -522,12 +522,12 @@ const BorrowedMoney = () => {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="w-full md:w-auto px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-xs font-medium dark:text-white cursor-pointer"
+            className="w-full md:w-auto px-3 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs font-medium dark:text-white cursor-pointer"
           >
-            <option value="date-desc">Newest Borrow Date</option>
-            <option value="date-asc">Oldest Borrow Date</option>
-            <option value="pending-desc">Highest Pending Debt</option>
-            <option value="amount-desc">Highest Total Borrowed</option>
+            <option value="date-desc">Newest Date</option>
+            <option value="date-asc">Oldest Date</option>
+            <option value="pending-desc">Highest Pending</option>
+            <option value="amount-desc">Highest Total</option>
             <option value="due-asc">Upcoming Due Date</option>
           </select>
         </div>

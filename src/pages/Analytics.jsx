@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTransactions } from '../context/TransactionContext';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement } from 'chart.js';
-import { Bar, Pie, Doughnut } from 'react-chartjs-2';
+import { Bar, Pie } from 'react-chartjs-2';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faChartPie, 
@@ -62,19 +62,9 @@ const Analytics = () => {
       labels: ['Income', 'Expense'],
       datasets: [{
         data: [stats.income, stats.expense],
-        backgroundColor: ['#22c55e', '#ef4444'],
+        backgroundColor: ['#10b981', '#f43f5e'],
         borderWidth: 0,
-      }]
-    };
-  }, [stats]);
-
-  const debtComparisonData = useMemo(() => {
-    return {
-      labels: ['Lent (Receivable)', 'Borrowed (Debt)'],
-      datasets: [{
-        data: [stats.totalLentPending, stats.totalBorrowedPending],
-        backgroundColor: ['#f59e0b', '#9333ea'],
-        borderWidth: 0,
+        hoverOffset: 4
       }]
     };
   }, [stats]);
@@ -87,7 +77,7 @@ const Analytics = () => {
       const cat = resolveCategory(t.categoryId, categories, t.note);
       const catKey = cat?.id || cat?.name || 'general';
       const catName = cat?.name || 'General';
-      const catColor = cat?.color || '#888888';
+      const catColor = cat?.color || '#71717a';
       const catIcon = cat?.icon || 'fa-tag';
 
       if (!grouped[catKey]) {
@@ -131,47 +121,83 @@ const Analytics = () => {
   return (
     <div className="space-y-6 pb-20 md:pb-8">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-          <span className="p-2 rounded-2xl bg-primary-500/10 text-primary-600 dark:text-primary-400">
-            <FontAwesomeIcon icon={faChartPie} className="text-2xl" />
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-3">
+          <span className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 flex items-center justify-center text-sm shadow-2xs">
+            <FontAwesomeIcon icon={faChartPie} />
           </span>
           Financial Analytics
         </h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Deep dive into spending habits, savings rate & debt position</p>
+        <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+          Spending distribution, savings rate & debt position
+        </p>
       </header>
 
       {/* Analytics Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="glass rounded-2xl p-5 border-l-4 border-l-green-500">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total Income</p>
-          <h2 className="text-2xl font-bold mt-1 text-green-600 dark:text-green-400">
-            <AnimatedCounter value={stats.income} isCurrency={true} />
-          </h2>
+        {/* Total Income */}
+        <div className="glass-card p-5 transition-all glass-hover">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Total Income</p>
+              <h2 className="text-2xl font-bold mt-1 tracking-tight text-emerald-600 dark:text-emerald-400">
+                <AnimatedCounter value={stats.income} isCurrency={true} />
+              </h2>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs shrink-0">
+              <FontAwesomeIcon icon={faArrowTrendUp} />
+            </div>
+          </div>
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-2.5">All time logged income</p>
         </div>
 
-        <div className="glass rounded-2xl p-5 border-l-4 border-l-red-500">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total Expenses</p>
-          <h2 className="text-2xl font-bold mt-1 text-red-600 dark:text-red-400">
-            <AnimatedCounter value={stats.expense} isCurrency={true} />
-          </h2>
+        {/* Total Expenses */}
+        <div className="glass-card p-5 transition-all glass-hover">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Total Expenses</p>
+              <h2 className="text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white">
+                <AnimatedCounter value={stats.expense} isCurrency={true} />
+              </h2>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center text-xs shrink-0">
+              <FontAwesomeIcon icon={faArrowTrendDown} />
+            </div>
+          </div>
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-2.5">All time logged expenses</p>
         </div>
 
-        <div className="glass rounded-2xl p-5 border-l-4 border-l-primary-500">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Savings Rate</p>
-          <h2 className="text-2xl font-bold mt-1 text-primary-600 dark:text-primary-400">
-            {stats.savingsRate.toFixed(1)}%
-          </h2>
-          <p className="text-xs text-gray-500 mt-1">
-            Net Surplus: {formatCurrency(stats.balance)}
+        {/* Savings Rate */}
+        <div className="glass-card p-5 transition-all glass-hover">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Savings Rate</p>
+              <h2 className="text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white">
+                {stats.savingsRate.toFixed(1)}%
+              </h2>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex items-center justify-center text-xs shrink-0">
+              %
+            </div>
+          </div>
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-2.5">
+            Net Surplus: <strong className={stats.balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}>{formatCurrency(stats.balance)}</strong>
           </p>
         </div>
 
-        <div className="glass rounded-2xl p-5 border-l-4 border-l-amber-500">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Receivable vs Debt</p>
-          <h2 className="text-2xl font-bold mt-1 text-amber-600 dark:text-amber-400">
-            {isPrivacyMode ? '+₹••••' : `+₹${stats.totalLentPending.toLocaleString('en-IN')}`}
-          </h2>
-          <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+        {/* Receivable vs Debt */}
+        <div className="glass-card p-5 transition-all glass-hover">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Receivable vs Debt</p>
+              <h2 className="text-2xl font-bold mt-1 tracking-tight text-amber-600 dark:text-amber-400">
+                {isPrivacyMode ? '+₹••••' : `+₹${stats.totalLentPending.toLocaleString('en-IN')}`}
+              </h2>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs shrink-0">
+              <FontAwesomeIcon icon={faHandHoldingDollar} />
+            </div>
+          </div>
+          <p className="text-[11px] text-indigo-600 dark:text-indigo-400 mt-2.5">
             Debt Owed: {isPrivacyMode ? '-₹••••' : `-₹${stats.totalBorrowedPending.toLocaleString('en-IN')}`}
           </p>
         </div>
@@ -180,32 +206,32 @@ const Analytics = () => {
       {/* Primary Visual Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Income vs Expense Pie */}
-        <div className="glass rounded-2xl p-6 flex flex-col items-center">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white self-start mb-4">
+        <div className="glass-card p-5 flex flex-col items-center">
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-white self-start mb-4">
             Income vs Expense Distribution
           </h3>
-          <div className="w-full max-w-xs aspect-square">
+          <div className="w-full max-w-[260px] aspect-square relative my-auto">
             {transactions.length > 0 ? (
               <Pie 
                 data={incomeVsExpenseData}
                 options={{
                   plugins: {
-                    legend: { position: 'bottom', labels: { color: '#888' } }
+                    legend: { position: 'bottom', labels: { color: '#a1a1aa', font: { family: 'Plus Jakarta Sans', size: 11 } } }
                   }
                 }}
               />
             ) : (
-              <div className="flex h-full items-center justify-center text-gray-400">No data available</div>
+              <div className="flex h-full items-center justify-center text-xs text-zinc-400">No data available</div>
             )}
           </div>
         </div>
 
         {/* Expenses by Category Bar */}
-        <div className="glass rounded-2xl p-6 flex flex-col">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+        <div className="glass-card p-5 flex flex-col">
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-white mb-4">
             Expenses by Category (₹)
           </h3>
-          <div className="flex-1 w-full min-h-[280px]">
+          <div className="flex-1 w-full min-h-[240px]">
             {expenseByCategory.length > 0 ? (
               <Bar 
                 data={categoryChartData}
@@ -215,12 +241,12 @@ const Analytics = () => {
                   scales: {
                     y: {
                       beginAtZero: true,
-                      grid: { color: 'rgba(150, 150, 150, 0.1)' },
-                      ticks: { color: '#888' }
+                      grid: { color: 'rgba(161, 161, 170, 0.08)' },
+                      ticks: { color: '#a1a1aa', font: { size: 10 } }
                     },
                     x: {
                       grid: { display: false },
-                      ticks: { color: '#888' }
+                      ticks: { color: '#a1a1aa', font: { size: 10 } }
                     }
                   },
                   plugins: {
@@ -229,41 +255,41 @@ const Analytics = () => {
                 }}
               />
             ) : (
-              <div className="flex h-full items-center justify-center text-gray-400">No data available</div>
+              <div className="flex h-full items-center justify-center text-xs text-zinc-400">No data available</div>
             )}
           </div>
         </div>
       </div>
 
       {/* Category Spending Breakdown Table with Progress Bars */}
-      <div className="glass rounded-2xl p-6">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-          <FontAwesomeIcon icon={faTags} className="text-primary-500" />
+      <div className="glass-card p-5">
+        <h3 className="text-sm font-semibold text-zinc-900 dark:text-white mb-4 flex items-center gap-2">
+          <FontAwesomeIcon icon={faTags} className="text-zinc-400 text-xs" />
           <span>Category Spending Breakdown</span>
         </h3>
 
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {expenseByCategory.map(cat => (
-            <div key={cat.id} className="p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/40">
+            <div key={cat.id} className="p-3 rounded-xl border border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-800/30">
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2.5">
                   <div 
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs shrink-0 shadow-xs"
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs shrink-0 shadow-2xs"
                     style={{ backgroundColor: cat.color }}
                   >
                     <FontAwesomeIcon icon={getCategoryIcon(cat.icon)} />
                   </div>
-                  <span className="font-bold text-sm text-gray-900 dark:text-white">{cat.name}</span>
+                  <span className="font-semibold text-xs text-zinc-900 dark:text-white">{cat.name}</span>
                 </div>
                 <div className="text-right">
-                  <span className="font-bold text-sm text-gray-900 dark:text-white">
+                  <span className="font-semibold text-xs text-zinc-900 dark:text-white">
                     {formatCurrency(cat.amount)}
                   </span>
-                  <span className="text-xs text-gray-400 ml-2">({cat.share.toFixed(1)}%)</span>
+                  <span className="text-[11px] text-zinc-400 ml-1.5">({cat.share.toFixed(1)}%)</span>
                 </div>
               </div>
 
-              <div className="h-2 w-full bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+              <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                 <div 
                   className="h-full rounded-full transition-all duration-700" 
                   style={{ width: `${Math.min(cat.share, 100)}%`, backgroundColor: cat.color }}
@@ -273,7 +299,7 @@ const Analytics = () => {
           ))}
 
           {expenseByCategory.length === 0 && (
-            <p className="text-center py-6 text-sm text-gray-400">No category spending recorded yet.</p>
+            <p className="text-center py-6 text-xs text-zinc-400">No category spending recorded yet.</p>
           )}
         </div>
       </div>

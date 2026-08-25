@@ -10,7 +10,8 @@ import {
   faEye, 
   faEyeSlash,
   faArrowRight,
-  faExclamationCircle
+  faExclamationCircle,
+  faWallet
 } from '@fortawesome/free-solid-svg-icons';
 
 const AuthModal = () => {
@@ -34,7 +35,6 @@ const AuthModal = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
-  // Sync tab with context if changed externally
   React.useEffect(() => {
     if (authModalTab) {
       setActiveTab(authModalTab);
@@ -107,43 +107,43 @@ const AuthModal = () => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
       <div 
-        className="relative w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-3xl shadow-2xl overflow-hidden animate-scale-up"
+        className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl overflow-hidden animate-slide-up sm:animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header Gradient Top Banner */}
-        <div className="bg-gradient-to-r from-primary-600 via-indigo-600 to-purple-600 p-6 text-white text-center relative">
+        {/* Minimalist Top Header */}
+        <div className="p-6 pb-4 text-center relative border-b border-zinc-100 dark:border-zinc-800/80">
           <button 
             type="button"
             onClick={closeAuthModal}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 text-white flex items-center justify-center transition-colors cursor-pointer"
+            className="absolute top-4 right-4 w-8 h-8 rounded-full text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-center transition-colors cursor-pointer touch-feedback"
           >
-            <FontAwesomeIcon icon={faTimes} />
+            <FontAwesomeIcon icon={faTimes} className="text-xs" />
           </button>
-          <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md mx-auto flex items-center justify-center mb-3 shadow-inner">
-            <FontAwesomeIcon icon={faShieldAlt} className="text-2xl text-white" />
+          <div className="w-11 h-11 rounded-2xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 mx-auto flex items-center justify-center mb-3 shadow-xs">
+            <FontAwesomeIcon icon={faWallet} className="text-sm" />
           </div>
-          <h3 className="text-xl font-bold tracking-tight">
-            {activeTab === 'login' && 'Welcome Back to ExTrack'}
-            {activeTab === 'signup' && 'Create Secure Account'}
+          <h3 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-white">
+            {activeTab === 'login' && 'Sign In to ExTrack'}
+            {activeTab === 'signup' && 'Create Account'}
             {activeTab === 'forgot' && 'Reset Password'}
           </h3>
-          <p className="text-white/80 text-xs mt-1">
-            {activeTab === 'login' && 'Sign in to access your cloud synced finances'}
-            {activeTab === 'signup' && 'Your financial records stay safe and encrypted'}
+          <p className="text-zinc-500 dark:text-zinc-400 text-xs mt-0.5">
+            {activeTab === 'login' && 'Access your encrypted cloud financial ledger'}
+            {activeTab === 'signup' && 'Sync and protect your expenses across all devices'}
             {activeTab === 'forgot' && 'Enter your email to receive recovery instructions'}
           </p>
         </div>
 
         {/* Tab Selector */}
         {activeTab !== 'forgot' && (
-          <div className="flex border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/50 p-1.5 m-4 rounded-2xl">
+          <div className="flex bg-zinc-100 dark:bg-zinc-800/80 p-1 m-5 mb-0 rounded-2xl">
             <button
               type="button"
               onClick={() => { setActiveTab('login'); setFormError(''); }}
-              className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer touch-feedback ${
                 activeTab === 'login'
-                  ? 'bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-2xs'
+                  : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
               }`}
             >
               Sign In
@@ -151,10 +151,10 @@ const AuthModal = () => {
             <button
               type="button"
               onClick={() => { setActiveTab('signup'); setFormError(''); }}
-              className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer touch-feedback ${
                 activeTab === 'signup'
-                  ? 'bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-2xs'
+                  : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
               }`}
             >
               Sign Up
@@ -162,7 +162,7 @@ const AuthModal = () => {
           </div>
         )}
 
-        <div className="p-6 pt-2">
+        <div className="p-5 pt-4">
           {/* Google Sign-in Button */}
           {activeTab !== 'forgot' && (
             <>
@@ -170,7 +170,7 @@ const AuthModal = () => {
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 transition-all shadow-xs cursor-pointer disabled:opacity-60"
+                className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white dark:bg-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-zinc-800 dark:text-zinc-200 transition-all shadow-2xs cursor-pointer disabled:opacity-60 touch-feedback"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path
@@ -195,11 +195,11 @@ const AuthModal = () => {
 
               <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200 dark:border-gray-800" />
+                  <div className="w-full border-t border-zinc-200 dark:border-zinc-800" />
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white dark:bg-gray-900 px-3 text-gray-400 font-medium tracking-wider">
-                    Or with email
+                <div className="relative flex justify-center text-[11px] uppercase">
+                  <span className="bg-white dark:bg-zinc-900 px-3 text-zinc-400 font-medium tracking-wider">
+                    Or email
                   </span>
                 </div>
               </div>
@@ -208,21 +208,21 @@ const AuthModal = () => {
 
           {/* Form error alert */}
           {formError && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-xs text-red-600 dark:text-red-400 flex items-center gap-2">
-              <FontAwesomeIcon icon={faExclamationCircle} className="shrink-0" />
+            <div className="mb-3.5 p-3 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2">
+              <FontAwesomeIcon icon={faExclamationCircle} className="shrink-0 text-xs" />
               <span>{formError}</span>
             </div>
           )}
 
           {/* Auth Form */}
-          <form onSubmit={handleSubmit} className="space-y-3.5">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {activeTab === 'signup' && (
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
                   Full Name
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-xs">
                     <FontAwesomeIcon icon={faUser} />
                   </span>
                   <input
@@ -231,18 +231,18 @@ const AuthModal = () => {
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="e.g. Alex Sharma"
-                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none text-gray-900 dark:text-white transition-all"
+                    className="w-full pl-9 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
                   />
                 </div>
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
                 Email Address
               </label>
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-xs">
                   <FontAwesomeIcon icon={faEnvelope} />
                 </span>
                 <input
@@ -251,7 +251,7 @@ const AuthModal = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="alex@example.com"
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none text-gray-900 dark:text-white transition-all"
+                  className="w-full pl-9 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
                 />
               </div>
             </div>
@@ -259,21 +259,21 @@ const AuthModal = () => {
             {activeTab !== 'forgot' && (
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  <label className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300">
                     Password
                   </label>
                   {activeTab === 'login' && (
                     <button
                       type="button"
                       onClick={() => { setActiveTab('forgot'); setFormError(''); }}
-                      className="text-xs text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
+                      className="text-[11px] text-zinc-500 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
                     >
-                      Forgot password?
+                      Forgot?
                     </button>
                   )}
                 </div>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-xs">
                     <FontAwesomeIcon icon={faLock} />
                   </span>
                   <input
@@ -282,12 +282,12 @@ const AuthModal = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-10 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none text-gray-900 dark:text-white transition-all"
+                    className="w-full pl-9 pr-9 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 cursor-pointer text-xs"
                   >
                     <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                   </button>
@@ -297,11 +297,11 @@ const AuthModal = () => {
 
             {activeTab === 'signup' && (
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
                   Confirm Password
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-xs">
                     <FontAwesomeIcon icon={faLock} />
                   </span>
                   <input
@@ -310,7 +310,7 @@ const AuthModal = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none text-gray-900 dark:text-white transition-all"
+                    className="w-full pl-9 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
                   />
                 </div>
               </div>
@@ -319,42 +319,42 @@ const AuthModal = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full mt-2 py-3 px-4 bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-500 hover:to-indigo-500 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-primary-500/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+              className="w-full mt-2 py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 touch-feedback"
             >
               {isSubmitting ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-zinc-400 border-t-white dark:border-t-zinc-900 rounded-full animate-spin" />
               ) : (
                 <>
                   <span>
-                    {activeTab === 'login' && 'Sign In to Account'}
+                    {activeTab === 'login' && 'Sign In'}
                     {activeTab === 'signup' && 'Create Account'}
                     {activeTab === 'forgot' && 'Send Reset Email'}
                   </span>
-                  <FontAwesomeIcon icon={faArrowRight} className="text-xs" />
+                  <FontAwesomeIcon icon={faArrowRight} className="text-[10px]" />
                 </>
               )}
             </button>
           </form>
 
           {/* Footer Back & Guest Actions */}
-          <div className="mt-5 text-center space-y-2">
+          <div className="mt-4 text-center space-y-1.5">
             {activeTab === 'forgot' ? (
               <button
                 type="button"
                 onClick={() => { setActiveTab('login'); setFormError(''); }}
-                className="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
+                className="text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
               >
                 Back to Sign In
               </button>
             ) : (
-              <div className="flex items-center justify-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+              <div className="flex items-center justify-center gap-1 text-xs text-zinc-400">
                 <span>Want to test offline?</span>
                 <button
                   type="button"
                   onClick={continueAsGuest}
-                  className="font-semibold text-primary-600 dark:text-primary-400 hover:underline cursor-pointer ml-1"
+                  className="font-medium text-zinc-600 dark:text-zinc-300 hover:underline cursor-pointer ml-1"
                 >
-                  Continue in Guest Mode
+                  Continue as Guest
                 </button>
               </div>
             )}

@@ -75,7 +75,7 @@ const Settings = () => {
     setIsSavingBudget(true);
     try {
       await updateSettings({ monthlyBudget: parseFloat(budgetInput) || 0 });
-      toast.success('Budget limit saved successfully');
+      toast.success('Budget limit saved');
     } catch (e) {
       console.error(e);
       toast.error('Failed to save budget');
@@ -109,35 +109,37 @@ const Settings = () => {
   };
 
   const handleExportCSV = () => {
-    const exportData = transactions.map(t => {
-      const category = categories.find(c => c.id === t.categoryId);
+    if (transactions.length === 0) {
+      toast.error('No transactions to export.');
+      return;
+    }
+    const csvData = transactions.map(t => {
+      const cat = categories.find(c => c.id === t.categoryId);
       return {
-        Date: new Date(t.date).toLocaleDateString('en-IN'),
-        Type: t.type === 'income' ? 'Income' : 'Expense',
-        Category: category ? category.name : 'Unknown',
+        Date: t.date,
+        Type: t.type,
+        Category: cat ? cat.name : 'Unknown',
         Amount: t.amount,
         Note: t.note || ''
       };
     });
-    
-    const csv = Papa.unparse(exportData);
+
+    const csv = Papa.unparse(csvData);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `expense_tracker_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `extrack_export_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('Transactions CSV exported');
+    toast.success('Transactions exported to CSV!');
   };
 
-  // Full System JSON Backup
   const handleExportFullJSON = () => {
     const fullBackup = {
       version: '2.0',
-      exportedAt: new Date().toISOString(),
-      user: currentUser ? { email: currentUser.email, uid: currentUser.uid } : 'Guest',
+      exportDate: new Date().toISOString(),
       transactions,
       categories,
       lentRecords,
@@ -152,10 +154,9 @@ const Settings = () => {
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
-    toast.success('Complete backup JSON downloaded!');
+    toast.success('Full system backup downloaded!');
   };
 
-  // Import / Restore Full System Backup
   const handleImportJSON = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -164,39 +165,28 @@ const Settings = () => {
     reader.onload = async (event) => {
       try {
         const data = JSON.parse(event.target.result);
-        if (!data || (!data.transactions && !data.lentRecords && !data.borrowedRecords)) {
-          toast.error('Invalid backup JSON file format.');
-          return;
-        }
-
         let importedCount = 0;
-        // Import transactions
-        if (Array.isArray(data.transactions)) {
+
+        if (data.transactions && Array.isArray(data.transactions)) {
           for (const tx of data.transactions) {
-            const exists = transactions.some(t => t.id === tx.id);
-            if (!exists) {
-              await addTransaction(tx);
-              importedCount++;
-            }
+            const { id, createdAt, ...txData } = tx;
+            await addTransaction(txData);
+            importedCount++;
           }
         }
 
-        // Import Lent Records
-        if (Array.isArray(data.lentRecords)) {
+        if (data.lentRecords && Array.isArray(data.lentRecords)) {
           for (const lr of data.lentRecords) {
-            const exists = lentRecords.some(l => l.id === lr.id);
-            if (!exists) {
+            if (lr.borrowerName && lr.amount) {
               await addLentRecord(lr);
               importedCount++;
             }
           }
         }
 
-        // Import Borrowed Records
-        if (Array.isArray(data.borrowedRecords)) {
+        if (data.borrowedRecords && Array.isArray(data.borrowedRecords)) {
           for (const br of data.borrowedRecords) {
-            const exists = borrowedRecords.some(b => b.id === br.id);
-            if (!exists) {
+            if (br.lenderName && br.amount) {
               await addBorrowedRecord(br);
               importedCount++;
             }
@@ -216,21 +206,23 @@ const Settings = () => {
   return (
     <div className="space-y-6 pb-20 md:pb-8">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your account, cloud security, budget limits & backups</p>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">Settings</h1>
+        <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+          Account, cloud sync security, budget limits & backups
+        </p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Firebase Authentication & Cloud Security */}
-        <div className="glass rounded-2xl p-6 relative overflow-hidden">
+        <div className="glass-card p-5 sm:p-6 relative overflow-hidden">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <FontAwesomeIcon icon={faShieldAlt} className="text-emerald-500" />
+            <h2 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+              <FontAwesomeIcon icon={faShieldAlt} className="text-emerald-500 text-xs" />
               <span>Account & Cloud Security</span>
             </h2>
             {currentUser && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 Firebase Protected
               </span>
             )}
@@ -238,26 +230,26 @@ const Settings = () => {
 
           {currentUser ? (
             <div className="space-y-4">
-              <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 flex items-center gap-3.5">
+              <div className="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 flex items-center gap-3">
                 {currentUser.photoURL ? (
                   <img 
                     src={currentUser.photoURL} 
                     alt={currentUser.displayName} 
-                    className="w-12 h-12 rounded-2xl object-cover ring-2 ring-primary-500/30"
+                    className="w-10 h-10 rounded-xl object-cover ring-1 ring-zinc-200 dark:ring-zinc-700"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white font-bold flex items-center justify-center text-lg shadow-inner ring-2 ring-primary-500/30">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold flex items-center justify-center text-sm shadow-inner">
                     {(currentUser.displayName || currentUser.email || 'U').charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div className="flex-1 overflow-hidden">
-                  <p className="font-bold text-sm text-gray-900 dark:text-white truncate">
+                  <p className="font-semibold text-xs text-zinc-900 dark:text-white truncate">
                     {currentUser.displayName || 'No Name Set'}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
                     {currentUser.email}
                   </p>
-                  <p className="text-[10px] text-gray-400 font-mono mt-0.5 truncate">
+                  <p className="text-[10px] text-zinc-400 font-mono mt-0.5 truncate">
                     UID: {currentUser.uid}
                   </p>
                 </div>
@@ -265,7 +257,7 @@ const Settings = () => {
 
               {/* Edit Display Name */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1.5">
                   Display Name
                 </label>
                 <div className="flex gap-2">
@@ -274,13 +266,13 @@ const Settings = () => {
                     value={displayNameInput}
                     onChange={(e) => setDisplayNameInput(e.target.value)}
                     placeholder="Your Name"
-                    className="flex-1 px-4 py-2 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl text-xs focus:ring-2 focus:ring-primary-500 outline-none text-gray-900 dark:text-white"
+                    className="flex-1 px-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white"
                   />
                   <button
                     type="button"
                     onClick={handleSaveDisplayName}
                     disabled={isSavingName}
-                    className="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-semibold rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                    className="px-3.5 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-semibold rounded-xl transition-all cursor-pointer disabled:opacity-50 touch-feedback"
                   >
                     {isSavingName ? 'Saving...' : 'Update'}
                   </button>
@@ -288,74 +280,74 @@ const Settings = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                 <button
                   type="button"
                   onClick={syncLocalData}
                   disabled={isSyncing}
-                  className="flex items-center justify-center gap-2 py-2.5 px-3 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/80 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-60"
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 bg-zinc-100 dark:bg-zinc-800/80 hover:bg-zinc-200/80 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/80 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-60 touch-feedback"
                 >
-                  <FontAwesomeIcon icon={faSync} className={isSyncing ? 'animate-spin' : ''} />
-                  <span>{isSyncing ? 'Syncing...' : 'Sync Cloud Backup'}</span>
+                  <FontAwesomeIcon icon={faSync} className={isSyncing ? 'animate-spin text-xs' : 'text-xs'} />
+                  <span>{isSyncing ? 'Syncing...' : 'Sync Cloud Data'}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handlePasswordReset}
                   disabled={isSendingReset}
-                  className="flex items-center justify-center gap-2 py-2.5 px-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-60"
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 bg-zinc-100 dark:bg-zinc-800/80 hover:bg-zinc-200/80 text-zinc-800 dark:text-zinc-200 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-60 touch-feedback"
                 >
-                  <FontAwesomeIcon icon={faKey} />
+                  <FontAwesomeIcon icon={faKey} className="text-xs" />
                   <span>{isSendingReset ? 'Sending...' : 'Reset Password'}</span>
                 </button>
               </div>
 
               {/* Local Storage & Cache Security Purge */}
-              <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
-                <div className="flex items-center justify-between">
+              <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Local Cache & Device Storage</p>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400">Wipe all unencrypted browser cache. Cloud data remains safe.</p>
+                    <p className="text-xs font-semibold text-zinc-900 dark:text-white">Local Device Storage</p>
+                    <p className="text-[11px] text-zinc-400">Purge unencrypted local browser cache.</p>
                   </div>
                   <button
                     type="button"
                     onClick={purgeLocalCache}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-300/40 dark:border-amber-900/60 rounded-xl text-xs font-semibold transition-colors cursor-pointer touch-feedback shrink-0"
                   >
-                    <FontAwesomeIcon icon={faBroom} />
+                    <FontAwesomeIcon icon={faBroom} className="text-xs" />
                     <span>Purge Cache</span>
                   </button>
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-gray-100 dark:border-gray-800 flex justify-end">
+              <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800/80 flex justify-end">
                 <button
                   type="button"
                   onClick={logout}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-400 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                  className="flex items-center gap-2 px-3.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-semibold transition-colors cursor-pointer touch-feedback"
                 >
-                  <FontAwesomeIcon icon={faSignOutAlt} />
-                  <span>Sign Out Account</span>
+                  <FontAwesomeIcon icon={faSignOutAlt} className="text-xs" />
+                  <span>Sign Out</span>
                 </button>
               </div>
             </div>
           ) : (
-            <div className="text-center py-4 space-y-3">
-              <div className="w-12 h-12 mx-auto rounded-2xl bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 flex items-center justify-center text-xl">
+            <div className="text-center py-5 space-y-3">
+              <div className="w-10 h-10 mx-auto rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center justify-center text-sm">
                 <FontAwesomeIcon icon={faLock} />
               </div>
               <div>
-                <p className="text-sm font-bold text-gray-900 dark:text-white">You are in Offline / Guest Mode</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-sm mx-auto">
-                  Sign in with Firebase to automatically sync and protect all your expenses, lent money, and loans safely in the cloud across all your devices.
+                <p className="text-xs font-bold text-zinc-900 dark:text-white">Offline Guest Mode</p>
+                <p className="text-[11px] text-zinc-400 mt-1 max-w-sm mx-auto">
+                  Sign in with Firebase to automatically sync and protect all your expenses, lent money, and loans safely across devices.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => openAuthModal('login')}
-                className="py-2.5 px-6 bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-500 hover:to-indigo-500 text-white font-semibold rounded-xl text-xs shadow-md shadow-primary-500/25 transition-all cursor-pointer inline-flex items-center gap-2"
+                className="py-2.5 px-5 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold rounded-xl text-xs shadow-xs transition-all cursor-pointer inline-flex items-center gap-2 touch-feedback"
               >
-                <FontAwesomeIcon icon={faShieldAlt} />
+                <FontAwesomeIcon icon={faShieldAlt} className="text-xs" />
                 <span>Sign In / Create Account</span>
               </button>
             </div>
@@ -363,147 +355,147 @@ const Settings = () => {
         </div>
 
         {/* Budget & Goals */}
-        <div className="glass rounded-2xl p-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
-            <FontAwesomeIcon icon={faPiggyBank} className="text-primary-500" />
-            <span>Monthly Budget & Spending Limit</span>
+        <div className="glass-card p-5 sm:p-6">
+          <h2 className="text-sm font-bold mb-4 text-zinc-900 dark:text-white flex items-center gap-2">
+            <FontAwesomeIcon icon={faPiggyBank} className="text-zinc-500 text-xs" />
+            <span>Monthly Target Budget</span>
           </h2>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
-                Monthly Target Budget
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1.5">
+                Spending Limit Target
               </label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">₹</span>
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 font-semibold text-xs">₹</span>
                   <input 
                     type="number" 
                     value={budgetInput}
                     onChange={e => setBudgetInput(e.target.value)}
-                    className="w-full pl-8 pr-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white text-sm"
+                    className="w-full pl-8 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white text-xs"
                     placeholder="e.g. 50000"
                   />
                 </div>
                 <button 
                   onClick={handleSaveBudget}
                   disabled={isSavingBudget}
-                  className="px-5 py-2.5 bg-primary-600 text-white rounded-xl text-xs font-semibold hover:bg-primary-500 transition-colors disabled:opacity-70 flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-primary-500/20"
+                  className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-semibold transition-all disabled:opacity-70 flex items-center justify-center gap-2 cursor-pointer shadow-xs touch-feedback"
                 >
-                  {isSavingBudget ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Save Budget'}
+                  {isSavingBudget ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Save'}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                ExTrack uses your monthly budget to render spending velocity indicators and progress alerts on your dashboard.
+              <p className="text-[11px] text-zinc-400 mt-2">
+                ExTrack uses your monthly budget to render spending velocity indicators on your dashboard.
               </p>
             </div>
           </div>
         </div>
 
         {/* Privacy Mode & Shortcuts */}
-        <div className="glass rounded-2xl p-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
-            <FontAwesomeIcon icon={faEye} className="text-amber-500" />
+        <div className="glass-card p-5 sm:p-6">
+          <h2 className="text-sm font-bold mb-4 text-zinc-900 dark:text-white flex items-center gap-2">
+            <FontAwesomeIcon icon={faEye} className="text-zinc-500 text-xs" />
             <span>Privacy & Shortcuts</span>
           </h2>
           
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60">
               <div>
-                <p className="font-semibold text-sm text-gray-900 dark:text-white">Privacy Mode (Mask Balances)</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  Masks sensitive currency amounts with <code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">₹••••••</code> when in public.
+                <p className="font-semibold text-xs text-zinc-900 dark:text-white">Privacy Mode (Mask Balances)</p>
+                <p className="text-[11px] text-zinc-400 mt-0.5">
+                  Masks currency values with <code className="bg-zinc-200 dark:bg-zinc-800 px-1 rounded text-[10px]">₹••••••</code> in public.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={togglePrivacyMode}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 touch-feedback ${
                   isPrivacyMode
-                    ? 'bg-amber-500 text-white shadow-sm shadow-amber-500/30'
-                    : 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300'
+                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-300/40 dark:border-amber-900/60'
+                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/80'
                 }`}
               >
-                <FontAwesomeIcon icon={isPrivacyMode ? faEyeSlash : faEye} />
-                <span>{isPrivacyMode ? 'Enabled' : 'Disabled'}</span>
+                <FontAwesomeIcon icon={isPrivacyMode ? faEyeSlash : faEye} className="text-xs" />
+                <span>{isPrivacyMode ? 'Masked' : 'Off'}</span>
               </button>
             </div>
 
-            <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 text-xs text-gray-600 dark:text-gray-300 space-y-2">
-              <div className="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
-                <FontAwesomeIcon icon={faKeyboard} className="text-primary-500" />
-                <span>Power Keyboard Shortcuts</span>
+            <div className="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400 space-y-2">
+              <div className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-white">
+                <FontAwesomeIcon icon={faKeyboard} className="text-zinc-400 text-xs" />
+                <span>Keyboard Shortcuts</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Open Command Search</span>
-                <kbd className="px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-800 text-[11px] font-mono font-bold">⌘K / Ctrl+K</kbd>
+              <div className="flex items-center justify-between text-[11px]">
+                <span>Spotlight Search</span>
+                <kbd className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[10px] font-mono font-semibold border border-zinc-200 dark:border-zinc-700">⌘K / Ctrl+K</kbd>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Quick Add Speed Dial</span>
-                <kbd className="px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-800 text-[11px] font-mono font-bold">⌘N / Ctrl+N</kbd>
+              <div className="flex items-center justify-between text-[11px]">
+                <span>Quick Actions Dial</span>
+                <kbd className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[10px] font-mono font-semibold border border-zinc-200 dark:border-zinc-700">⌘N / Ctrl+N</kbd>
               </div>
             </div>
           </div>
         </div>
 
         {/* Appearance Theme */}
-        <div className="glass rounded-2xl p-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Theme & Appearance</h2>
+        <div className="glass-card p-5 sm:p-6">
+          <h2 className="text-sm font-bold mb-4 text-zinc-900 dark:text-white">Theme & Appearance</h2>
           
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2.5">
             <button 
               onClick={() => setTheme('light')}
-              className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all cursor-pointer ${
+              className={`flex flex-col items-center justify-center p-3.5 rounded-xl border transition-all cursor-pointer touch-feedback ${
                 theme === 'light' 
-                  ? 'border-primary-500 bg-primary-50/50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-semibold' 
-                  : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  ? 'border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900 font-semibold shadow-2xs' 
+                  : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400'
               }`}
             >
-              <FontAwesomeIcon icon={faSun} className="text-xl mb-1.5" />
+              <FontAwesomeIcon icon={faSun} className="text-base mb-1" />
               <span className="text-xs">Light</span>
             </button>
             
             <button 
               onClick={() => setTheme('dark')}
-              className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all cursor-pointer ${
+              className={`flex flex-col items-center justify-center p-3.5 rounded-xl border transition-all cursor-pointer touch-feedback ${
                 theme === 'dark' 
-                  ? 'border-primary-500 bg-primary-50/50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-semibold' 
-                  : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  ? 'border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900 font-semibold shadow-2xs' 
+                  : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400'
               }`}
             >
-              <FontAwesomeIcon icon={faMoon} className="text-xl mb-1.5" />
+              <FontAwesomeIcon icon={faMoon} className="text-base mb-1" />
               <span className="text-xs">Dark</span>
             </button>
 
             <button 
               onClick={() => setTheme('system')}
-              className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all cursor-pointer ${
+              className={`flex flex-col items-center justify-center p-3.5 rounded-xl border transition-all cursor-pointer touch-feedback ${
                 theme === 'system' 
-                  ? 'border-primary-500 bg-primary-50/50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-semibold' 
-                  : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  ? 'border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900 font-semibold shadow-2xs' 
+                  : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400'
               }`}
             >
-              <FontAwesomeIcon icon={faDesktop} className="text-xl mb-1.5" />
+              <FontAwesomeIcon icon={faDesktop} className="text-base mb-1" />
               <span className="text-xs">System</span>
             </button>
           </div>
         </div>
 
         {/* Data Management & Full System Backup */}
-        <div className="glass rounded-2xl p-6 lg:col-span-2">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
-            <FontAwesomeIcon icon={faFileArchive} className="text-indigo-500" />
+        <div className="glass-card p-5 sm:p-6 lg:col-span-2">
+          <h2 className="text-sm font-bold mb-4 text-zinc-900 dark:text-white flex items-center gap-2">
+            <FontAwesomeIcon icon={faFileArchive} className="text-zinc-500 text-xs" />
             <span>Data Management & Offline Backups</span>
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
             {/* Export Full System JSON */}
             <button 
               onClick={handleExportFullJSON}
-              className="flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-primary-600 to-indigo-600 text-white font-semibold rounded-xl hover:opacity-95 transition-opacity text-xs cursor-pointer shadow-md shadow-primary-500/20"
+              className="flex items-center justify-center gap-2 py-2.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold rounded-xl transition-all text-xs cursor-pointer shadow-xs touch-feedback"
             >
-              <FontAwesomeIcon icon={faDownload} />
-              <span>Export Full JSON Backup</span>
+              <FontAwesomeIcon icon={faDownload} className="text-xs" />
+              <span>Export JSON Backup</span>
             </button>
 
             {/* Import / Restore JSON */}
@@ -516,19 +508,19 @@ const Settings = () => {
             />
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center justify-center gap-2 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs cursor-pointer"
+              className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-semibold rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-xs cursor-pointer touch-feedback shadow-2xs"
             >
-              <FontAwesomeIcon icon={faUpload} />
-              <span>Restore Data from Backup</span>
+              <FontAwesomeIcon icon={faUpload} className="text-xs" />
+              <span>Restore Backup</span>
             </button>
 
             {/* Export CSV */}
             <button 
               onClick={handleExportCSV}
-              className="flex items-center justify-center gap-2 py-3 bg-gray-100 dark:bg-gray-800/60 text-gray-700 dark:text-gray-300 font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-xs cursor-pointer"
+              className="flex items-center justify-center gap-2 py-2.5 bg-zinc-100 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300 font-semibold rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors text-xs cursor-pointer touch-feedback"
             >
-              <FontAwesomeIcon icon={faDownload} />
-              <span>Export Transactions CSV</span>
+              <FontAwesomeIcon icon={faDownload} className="text-xs" />
+              <span>Export CSV</span>
             </button>
           </div>
         </div>

@@ -11,8 +11,7 @@ import {
   faWallet, 
   faHandHoldingDollar, 
   faHandHolding,
-  faShieldAlt,
-  faSignInAlt
+  faShieldAlt
 } from '@fortawesome/free-solid-svg-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -34,56 +33,63 @@ const Sidebar = () => {
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
-    <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 h-screen sticky top-0 transition-colors duration-300">
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-primary-600 dark:text-primary-500 flex items-center gap-2">
+    <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-zinc-900/90 border-r border-zinc-200/80 dark:border-zinc-800/80 h-screen sticky top-0 transition-colors duration-200 z-40 select-none">
+      {/* Brand Logo Header */}
+      <div className="p-6 pb-5 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center text-sm shadow-xs">
           <FontAwesomeIcon icon={faWallet} />
-          ExTrack
-        </h1>
+        </div>
+        <div>
+          <h1 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-white leading-tight">
+            ExTrack
+          </h1>
+          <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">Financial Ledger</p>
+        </div>
       </div>
       
-      <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto">
+      {/* Navigation Links */}
+      <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
         {navItems.map((item) => (
           <NavLink
             key={item.name}
             to={item.path}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 ${
+              `flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-150 touch-feedback ${
                 isActive 
-                  ? 'bg-primary-500 text-white shadow-md shadow-primary-500/30' 
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 font-semibold shadow-xs' 
+                  : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 hover:text-zinc-900 dark:hover:text-white font-medium'
               }`
             }
           >
-            <FontAwesomeIcon icon={item.icon} className="w-5 h-5" />
-            <span className="font-medium text-sm">{item.name}</span>
+            <FontAwesomeIcon icon={item.icon} className="w-4 h-4" />
+            <span className="text-xs">{item.name}</span>
           </NavLink>
         ))}
       </nav>
 
       {/* Account Info & Theme Switcher Footer */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-800 space-y-3">
+      <div className="p-4 border-t border-zinc-200/80 dark:border-zinc-800/80 space-y-2.5">
         {/* User Account Card */}
         {currentUser ? (
-          <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200/70 dark:border-gray-700/60 flex items-center gap-2.5">
+          <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-700/60 flex items-center gap-2.5">
             {currentUser.photoURL ? (
               <img 
                 src={currentUser.photoURL} 
                 alt={displayName} 
-                className="w-8 h-8 rounded-lg object-cover"
+                className="w-8 h-8 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-700"
               />
             ) : (
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary-600 to-indigo-600 text-white font-bold flex items-center justify-center text-xs shadow-inner">
+              <div className="w-8 h-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold flex items-center justify-center text-xs shadow-inner">
                 {initial}
               </div>
             )}
             <div className="flex-1 overflow-hidden">
-              <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
+              <p className="text-xs font-semibold text-zinc-900 dark:text-white truncate">
                 {displayName}
               </p>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Synced</span>
+                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Cloud Synced</span>
               </div>
             </div>
           </div>
@@ -91,20 +97,20 @@ const Sidebar = () => {
           <button
             type="button"
             onClick={() => openAuthModal('login')}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer"
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-semibold shadow-xs transition-all touch-feedback cursor-pointer"
           >
-            <FontAwesomeIcon icon={faShieldAlt} />
-            <span>Sign In to Sync</span>
+            <FontAwesomeIcon icon={faShieldAlt} className="text-xs" />
+            <span>Sign In with Google</span>
           </button>
         )}
 
         {/* Theme Toggle Button */}
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-xs font-medium cursor-pointer"
+          className="flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors text-xs font-medium cursor-pointer touch-feedback"
         >
-          <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} />
-          <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+          <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} className="text-xs" />
+          <span>{theme === 'dark' ? 'Light Theme' : 'Dark Theme'}</span>
         </button>
       </div>
     </aside>
