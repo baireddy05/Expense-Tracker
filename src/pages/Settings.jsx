@@ -266,13 +266,13 @@ const Settings = () => {
                     value={displayNameInput}
                     onChange={(e) => setDisplayNameInput(e.target.value)}
                     placeholder="Your Name"
-                    className="flex-1 px-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white"
+                    className="flex-1 px-3.5 py-2 liquid-glass-input rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white"
                   />
                   <button
                     type="button"
                     onClick={handleSaveDisplayName}
                     disabled={isSavingName}
-                    className="px-3.5 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-semibold rounded-xl transition-all cursor-pointer disabled:opacity-50 touch-feedback"
+                    className="px-3.5 py-2 liquid-glass-subtle hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-semibold rounded-xl transition-all cursor-pointer disabled:opacity-50 touch-feedback"
                   >
                     {isSavingName ? 'Saving...' : 'Update'}
                   </button>
@@ -285,7 +285,7 @@ const Settings = () => {
                   type="button"
                   onClick={syncLocalData}
                   disabled={isSyncing}
-                  className="flex items-center justify-center gap-2 py-2.5 px-3 bg-zinc-100 dark:bg-zinc-800/80 hover:bg-zinc-200/80 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/80 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-60 touch-feedback"
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 liquid-glass-subtle hover:bg-zinc-200/80 text-zinc-800 dark:text-zinc-200 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-60 touch-feedback"
                 >
                   <FontAwesomeIcon icon={faSync} className={isSyncing ? 'animate-spin text-xs' : 'text-xs'} />
                   <span>{isSyncing ? 'Syncing...' : 'Sync Cloud Data'}</span>
@@ -295,7 +295,7 @@ const Settings = () => {
                   type="button"
                   onClick={handlePasswordReset}
                   disabled={isSendingReset}
-                  className="flex items-center justify-center gap-2 py-2.5 px-3 bg-zinc-100 dark:bg-zinc-800/80 hover:bg-zinc-200/80 text-zinc-800 dark:text-zinc-200 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-60 touch-feedback"
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 liquid-glass-subtle hover:bg-zinc-200/80 text-zinc-800 dark:text-zinc-200 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-60 touch-feedback"
                 >
                   <FontAwesomeIcon icon={faKey} className="text-xs" />
                   <span>{isSendingReset ? 'Sending...' : 'Reset Password'}</span>
@@ -373,7 +373,7 @@ const Settings = () => {
                     type="number" 
                     value={budgetInput}
                     onChange={e => setBudgetInput(e.target.value)}
-                    className="w-full pl-8 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white text-xs"
+                    className="w-full pl-8 pr-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white text-xs"
                     placeholder="e.g. 50000"
                   />
                 </div>
@@ -400,11 +400,11 @@ const Settings = () => {
           </h2>
           
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60">
+            <div className="flex items-center justify-between p-3.5 rounded-xl liquid-glass-subtle">
               <div>
                 <p className="font-semibold text-xs text-zinc-900 dark:text-white">Privacy Mode (Mask Balances)</p>
                 <p className="text-[11px] text-zinc-400 mt-0.5">
-                  Masks currency values with <code className="bg-zinc-200 dark:bg-zinc-800 px-1 rounded text-[10px]">₹••••••</code> in public.
+                  Masks currency values with <code className="bg-black/5 dark:bg-white/10 px-1 rounded text-[10px]">₹••••••</code> in public.
                 </p>
               </div>
               <button
@@ -412,8 +412,8 @@ const Settings = () => {
                 onClick={togglePrivacyMode}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 touch-feedback ${
                   isPrivacyMode
-                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-300/40 dark:border-amber-900/60'
-                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/80'
+                    ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-300/40 dark:border-amber-900/60'
+                    : 'liquid-glass-subtle text-zinc-700 dark:text-zinc-300 hover:bg-white/60 dark:hover:bg-white/10'
                 }`}
               >
                 <FontAwesomeIcon icon={isPrivacyMode ? faEyeSlash : faEye} className="text-xs" />
@@ -421,18 +421,18 @@ const Settings = () => {
               </button>
             </div>
 
-            <div className="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400 space-y-2">
+            <div className="p-3.5 rounded-xl liquid-glass-subtle text-xs text-zinc-600 dark:text-zinc-400 space-y-2">
               <div className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-white">
                 <FontAwesomeIcon icon={faKeyboard} className="text-zinc-400 text-xs" />
                 <span>Keyboard Shortcuts</span>
               </div>
               <div className="flex items-center justify-between text-[11px]">
                 <span>Spotlight Search</span>
-                <kbd className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[10px] font-mono font-semibold border border-zinc-200 dark:border-zinc-700">⌘K / Ctrl+K</kbd>
+                <kbd className="px-1.5 py-0.5 rounded bg-white/70 dark:bg-zinc-800 text-[10px] font-mono font-semibold border border-zinc-200 dark:border-zinc-700">⌘K / Ctrl+K</kbd>
               </div>
               <div className="flex items-center justify-between text-[11px]">
                 <span>Quick Actions Dial</span>
-                <kbd className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[10px] font-mono font-semibold border border-zinc-200 dark:border-zinc-700">⌘N / Ctrl+N</kbd>
+                <kbd className="px-1.5 py-0.5 rounded bg-white/70 dark:bg-zinc-800 text-[10px] font-mono font-semibold border border-zinc-200 dark:border-zinc-700">⌘N / Ctrl+N</kbd>
               </div>
             </div>
           </div>
@@ -445,10 +445,10 @@ const Settings = () => {
           <div className="grid grid-cols-3 gap-2.5">
             <button 
               onClick={() => setTheme('light')}
-              className={`flex flex-col items-center justify-center p-3.5 rounded-xl border transition-all cursor-pointer touch-feedback ${
+              className={`flex flex-col items-center justify-center p-3.5 rounded-xl transition-all cursor-pointer touch-feedback ${
                 theme === 'light' 
-                  ? 'border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900 font-semibold shadow-2xs' 
-                  : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400'
+                  ? 'border border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900 font-semibold shadow-2xs' 
+                  : 'liquid-glass-subtle hover:bg-white/60 dark:hover:bg-white/10 text-zinc-600 dark:text-zinc-400'
               }`}
             >
               <FontAwesomeIcon icon={faSun} className="text-base mb-1" />
@@ -457,10 +457,10 @@ const Settings = () => {
             
             <button 
               onClick={() => setTheme('dark')}
-              className={`flex flex-col items-center justify-center p-3.5 rounded-xl border transition-all cursor-pointer touch-feedback ${
+              className={`flex flex-col items-center justify-center p-3.5 rounded-xl transition-all cursor-pointer touch-feedback ${
                 theme === 'dark' 
-                  ? 'border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900 font-semibold shadow-2xs' 
-                  : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400'
+                  ? 'border border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900 font-semibold shadow-2xs' 
+                  : 'liquid-glass-subtle hover:bg-white/60 dark:hover:bg-white/10 text-zinc-600 dark:text-zinc-400'
               }`}
             >
               <FontAwesomeIcon icon={faMoon} className="text-base mb-1" />
@@ -469,10 +469,10 @@ const Settings = () => {
 
             <button 
               onClick={() => setTheme('system')}
-              className={`flex flex-col items-center justify-center p-3.5 rounded-xl border transition-all cursor-pointer touch-feedback ${
+              className={`flex flex-col items-center justify-center p-3.5 rounded-xl transition-all cursor-pointer touch-feedback ${
                 theme === 'system' 
-                  ? 'border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900 font-semibold shadow-2xs' 
-                  : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400'
+                  ? 'border border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900 font-semibold shadow-2xs' 
+                  : 'liquid-glass-subtle hover:bg-white/60 dark:hover:bg-white/10 text-zinc-600 dark:text-zinc-400'
               }`}
             >
               <FontAwesomeIcon icon={faDesktop} className="text-base mb-1" />

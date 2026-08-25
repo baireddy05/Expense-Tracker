@@ -140,15 +140,15 @@ const CommandPalette = () => {
 
   return (
     <div 
-      className="fixed inset-0 z-[100] flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[100] flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/60 backdrop-blur-md animate-fade-in"
       onClick={closeCommandPalette}
     >
       <div 
-        className="bg-white dark:bg-zinc-900 w-full max-w-xl rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[80vh] animate-slide-up sm:animate-fade-in"
+        className="liquid-glass-dock w-full max-w-xl rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[80vh] animate-slide-up sm:animate-fade-in"
         onClick={e => e.stopPropagation()}
       >
         {/* Search input header */}
-        <div className="relative border-b border-zinc-100 dark:border-zinc-800/80 flex items-center px-4.5">
+        <div className="relative border-b border-white/50 dark:border-white/10 flex items-center px-4.5">
           <FontAwesomeIcon icon={faSearch} className="text-zinc-400 text-sm mr-3" />
           <input
             ref={inputRef}
@@ -164,7 +164,7 @@ const CommandPalette = () => {
           />
           <button
             onClick={closeCommandPalette}
-            className="p-1.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-xl"
+            className="p-1.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-xl cursor-pointer"
           >
             <FontAwesomeIcon icon={faTimes} className="text-xs" />
           </button>
@@ -184,30 +184,34 @@ const CommandPalette = () => {
                   key={item.id}
                   onClick={() => handleSelect(item)}
                   onMouseEnter={() => setSelectedIndex(idx)}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-2xl cursor-pointer transition-colors ${
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-2xl cursor-pointer transition-all ${
                     isSelected 
-                      ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white'
-                      : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300'
+                      ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs'
+                      : 'hover:bg-white/40 dark:hover:bg-white/5 text-zinc-700 dark:text-zinc-300'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs shrink-0 ${
                       isSelected
-                        ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs'
-                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
+                        ? 'bg-white/20 dark:bg-zinc-900/20 text-white dark:text-zinc-900'
+                        : 'liquid-glass-subtle text-zinc-500 dark:text-zinc-400'
                     }`}>
                       <FontAwesomeIcon icon={item.icon} />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-xs truncate text-zinc-900 dark:text-white">
+                        <span className={`font-semibold text-xs truncate ${isSelected ? 'text-white dark:text-zinc-900' : 'text-zinc-900 dark:text-white'}`}>
                           {item.title}
                         </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200/60 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 shrink-0 font-medium">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 font-medium ${
+                          isSelected 
+                            ? 'bg-white/20 dark:bg-black/20 text-white dark:text-zinc-900'
+                            : 'liquid-glass-subtle text-zinc-500 dark:text-zinc-400'
+                        }`}>
                           {item.category}
                         </span>
                       </div>
-                      <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                      <p className={`text-[11px] truncate mt-0.5 ${isSelected ? 'text-white/80 dark:text-zinc-900/80' : 'text-zinc-400'}`}>
                         {item.subtitle}
                       </p>
                     </div>
@@ -215,7 +219,7 @@ const CommandPalette = () => {
 
                   <FontAwesomeIcon 
                     icon={faArrowRight} 
-                    className={`text-[10px] transition-opacity ${isSelected ? 'opacity-100 text-zinc-900 dark:text-white' : 'opacity-0'}`} 
+                    className={`text-[10px] transition-opacity ${isSelected ? 'opacity-100 text-white dark:text-zinc-900' : 'opacity-0'}`} 
                   />
                 </div>
               );
@@ -224,11 +228,11 @@ const CommandPalette = () => {
         </div>
 
         {/* Footer shortcuts */}
-        <div className="px-4.5 py-2.5 bg-zinc-50 dark:bg-zinc-950/60 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400">
+        <div className="px-4.5 py-2.5 liquid-glass-subtle border-t border-white/50 dark:border-white/10 flex items-center justify-between text-[11px] text-zinc-400">
           <div className="flex items-center gap-3">
-            <span><kbd className="px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-700 dark:text-zinc-300">↑↓</kbd> Navigate</span>
-            <span><kbd className="px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-700 dark:text-zinc-300">Enter</kbd> Select</span>
-            <span><kbd className="px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-700 dark:text-zinc-300">Esc</kbd> Close</span>
+            <span><kbd className="px-1.5 py-0.5 rounded bg-white/70 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-700 dark:text-zinc-300">↑↓</kbd> Navigate</span>
+            <span><kbd className="px-1.5 py-0.5 rounded bg-white/70 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-700 dark:text-zinc-300">Enter</kbd> Select</span>
+            <span><kbd className="px-1.5 py-0.5 rounded bg-white/70 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-700 dark:text-zinc-300">Esc</kbd> Close</span>
           </div>
           <span className="font-semibold text-zinc-600 dark:text-zinc-400">ExTrack Spotlight</span>
         </div>

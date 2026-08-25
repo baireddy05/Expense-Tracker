@@ -440,7 +440,7 @@ const Transactions = () => {
             placeholder="Search records..." 
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white text-xs"
+            className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white text-xs"
           />
         </div>
 
@@ -453,7 +453,7 @@ const Transactions = () => {
               setTimeFilter(e.target.value);
               if (e.target.value !== 'all') setSelectedDateGroup('all');
             }}
-            className="w-full pl-9 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white appearance-none text-xs cursor-pointer"
+            className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white appearance-none text-xs cursor-pointer"
           >
             <option value="all">All Time</option>
             <option value="today">Today</option>
@@ -478,7 +478,7 @@ const Transactions = () => {
                   setExpandedDates(prev => ({ ...prev, [val]: true }));
                 }
               }}
-              className="w-full pl-9 pr-8 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-300/80 dark:border-zinc-700/80 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white appearance-none text-xs cursor-pointer font-medium"
+              className="w-full pl-9 pr-8 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white appearance-none text-xs cursor-pointer font-medium"
             >
               <option value="all">📅 All Dates ({dateGroups.length} days)</option>
               {dateGroups.map(g => (
@@ -499,7 +499,7 @@ const Transactions = () => {
           <select 
             value={categoryFilter}
             onChange={e => setCategoryFilter(e.target.value)}
-            className="w-full pl-9 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white appearance-none text-xs cursor-pointer"
+            className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white appearance-none text-xs cursor-pointer"
           >
             <option value="all">All Categories</option>
             {categories.map(cat => (
@@ -514,7 +514,7 @@ const Transactions = () => {
           <select 
             value={filterType}
             onChange={e => setFilterType(e.target.value)}
-            className="w-full pl-9 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white appearance-none text-xs cursor-pointer"
+            className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white appearance-none text-xs cursor-pointer"
           >
             <option value="all">All Types</option>
             <option value="expense">Expense</option>
@@ -528,7 +528,7 @@ const Transactions = () => {
               type="date" 
               value={customDate}
               onChange={e => setCustomDate(e.target.value)}
-              className="w-full px-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white text-xs"
+              className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white text-xs"
             />
           </div>
         )}

@@ -39,10 +39,14 @@ const AppShell = () => {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-slate-50 dark:bg-zinc-950">
-        <div className="flex flex-col items-center gap-3.5">
-          <div className="w-9 h-9 border-2 border-zinc-300 dark:border-zinc-700 border-t-zinc-900 dark:border-t-white rounded-full animate-spin"></div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">ExTrack</p>
+      <div className="flex h-screen w-full items-center justify-center bg-[#f6f8fc] dark:bg-[#070709] relative overflow-hidden">
+        {/* Ambient liquid orbs in loading */}
+        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-indigo-500/15 blur-[100px] pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-emerald-500/15 blur-[100px] pointer-events-none" />
+        
+        <div className="liquid-glass-card p-8 flex flex-col items-center gap-4 z-10">
+          <div className="w-10 h-10 border-2 border-zinc-300 dark:border-zinc-700 border-t-zinc-900 dark:border-t-white rounded-full animate-spin"></div>
+          <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">ExTrack</p>
         </div>
       </div>
     );
@@ -50,9 +54,9 @@ const AppShell = () => {
 
   if (error) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-slate-50 dark:bg-zinc-950 p-4">
-        <div className="p-6 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-xl max-w-md text-center space-y-4">
-          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto text-xl">
+      <div className="flex h-screen w-full items-center justify-center bg-[#f6f8fc] dark:bg-[#070709] p-4 relative overflow-hidden">
+        <div className="liquid-glass-card p-6 max-w-md text-center space-y-4 z-10">
+          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto text-xl font-bold">
             !
           </div>
           <div>
@@ -71,14 +75,19 @@ const AppShell = () => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 antialiased">
-      {/* Desktop Sidebar */}
+    <div className="flex h-screen overflow-hidden bg-[#f6f8fc] dark:bg-[#070709] text-zinc-900 dark:text-zinc-100 antialiased relative">
+      {/* Ambient Floating Liquid Light Orbs */}
+      <div className="fixed -top-32 -left-32 w-[550px] h-[550px] rounded-full bg-indigo-400/12 dark:bg-indigo-600/12 blur-[130px] pointer-events-none liquid-orb-1 z-0" />
+      <div className="fixed top-[25%] -right-32 w-[600px] h-[600px] rounded-full bg-emerald-400/10 dark:bg-emerald-600/10 blur-[140px] pointer-events-none liquid-orb-2 z-0" />
+      <div className="fixed -bottom-32 left-[30%] w-[500px] h-[500px] rounded-full bg-rose-400/8 dark:bg-rose-600/10 blur-[130px] pointer-events-none liquid-orb-1 z-0" />
+
+      {/* Desktop Liquid Glass Sidebar */}
       <Sidebar />
       
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto pb-24 md:pb-8 relative scroll-smooth flex flex-col">
-        {/* Top Navbar Header */}
-        <header className="sticky top-0 z-30 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl border-b border-zinc-200/80 dark:border-zinc-800/80 px-4 md:px-8 py-3.5 flex justify-between items-center transition-colors">
+      <main className="flex-1 overflow-y-auto pb-24 md:pb-8 relative scroll-smooth flex flex-col z-10">
+        {/* Top Floating Liquid Glass Navbar Header */}
+        <header className="sticky top-0 z-30 liquid-glass-dock border-b border-white/60 dark:border-white/10 px-4 md:px-8 py-3.5 flex justify-between items-center transition-all">
           {/* Logo on mobile / Search trigger on desktop */}
           <div className="flex items-center gap-3">
             <div className="md:hidden flex items-center gap-2.5">
@@ -94,11 +103,11 @@ const AppShell = () => {
             <button
               type="button"
               onClick={openCommandPalette}
-              className="hidden md:flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-zinc-100/80 dark:bg-zinc-800/60 hover:bg-zinc-200/70 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-xs font-medium border border-zinc-200/70 dark:border-zinc-700/60 transition-all cursor-pointer touch-feedback"
+              className="hidden md:flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl liquid-glass-input text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white text-xs font-medium transition-all cursor-pointer touch-feedback"
             >
               <FontAwesomeIcon icon={faSearch} className="text-zinc-400 text-xs" />
               <span>Search transactions or jump to...</span>
-              <kbd className="ml-4 px-1.5 py-0.5 rounded-md bg-white dark:bg-zinc-900 text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 shadow-xs">
+              <kbd className="ml-4 px-1.5 py-0.5 rounded-md bg-white/70 dark:bg-zinc-800/80 text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 border border-white/80 dark:border-white/10 shadow-2xs">
                 ⌘K
               </kbd>
             </button>
@@ -110,7 +119,7 @@ const AppShell = () => {
             <button
               type="button"
               onClick={openCommandPalette}
-              className="md:hidden p-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors cursor-pointer touch-feedback"
+              className="md:hidden p-2 text-zinc-600 dark:text-zinc-400 hover:bg-white/40 dark:hover:bg-white/5 rounded-xl transition-colors cursor-pointer touch-feedback"
               title="Search (Cmd+K)"
             >
               <FontAwesomeIcon icon={faSearch} />
@@ -122,8 +131,8 @@ const AppShell = () => {
               onClick={togglePrivacyMode}
               className={`px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer touch-feedback ${
                 isPrivacyMode 
-                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-300/40 dark:border-amber-900/50' 
-                  : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 border border-transparent'
+                  ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-300/40 dark:border-amber-900/50 shadow-2xs' 
+                  : 'text-zinc-600 dark:text-zinc-400 hover:bg-white/40 dark:hover:bg-white/5 border border-transparent'
               }`}
               title={isPrivacyMode ? 'Privacy Mode ON (Balances Masked)' : 'Privacy Mode OFF (Click to Mask Balances)'}
             >
@@ -135,14 +144,14 @@ const AppShell = () => {
             <button
               type="button"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors cursor-pointer touch-feedback"
+              className="p-2 text-zinc-600 dark:text-zinc-400 hover:bg-white/40 dark:hover:bg-white/5 rounded-xl transition-colors cursor-pointer touch-feedback"
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
               <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} className="text-xs" />
             </button>
 
             {/* Firebase Auth User Profile */}
-            <div className="pl-1 border-l border-zinc-200 dark:border-zinc-800">
+            <div className="pl-1 border-l border-zinc-200/80 dark:border-zinc-800/80">
               <UserProfileMenu />
             </div>
           </div>
@@ -167,7 +176,7 @@ const AppShell = () => {
       {/* Global Auth Modal */}
       <AuthModal />
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation Dock */}
       <BottomNav />
 
       {/* Quick Modals from Speed Dial */}

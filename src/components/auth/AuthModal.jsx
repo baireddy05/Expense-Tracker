@@ -6,7 +6,6 @@ import {
   faLock, 
   faUser, 
   faTimes, 
-  faShieldAlt, 
   faEye, 
   faEyeSlash,
   faArrowRight,
@@ -105,17 +104,17 @@ const AuthModal = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
       <div 
-        className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl overflow-hidden animate-slide-up sm:animate-fade-in"
+        className="liquid-glass-dock w-full max-w-md rounded-3xl overflow-hidden border border-white/60 dark:border-white/10 shadow-2xl animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Minimalist Top Header */}
-        <div className="p-6 pb-4 text-center relative border-b border-zinc-100 dark:border-zinc-800/80">
-          <button 
+        {/* Header Modal */}
+        <div className="relative p-6 pb-4 text-center border-b border-white/50 dark:border-white/10">
+          <button
             type="button"
             onClick={closeAuthModal}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-center transition-colors cursor-pointer touch-feedback"
+            className="absolute right-4 top-4 w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/10 transition-colors touch-feedback"
           >
             <FontAwesomeIcon icon={faTimes} className="text-xs" />
           </button>
@@ -136,13 +135,13 @@ const AuthModal = () => {
 
         {/* Tab Selector */}
         {activeTab !== 'forgot' && (
-          <div className="flex bg-zinc-100 dark:bg-zinc-800/80 p-1 m-5 mb-0 rounded-2xl">
+          <div className="flex liquid-glass-subtle p-1 m-5 mb-0 rounded-2xl">
             <button
               type="button"
               onClick={() => { setActiveTab('login'); setFormError(''); }}
               className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer touch-feedback ${
                 activeTab === 'login'
-                  ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-2xs'
+                  ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs'
                   : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
               }`}
             >
@@ -153,7 +152,7 @@ const AuthModal = () => {
               onClick={() => { setActiveTab('signup'); setFormError(''); }}
               className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer touch-feedback ${
                 activeTab === 'signup'
-                  ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-2xs'
+                  ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs'
                   : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
               }`}
             >
@@ -170,7 +169,7 @@ const AuthModal = () => {
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white dark:bg-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-zinc-800 dark:text-zinc-200 transition-all shadow-2xs cursor-pointer disabled:opacity-60 touch-feedback"
+                className="w-full flex items-center justify-center gap-3 py-2.5 px-4 liquid-glass-subtle hover:bg-white/60 dark:hover:bg-white/10 rounded-xl text-xs font-semibold text-zinc-800 dark:text-zinc-200 transition-all shadow-2xs cursor-pointer disabled:opacity-60 touch-feedback"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path
@@ -198,7 +197,7 @@ const AuthModal = () => {
                   <div className="w-full border-t border-zinc-200 dark:border-zinc-800" />
                 </div>
                 <div className="relative flex justify-center text-[11px] uppercase">
-                  <span className="bg-white dark:bg-zinc-900 px-3 text-zinc-400 font-medium tracking-wider">
+                  <span className="liquid-glass-dock px-3 text-zinc-400 font-medium tracking-wider rounded-full">
                     Or email
                   </span>
                 </div>
@@ -231,7 +230,7 @@ const AuthModal = () => {
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="e.g. Alex Sharma"
-                    className="w-full pl-9 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
+                    className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
                   />
                 </div>
               </div>
@@ -251,7 +250,7 @@ const AuthModal = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="alex@example.com"
-                  className="w-full pl-9 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
+                  className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
                 />
               </div>
             </div>
@@ -282,7 +281,7 @@ const AuthModal = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-9 pr-9 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
+                    className="w-full pl-9 pr-9 py-2 liquid-glass-input rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
                   />
                   <button
                     type="button"
@@ -310,7 +309,7 @@ const AuthModal = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-9 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
+                    className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
                   />
                 </div>
               </div>
@@ -319,7 +318,7 @@ const AuthModal = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full mt-2 py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 touch-feedback"
+              className="w-full mt-2 py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 touch-feedback"
             >
               {isSubmitting ? (
                 <div className="w-4 h-4 border-2 border-zinc-400 border-t-white dark:border-t-zinc-900 rounded-full animate-spin" />

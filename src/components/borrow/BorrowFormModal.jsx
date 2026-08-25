@@ -92,15 +92,15 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md animate-fade-in">
       <div 
-        className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[90dvh] animate-slide-up sm:animate-fade-in"
+        className="liquid-glass-dock w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[90dvh] animate-slide-up sm:animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-zinc-100 dark:border-zinc-800/80 shrink-0">
+        <div className="flex items-center justify-between p-5 border-b border-white/50 dark:border-white/10 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-sm shadow-2xs">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-sm shadow-2xs">
               <FontAwesomeIcon icon={faHandHolding} />
             </div>
             <div>
@@ -115,7 +115,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors touch-feedback"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/10 transition-colors touch-feedback"
           >
             <FontAwesomeIcon icon={faTimes} className="text-xs" />
           </button>
@@ -137,7 +137,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
                 value={lenderName}
                 onChange={(e) => setLenderName(e.target.value)}
                 placeholder="e.g. Karan, Ananya, David"
-                className="w-full pl-9 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white"
+                className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white"
                 autoFocus
               />
             </div>
@@ -157,7 +157,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
-                className="w-full pl-8 pr-3.5 py-2.5 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-base font-semibold dark:text-white"
+                className="w-full pl-8 pr-3.5 py-2.5 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-base font-semibold dark:text-white"
               />
             </div>
           </div>
@@ -172,7 +172,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
                 required
                 value={dateBorrowed}
                 onChange={(e) => setDateBorrowed(e.target.value)}
-                className="w-full px-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white font-medium"
+                className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white font-medium"
               />
             </div>
 
@@ -185,7 +185,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
                 min={dateBorrowed}
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white font-medium"
+                className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white font-medium"
               />
             </div>
           </div>
@@ -203,7 +203,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+91 98765 43210"
-                className="w-full pl-9 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white"
+                className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white"
               />
             </div>
           </div>
@@ -221,7 +221,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="e.g. Laptop repair, College semester fee, Emergency cash"
-                className="w-full pl-9 pr-3.5 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white resize-none"
+                className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white resize-none"
               />
             </div>
           </div>
@@ -230,7 +230,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-4 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold text-xs rounded-xl shadow-xs transition-all disabled:opacity-70 flex items-center justify-center gap-2 cursor-pointer touch-feedback"
+              className="w-full py-3 px-4 bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 font-semibold text-xs rounded-xl shadow-xs transition-all disabled:opacity-70 flex items-center justify-center gap-2 cursor-pointer touch-feedback"
             >
               {loading ? (
                 <div className="w-4 h-4 border-2 border-zinc-400 border-t-white dark:border-t-zinc-900 rounded-full animate-spin" />

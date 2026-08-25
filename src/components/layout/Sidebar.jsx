@@ -33,7 +33,7 @@ const Sidebar = () => {
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
-    <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-zinc-900/90 border-r border-zinc-200/80 dark:border-zinc-800/80 h-screen sticky top-0 transition-colors duration-200 z-40 select-none">
+    <aside className="hidden md:flex flex-col w-64 liquid-glass-dock border-r border-white/60 dark:border-white/10 h-screen sticky top-0 transition-colors duration-300 z-40 select-none">
       {/* Brand Logo Header */}
       <div className="p-6 pb-5 flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center text-sm shadow-xs">
@@ -43,7 +43,7 @@ const Sidebar = () => {
           <h1 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-white leading-tight">
             ExTrack
           </h1>
-          <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">Financial Ledger</p>
+          <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">Liquid Ledger</p>
         </div>
       </div>
       
@@ -54,10 +54,10 @@ const Sidebar = () => {
             key={item.name}
             to={item.path}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-150 touch-feedback ${
+              `flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 touch-feedback ${
                 isActive 
-                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 font-semibold shadow-xs' 
-                  : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 hover:text-zinc-900 dark:hover:text-white font-medium'
+                  ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-semibold shadow-xs' 
+                  : 'text-zinc-600 dark:text-zinc-400 hover:bg-white/40 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-white font-medium'
               }`
             }
           >
@@ -68,15 +68,15 @@ const Sidebar = () => {
       </nav>
 
       {/* Account Info & Theme Switcher Footer */}
-      <div className="p-4 border-t border-zinc-200/80 dark:border-zinc-800/80 space-y-2.5">
+      <div className="p-4 border-t border-white/60 dark:border-white/10 space-y-2.5">
         {/* User Account Card */}
         {currentUser ? (
-          <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-700/60 flex items-center gap-2.5">
+          <div className="p-2.5 rounded-xl liquid-glass-subtle flex items-center gap-2.5">
             {currentUser.photoURL ? (
               <img 
                 src={currentUser.photoURL} 
                 alt={displayName} 
-                className="w-8 h-8 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-700"
+                className="w-8 h-8 rounded-lg object-cover ring-1 ring-white/60 dark:ring-white/10"
               />
             ) : (
               <div className="w-8 h-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold flex items-center justify-center text-xs shadow-inner">
@@ -107,7 +107,7 @@ const Sidebar = () => {
         {/* Theme Toggle Button */}
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors text-xs font-medium cursor-pointer touch-feedback"
+          className="flex items-center justify-center gap-2 w-full py-2 rounded-xl liquid-glass-subtle text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors text-xs font-medium cursor-pointer touch-feedback"
         >
           <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} className="text-xs" />
           <span>{theme === 'dark' ? 'Light Theme' : 'Dark Theme'}</span>

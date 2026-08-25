@@ -4,12 +4,11 @@ import { useTransactions } from '../../context/TransactionContext';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-  faUser, 
   faSignOutAlt, 
   faCog, 
   faSync, 
-  faShieldAlt,
-  faSignInAlt
+  faShieldAlt, 
+  faSignInAlt 
 } from '@fortawesome/free-solid-svg-icons';
 
 const UserProfileMenu = ({ isCompact = false }) => {
@@ -54,14 +53,14 @@ const UserProfileMenu = ({ isCompact = false }) => {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-1 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer touch-feedback"
+        className="flex items-center gap-2 p-1 rounded-xl hover:bg-white/40 dark:hover:bg-white/5 transition-colors cursor-pointer touch-feedback"
         title="Account & Cloud Sync"
       >
         {currentUser.photoURL ? (
           <img 
             src={currentUser.photoURL} 
             alt={displayName} 
-            className="w-7 h-7 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-700"
+            className="w-7 h-7 rounded-lg object-cover ring-1 ring-white/60 dark:ring-white/10"
           />
         ) : (
           <div className="w-7 h-7 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold flex items-center justify-center text-xs shadow-inner">
@@ -84,15 +83,15 @@ const UserProfileMenu = ({ isCompact = false }) => {
 
       {/* Popover Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-60 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl shadow-xl z-50 p-2 animate-fade-in">
+        <div className="absolute right-0 mt-2 w-64 liquid-glass-dock border border-white/60 dark:border-white/10 rounded-2xl shadow-xl z-50 p-2 animate-fade-in">
           {/* User Info Header */}
-          <div className="p-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 rounded-xl mb-1">
+          <div className="p-3 border-b border-white/50 dark:border-white/10 liquid-glass-subtle rounded-xl mb-1">
             <div className="flex items-center gap-2.5">
               {currentUser.photoURL ? (
                 <img 
                   src={currentUser.photoURL} 
                   alt={displayName} 
-                  className="w-8 h-8 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-700"
+                  className="w-8 h-8 rounded-lg object-cover ring-1 ring-white/60 dark:ring-white/10"
                 />
               ) : (
                 <div className="w-8 h-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold flex items-center justify-center text-xs shadow-inner">
@@ -109,7 +108,7 @@ const UserProfileMenu = ({ isCompact = false }) => {
               </div>
             </div>
 
-            <div className="mt-2.5 pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-between text-[11px]">
+            <div className="mt-2.5 pt-2 border-t border-white/40 dark:border-white/10 flex items-center justify-between text-[11px]">
               <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold text-[10px]">
                 <FontAwesomeIcon icon={faShieldAlt} className="text-[9px]" />
                 Cloud Protected
@@ -132,7 +131,7 @@ const UserProfileMenu = ({ isCompact = false }) => {
             <button
               type="button"
               onClick={() => { setIsOpen(false); navigate('/settings'); }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer text-left touch-feedback"
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-white/40 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer text-left touch-feedback"
             >
               <FontAwesomeIcon icon={faCog} className="text-zinc-400 text-xs" />
               <span>Settings & Account</span>
@@ -141,7 +140,7 @@ const UserProfileMenu = ({ isCompact = false }) => {
             <button
               type="button"
               onClick={() => { setIsOpen(false); logout(); }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors cursor-pointer text-left touch-feedback"
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer text-left touch-feedback"
             >
               <FontAwesomeIcon icon={faSignOutAlt} className="text-xs" />
               <span>Sign Out</span>
