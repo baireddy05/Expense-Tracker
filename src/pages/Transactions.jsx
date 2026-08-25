@@ -698,7 +698,7 @@ const Transactions = () => {
 
                   {/* Expanded Content Dropdown Body */}
                   {isExpanded && (
-                    <div className="border-t border-gray-100 dark:border-gray-800/80 animate-fade-in">
+                    <div className="border-t border-zinc-100 dark:border-zinc-800/80 animate-page-enter gpu-accelerated">
                       {/* Desktop Table inside Date Group */}
                       <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left border-collapse">

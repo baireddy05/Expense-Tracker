@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
 import { useTransactions } from '../../context/TransactionContext';
@@ -26,6 +26,7 @@ const AppShell = () => {
   const { loading, error } = useTransactions();
   const { theme, setTheme } = useTheme();
   const { isPrivacyMode, togglePrivacyMode, openCommandPalette } = useUI();
+  const location = useLocation();
 
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [initialTxType, setInitialTxType] = useState('expense');
@@ -44,7 +45,7 @@ const AppShell = () => {
         <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-indigo-500/15 blur-[100px] pointer-events-none" />
         <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-emerald-500/15 blur-[100px] pointer-events-none" />
         
-        <div className="liquid-glass-card p-8 flex flex-col items-center gap-4 z-10">
+        <div className="liquid-glass-card p-8 flex flex-col items-center gap-4 z-10 animate-scale-in">
           <div className="w-10 h-10 border-2 border-zinc-300 dark:border-zinc-700 border-t-zinc-900 dark:border-t-white rounded-full animate-spin"></div>
           <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">ExTrack</p>
         </div>
@@ -55,7 +56,7 @@ const AppShell = () => {
   if (error) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-[#f6f8fc] dark:bg-[#070709] p-4 relative overflow-hidden">
-        <div className="liquid-glass-card p-6 max-w-md text-center space-y-4 z-10">
+        <div className="liquid-glass-card p-6 max-w-md text-center space-y-4 z-10 animate-scale-in">
           <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto text-xl font-bold">
             !
           </div>
@@ -157,8 +158,8 @@ const AppShell = () => {
           </div>
         </header>
 
-        {/* Page Content */}
-        <div className="max-w-7xl mx-auto w-full p-4 md:p-8 animate-fade-in flex-1">
+        {/* Page Content with 120Hz Fluid Route Crossfade */}
+        <div key={location.pathname} className="max-w-7xl mx-auto w-full p-4 md:p-8 animate-page-enter flex-1 gpu-accelerated">
           <Outlet />
         </div>
       </main>

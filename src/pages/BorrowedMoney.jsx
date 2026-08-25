@@ -741,7 +741,7 @@ const BorrowedMoney = () => {
                 </button>
 
                 {isExpanded && (
-                  <div className="mt-2.5 pt-2 border-t border-dashed border-gray-200 dark:border-gray-800 animate-fade-in space-y-3">
+                  <div className="mt-2.5 pt-2 border-t border-dashed border-zinc-200 dark:border-zinc-800 animate-page-enter gpu-accelerated space-y-3">
                     {/* Filter tabs inside history */}
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800/80 p-1 rounded-xl text-xs">
