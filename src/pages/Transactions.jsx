@@ -24,7 +24,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { TransactionsSkeleton } from '../components/ui/Skeleton';
 import SwipeableItem from '../components/transactions/SwipeableItem';
-import { getCategoryIcon } from '../utils/categoryIcons';
+import { getCategoryIcon, resolveCategory } from '../utils/categoryIcons';
 import toast from 'react-hot-toast';
 
 const Transactions = () => {
@@ -117,10 +117,11 @@ const Transactions = () => {
 
     return transactions
       .filter(t => {
+        const cat = resolveCategory(t.categoryId, categories, t.note);
         const matchesSearch = t.note?.toLowerCase().includes(search.toLowerCase()) || 
-                              categories.find(c => c.id === t.categoryId)?.name.toLowerCase().includes(search.toLowerCase());
+                              cat?.name.toLowerCase().includes(search.toLowerCase());
         const matchesType = filterType === 'all' || t.type === filterType;
-        const matchesCategory = categoryFilter === 'all' || t.categoryId === categoryFilter;
+        const matchesCategory = categoryFilter === 'all' || t.categoryId === categoryFilter || cat?.id === categoryFilter;
         
         let matchesTime = true;
         const txDate = new Date(t.date);
@@ -297,7 +298,7 @@ const Transactions = () => {
     doc.setFontSize(11);
     doc.setTextColor(107, 114, 128); // gray-500
     doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN', { dateStyle: 'long' })}`, 14, 32);
-    const catName = categoryFilter === 'all' ? 'ALL' : (categories.find(c => c.id === categoryFilter)?.name || 'UNKNOWN');
+    const catName = categoryFilter === 'all' ? 'ALL' : (resolveCategory(categoryFilter, categories)?.name || 'UNKNOWN');
     const dateText = timeFilter === 'all' && selectedDateGroup !== 'all' ? ` | Date: ${formatDateHeader(selectedDateGroup)}` : '';
     doc.text(`Filters: Type: ${filterType.toUpperCase()} | Cat: ${catName.toUpperCase()} | Time: ${timeFilter.toUpperCase()}${dateText} | Search: "${search || 'None'}"`, 14, 38);
 
@@ -313,7 +314,7 @@ const Transactions = () => {
     let totalExpense = 0;
 
     displayedTransactions.forEach(t => {
-      const cat = categories.find(c => c.id === t.categoryId);
+      const cat = resolveCategory(t.categoryId, categories, t.note);
       if (t.type === 'income') totalIncome += t.amount;
       else totalExpense += t.amount;
 
@@ -681,7 +682,7 @@ const Transactions = () => {
                           </thead>
                           <tbody className="divide-y divide-gray-100 dark:divide-gray-800/50">
                             {g.items.map(t => {
-                              const cat = categories.find(c => c.id === t.categoryId);
+                              const cat = resolveCategory(t.categoryId, categories, t.note);
                               const categoryColor = cat?.color || '#888888';
                               return (
                                 <tr key={t.id} className="hover:bg-gray-50/70 dark:hover:bg-gray-800/40 transition-colors group">
@@ -739,7 +740,7 @@ const Transactions = () => {
                       {/* Mobile Stacked Items inside Date Group */}
                       <div className="md:hidden p-3 space-y-2.5 bg-gray-50/40 dark:bg-gray-950/20">
                         {g.items.map(t => {
-                          const cat = categories.find(c => c.id === t.categoryId);
+                          const cat = resolveCategory(t.categoryId, categories, t.note);
                           const hasNote = Boolean(t.note && t.note.trim());
                           const categoryName = cat?.name || 'Uncategorized';
                           const categoryColor = cat?.color || '#888888';
@@ -823,7 +824,7 @@ const Transactions = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                   {filteredTransactions.map(t => {
-                    const cat = categories.find(c => c.id === t.categoryId);
+                    const cat = resolveCategory(t.categoryId, categories, t.note);
                     const categoryColor = cat?.color || '#888888';
                     return (
                       <tr key={t.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors group">
@@ -880,7 +881,7 @@ const Transactions = () => {
           {/* Mobile Stacked List View */}
           <div className="md:hidden pb-24 space-y-3">
             {filteredTransactions.map(t => {
-              const cat = categories.find(c => c.id === t.categoryId);
+              const cat = resolveCategory(t.categoryId, categories, t.note);
               const hasNote = Boolean(t.note && t.note.trim());
               const categoryName = cat?.name || 'Uncategorized';
               const categoryColor = cat?.color || '#888888';

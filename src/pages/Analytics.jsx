@@ -9,10 +9,9 @@ import {
   faArrowTrendDown, 
   faHandHoldingDollar, 
   faHandHolding, 
-  faCoins, 
   faTags 
 } from '@fortawesome/free-solid-svg-icons';
-import { getCategoryIcon } from '../utils/categoryIcons';
+import { getCategoryIcon, resolveCategory } from '../utils/categoryIcons';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
 import { useUI } from '../context/UIContext';
 
@@ -82,25 +81,34 @@ const Analytics = () => {
 
   const expenseByCategory = useMemo(() => {
     const expenses = transactions.filter(t => t.type === 'expense');
-    const grouped = expenses.reduce((acc, t) => {
-      acc[t.categoryId] = (acc[t.categoryId] || 0) + parseFloat(t.amount);
-      return acc;
-    }, {});
-    
-    return Object.entries(grouped)
-      .map(([catId, amount]) => {
-        const cat = categories.find(c => c.id === catId);
-        const share = stats.expense > 0 ? (amount / stats.expense) * 100 : 0;
-        return { 
-          id: catId,
-          name: cat?.name || 'Unknown', 
-          amount, 
-          color: cat?.color || '#888888',
-          icon: cat?.icon,
-          share
+    const grouped = {};
+
+    expenses.forEach(t => {
+      const cat = resolveCategory(t.categoryId, categories, t.note);
+      const catKey = cat?.id || cat?.name || 'general';
+      const catName = cat?.name || 'General';
+      const catColor = cat?.color || '#888888';
+      const catIcon = cat?.icon || 'fa-tag';
+
+      if (!grouped[catKey]) {
+        grouped[catKey] = {
+          id: catKey,
+          name: catName,
+          amount: 0,
+          color: catColor,
+          icon: catIcon,
+          share: 0
         };
-      })
-      .sort((a, b) => b.amount - a.amount);
+      }
+      grouped[catKey].amount += parseFloat(t.amount) || 0;
+    });
+
+    const list = Object.values(grouped).map(item => ({
+      ...item,
+      share: stats.expense > 0 ? (item.amount / stats.expense) * 100 : 0
+    }));
+
+    return list.sort((a, b) => b.amount - a.amount);
   }, [transactions, categories, stats.expense]);
 
   const categoryChartData = {

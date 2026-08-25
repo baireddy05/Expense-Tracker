@@ -21,6 +21,7 @@ import {
   faMoneyBillWave,
   faArrowRight
 } from '@fortawesome/free-solid-svg-icons';
+import { resolveCategory } from '../../utils/categoryIcons';
 
 const CommandPalette = () => {
   const { isCommandPaletteOpen, closeCommandPalette, togglePrivacyMode, isPrivacyMode } = useUI();
@@ -101,7 +102,7 @@ const CommandPalette = () => {
     // Recent matching transactions
     if (q) {
       transactions.slice(0, 8).forEach(t => {
-        const cat = categories.find(c => c.id === t.categoryId);
+        const cat = resolveCategory(t.categoryId, categories, t.note);
         if (t.note?.toLowerCase().includes(q) || cat?.name.toLowerCase().includes(q)) {
           list.push({
             id: `tx_${t.id}`,

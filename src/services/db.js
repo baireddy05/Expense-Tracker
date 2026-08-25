@@ -200,38 +200,54 @@ export const DataService = {
     }
 
     const mergedCategories = [];
-    const seenCatKeys = new Set();
+    const seenCatIds = new Set();
+    const seenCatNames = new Set();
 
-    // 1. Fetch user categories if logged in
+    // 1. Fetch root categories (previous database with original document IDs)
+    try {
+      const rootColRef = collection(db, "categories");
+      const rootSnapshot = await getDocs(rootColRef);
+      const rootCats = rootSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      rootCats.forEach(c => {
+        if (!seenCatIds.has(c.id)) {
+          seenCatIds.add(c.id);
+          const nameKey = (c.name || '').toLowerCase() + '_' + (c.type || 'expense');
+          seenCatNames.add(nameKey);
+          mergedCategories.push(c);
+        }
+      });
+
+      // Background sync root categories to user's collection preserving exact doc IDs
+      if (userId && rootCats.length > 0) {
+        const batch = writeBatch(db);
+        rootCats.forEach(cat => {
+          const { id, ...data } = cat;
+          const userCatDoc = doc(db, "users", userId, "categories", id);
+          batch.set(userCatDoc, data, { merge: true });
+        });
+        batch.commit().catch(err => console.log("Category sync note:", err.message));
+      }
+    } catch (e) {
+      console.log("Root categories query skipped:", e.message);
+    }
+
+    // 2. Fetch user categories if logged in
     if (userId) {
       try {
         const colRef = collection(db, "users", userId, "categories");
         const snapshot = await getDocs(colRef);
         const userCats = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         userCats.forEach(c => {
-          const key = (c.name || '').toLowerCase() + '_' + (c.type || 'expense');
-          seenCatKeys.add(key);
-          mergedCategories.push(c);
+          if (!seenCatIds.has(c.id)) {
+            seenCatIds.add(c.id);
+            const nameKey = (c.name || '').toLowerCase() + '_' + (c.type || 'expense');
+            seenCatNames.add(nameKey);
+            mergedCategories.push(c);
+          }
         });
       } catch (e) {
         console.warn("Error fetching user categories:", e);
       }
-    }
-
-    // 2. Fetch root categories (previous database)
-    try {
-      const rootColRef = collection(db, "categories");
-      const rootSnapshot = await getDocs(rootColRef);
-      const rootCats = rootSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      rootCats.forEach(c => {
-        const key = (c.name || '').toLowerCase() + '_' + (c.type || 'expense');
-        if (!seenCatKeys.has(key)) {
-          seenCatKeys.add(key);
-          mergedCategories.push(c);
-        }
-      });
-    } catch (e) {
-      console.log("Root categories query skipped:", e.message);
     }
 
     // 3. Fallback to default categories if empty

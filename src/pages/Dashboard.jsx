@@ -16,10 +16,9 @@ import {
   faReceipt 
 } from '@fortawesome/free-solid-svg-icons';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler } from 'chart.js';
-import { Doughnut, Line } from 'react-chartjs-2';
 import { DashboardSkeleton } from '../components/ui/Skeleton';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
-import { getCategoryIcon } from '../utils/categoryIcons';
+import { getCategoryIcon, resolveCategory } from '../utils/categoryIcons';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler);
 
@@ -156,17 +155,18 @@ const Dashboard = () => {
 
   const expenseByCategory = useMemo(() => {
     const expenses = transactions.filter(t => t.type === 'expense');
-    const grouped = expenses.reduce((acc, t) => {
-      acc[t.categoryId] = (acc[t.categoryId] || 0) + parseFloat(t.amount);
-      return acc;
-    }, {});
+    const grouped = {};
+    expenses.forEach(t => {
+      const cat = resolveCategory(t.categoryId, categories, t.note);
+      const catName = cat?.name || 'General';
+      const catColor = cat?.color || '#888888';
+      if (!grouped[catName]) {
+        grouped[catName] = { name: catName, amount: 0, color: catColor };
+      }
+      grouped[catName].amount += parseFloat(t.amount) || 0;
+    });
     
-    return Object.entries(grouped)
-      .map(([catId, amount]) => {
-        const cat = categories.find(c => c.id === catId);
-        return { name: cat?.name || 'Unknown', amount, color: cat?.color || '#ccc' };
-      })
-      .sort((a, b) => b.amount - a.amount);
+    return Object.values(grouped).sort((a, b) => b.amount - a.amount);
   }, [transactions, categories]);
 
   const trendData = useMemo(() => {
@@ -475,7 +475,7 @@ const Dashboard = () => {
               if (dateDiff !== 0) return dateDiff;
               return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
             }).slice(0, 5).map(t => {
-              const cat = categories.find(c => c.id === t.categoryId);
+              const cat = resolveCategory(t.categoryId, categories, t.note);
               const hasNote = Boolean(t.note && t.note.trim());
               const categoryName = cat?.name || 'Uncategorized';
               const categoryColor = cat?.color || '#888888';
