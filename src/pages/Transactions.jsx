@@ -104,53 +104,58 @@ const Transactions = () => {
   };
 
   const filteredTransactions = useMemo(() => {
+    const searchLower = (search || '').trim().toLowerCase();
     const now = new Date();
-    
-    const getStartOfWeek = (d) => {
-      const date = new Date(d);
-      const day = date.getDay();
-      const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-      date.setDate(diff);
-      date.setHours(0,0,0,0);
-      return date;
-    };
+    const todayStr = now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toDateString();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const startOfWeek = new Date(now);
+    const day = startOfWeek.getDay();
+    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
+    startOfWeek.setDate(diff);
+    startOfWeek.setHours(0, 0, 0, 0);
 
     return transactions
       .filter(t => {
         const cat = resolveCategory(t.categoryId, categories, t.note);
-        const matchesSearch = t.note?.toLowerCase().includes(search.toLowerCase()) || 
-                              cat?.name.toLowerCase().includes(search.toLowerCase());
-        const matchesType = filterType === 'all' || t.type === filterType;
-        const matchesCategory = categoryFilter === 'all' || t.categoryId === categoryFilter || cat?.id === categoryFilter;
-        
-        let matchesTime = true;
-        const txDate = new Date(t.date);
-        
-        if (timeFilter === 'today') {
-          matchesTime = txDate.toDateString() === now.toDateString();
-        } else if (timeFilter === 'yesterday') {
-          const yesterday = new Date(now);
-          yesterday.setDate(yesterday.getDate() - 1);
-          matchesTime = txDate.toDateString() === yesterday.toDateString();
-        } else if (timeFilter === 'week') {
-          matchesTime = txDate >= getStartOfWeek(now);
-        } else if (timeFilter === 'month') {
-          matchesTime = txDate.getMonth() === now.getMonth() && txDate.getFullYear() === now.getFullYear();
-        } else if (timeFilter === 'year') {
-          matchesTime = txDate.getFullYear() === now.getFullYear();
-        } else if (timeFilter === 'custom') {
-          try {
-            const tDateObj = new Date(t.date?.seconds ? t.date.seconds * 1000 : t.date);
-            const y = tDateObj.getFullYear();
-            const m = String(tDateObj.getMonth() + 1).padStart(2, '0');
-            const d = String(tDateObj.getDate()).padStart(2, '0');
-            matchesTime = `${y}-${m}-${d}` === customDate;
-          } catch {
-            matchesTime = false;
+        if (searchLower) {
+          const noteMatch = t.note?.toLowerCase().includes(searchLower);
+          const catMatch = cat?.name?.toLowerCase().includes(searchLower);
+          if (!noteMatch && !catMatch) return false;
+        }
+
+        if (filterType !== 'all' && t.type !== filterType) return false;
+        if (categoryFilter !== 'all' && t.categoryId !== categoryFilter && cat?.id !== categoryFilter) return false;
+
+        if (timeFilter !== 'all') {
+          const txDate = new Date(t.date);
+          if (timeFilter === 'today') {
+            if (txDate.toDateString() !== todayStr) return false;
+          } else if (timeFilter === 'yesterday') {
+            if (txDate.toDateString() !== yesterdayStr) return false;
+          } else if (timeFilter === 'week') {
+            if (txDate < startOfWeek) return false;
+          } else if (timeFilter === 'month') {
+            if (txDate.getMonth() !== currentMonth || txDate.getFullYear() !== currentYear) return false;
+          } else if (timeFilter === 'year') {
+            if (txDate.getFullYear() !== currentYear) return false;
+          } else if (timeFilter === 'custom' && customDate) {
+            try {
+              const y = txDate.getFullYear();
+              const m = String(txDate.getMonth() + 1).padStart(2, '0');
+              const d = String(txDate.getDate()).padStart(2, '0');
+              if (`${y}-${m}-${d}` !== customDate) return false;
+            } catch {
+              return false;
+            }
           }
         }
 
-        return matchesSearch && matchesType && matchesCategory && matchesTime;
+        return true;
       })
       .sort((a, b) => {
         const dateDiff = new Date(b.date) - new Date(a.date);

@@ -111,7 +111,7 @@ const Analytics = () => {
     return list.sort((a, b) => b.amount - a.amount);
   }, [transactions, categories, stats.expense]);
 
-  const categoryChartData = {
+  const categoryChartData = useMemo(() => ({
     labels: expenseByCategory.map(e => e.name),
     datasets: [{
       label: 'Amount (₹)',
@@ -119,7 +119,7 @@ const Analytics = () => {
       backgroundColor: expenseByCategory.map(e => e.color),
       borderRadius: 6,
     }]
-  };
+  }), [expenseByCategory]);
 
   const formatCurrency = (amount) => {
     if (isPrivacyMode) {

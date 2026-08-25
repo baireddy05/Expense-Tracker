@@ -21,7 +21,7 @@ import {
   faBurger
 } from '@fortawesome/free-solid-svg-icons';
 
-const iconMap = {
+const ICON_MAP = {
   'fa-utensils': faUtensils,
   'fa-shopping-cart': faShoppingCart,
   'fa-hand-holding-dollar': faHandHoldingDollar,
@@ -45,81 +45,68 @@ const iconMap = {
   'fa-burger': faBurger
 };
 
+const FOOD_KEYWORDS = /(coke|tea|chai|samosa|food|lunch|dinner|snack|campa|coffee|burger|pizza|duniya|biryani|hotel|restaurant|bakery)/i;
+const LEND_KEYWORDS = /(lend|varshith|surya|borrow|loan|friend|advance)/i;
+const TRAVEL_KEYWORDS = /(uber|ola|auto|petrol|metro|fuel|flight|train|cab|bus|toll)/i;
+const ENTERTAINMENT_KEYWORDS = /(movie|game|netflix|spotify|prime|theatre|cinema|hotstar)/i;
+
 export const getCategoryIcon = (iconName) => {
   if (!iconName) return faTag;
   if (typeof iconName === 'object') return iconName;
-  return iconMap[iconName] || faTag;
+  return ICON_MAP[iconName] || faTag;
 };
 
 /**
- * Robust Category Resolver:
- * Resolves category by id, category name, or contextual keyword inference
+ * High-performance Category Resolver:
+ * Resolves category by id, category name, or compiled regex keyword inference
  */
 export const resolveCategory = (categoryId, categories = [], note = '') => {
-  if (!categories || !Array.isArray(categories)) {
+  if (!categories || !Array.isArray(categories) || categories.length === 0) {
     return null;
   }
 
-  // 1. Direct ID match
-  let found = categories.find(c => c.id === categoryId);
-  if (found) return found;
-
-  // 2. Match by categoryId as name (or case-insensitive ID)
-  if (categoryId) {
-    const searchVal = String(categoryId).trim().toLowerCase();
-    found = categories.find(c => 
-      c.id?.toLowerCase() === searchVal ||
-      c.name?.toLowerCase() === searchVal
-    );
-    if (found) return found;
+  // 1. Direct ID match (O(1) loop)
+  for (let i = 0; i < categories.length; i++) {
+    if (categories[i].id === categoryId) return categories[i];
   }
 
-  // 3. Fallback inference based on common note contents
+  // 2. Fast Case-Insensitive ID / Name match
+  if (categoryId) {
+    const searchVal = String(categoryId).trim().toLowerCase();
+    for (let i = 0; i < categories.length; i++) {
+      const c = categories[i];
+      if (c.id?.toLowerCase() === searchVal || c.name?.toLowerCase() === searchVal) {
+        return c;
+      }
+    }
+  }
+
+  // 3. High-performance Regex Note Keyword Matching
   if (note) {
-    const noteLower = String(note).toLowerCase();
-    
-    // Food / Drinks / Dining
-    if (
-      noteLower.includes('coke') || 
-      noteLower.includes('tea') || 
-      noteLower.includes('chai') || 
-      noteLower.includes('samosa') || 
-      noteLower.includes('food') || 
-      noteLower.includes('lunch') || 
-      noteLower.includes('dinner') || 
-      noteLower.includes('snack') || 
-      noteLower.includes('campa') ||
-      noteLower.includes('coffee') ||
-      noteLower.includes('burger') ||
-      noteLower.includes('pizza') ||
-      noteLower.includes('duniya')
-    ) {
-      const foodCat = categories.find(c => 
-        c.name?.toLowerCase() === 'food' || 
-        c.name?.toLowerCase() === 'groceries'
-      );
-      if (foodCat) return foodCat;
+    if (FOOD_KEYWORDS.test(note)) {
+      const cat = categories.find(c => {
+        const n = c.name?.toLowerCase();
+        return n === 'food' || n === 'groceries';
+      });
+      if (cat) return cat;
     }
 
-    // Lending / Debts / Transfers
-    if (noteLower.includes('lend') || noteLower.includes('varshith') || noteLower.includes('surya') || noteLower.includes('borrow')) {
-      const lendCat = categories.find(c => 
-        c.name?.toLowerCase().includes('lend') || 
-        c.name?.toLowerCase().includes('borrow')
-      );
-      if (lendCat) return lendCat;
+    if (LEND_KEYWORDS.test(note)) {
+      const cat = categories.find(c => {
+        const n = c.name?.toLowerCase();
+        return n?.includes('lend') || n?.includes('borrow');
+      });
+      if (cat) return cat;
     }
 
-    // Travel
-    if (noteLower.includes('uber') || noteLower.includes('ola') || noteLower.includes('auto') || noteLower.includes('petrol') || noteLower.includes('metro') || noteLower.includes('fuel')) {
-      const travelCat = categories.find(c => c.name?.toLowerCase() === 'travel');
-      if (travelCat) return travelCat;
+    if (TRAVEL_KEYWORDS.test(note)) {
+      const cat = categories.find(c => c.name?.toLowerCase() === 'travel');
+      if (cat) return cat;
     }
 
-    // Entertainment / Movies / Games
-    if (noteLower.includes('movie') || noteLower.includes('game') || noteLower.includes('netflix') || noteLower.includes('spotify') || noteLower.includes('prime')) {
-      const entCat = categories.find(c => c.name?.toLowerCase() === 'entertainment');
-      if (entCat) return entCat;
+    if (ENTERTAINMENT_KEYWORDS.test(note)) {
+      const cat = categories.find(c => c.name?.toLowerCase() === 'entertainment');
+      if (cat) return cat;
     }
   }
 

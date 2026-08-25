@@ -198,16 +198,26 @@ const Dashboard = () => {
     return { labels, incomeData, expenseData };
   }, [transactions]);
 
-  const donutChartData = {
+  const recentTransactions = useMemo(() => {
+    return [...transactions]
+      .sort((a, b) => {
+        const dateDiff = new Date(b.date) - new Date(a.date);
+        if (dateDiff !== 0) return dateDiff;
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      })
+      .slice(0, 5);
+  }, [transactions]);
+
+  const donutChartData = useMemo(() => ({
     labels: expenseByCategory.map(e => e.name),
     datasets: [{
       data: expenseByCategory.map(e => e.amount),
       backgroundColor: expenseByCategory.map(e => e.color),
       borderWidth: 0,
     }]
-  };
+  }), [expenseByCategory]);
 
-  const lineChartData = {
+  const lineChartData = useMemo(() => ({
     labels: trendData.labels,
     datasets: [
       {
@@ -227,7 +237,7 @@ const Dashboard = () => {
         fill: true,
       }
     ]
-  };
+  }), [trendData]);
 
   if (loading) return <DashboardSkeleton />;
 
@@ -471,11 +481,7 @@ const Dashboard = () => {
             </Link>
           </div>
           <div className="space-y-3">
-            {[...transactions].sort((a,b) => {
-              const dateDiff = new Date(b.date) - new Date(a.date);
-              if (dateDiff !== 0) return dateDiff;
-              return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-            }).slice(0, 5).map(t => {
+            {recentTransactions.map(t => {
               const cat = resolveCategory(t.categoryId, categories, t.note);
               const hasNote = Boolean(t.note && t.note.trim());
               const categoryName = cat?.name || 'Uncategorized';
