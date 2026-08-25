@@ -7,18 +7,21 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Allow reading legacy root collections for authenticated data migration
+    // Allow reading & writing legacy root collections so all previous transactions are accessible
     match /transactions/{document=**} {
-      allow read: if request.auth != null;
+      allow read, write: if request.auth != null;
     }
     match /categories/{document=**} {
-      allow read: if request.auth != null;
+      allow read, write: if request.auth != null;
     }
     match /lent_records/{document=**} {
-      allow read: if request.auth != null;
+      allow read, write: if request.auth != null;
     }
     match /borrowed_records/{document=**} {
-      allow read: if request.auth != null;
+      allow read, write: if request.auth != null;
+    }
+    match /settings/{document=**} {
+      allow read, write: if request.auth != null;
     }
 
     // Deny all other access by default
