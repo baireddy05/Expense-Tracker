@@ -1,9 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { DataService } from '../services/db';
+import { useAuth } from './AuthContext';
+import toast from 'react-hot-toast';
 
 const TransactionContext = createContext();
 
 export const TransactionProvider = ({ children }) => {
+  const { currentUser, userId } = useAuth();
+
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [lentRecords, setLentRecords] = useState([]);
@@ -11,37 +15,86 @@ export const TransactionProvider = ({ children }) => {
   const [settings, setSettings] = useState({ monthlyBudget: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const [txData, catData, settingsData, lentData, borrowData] = await Promise.all([
-        DataService.getTransactions(),
-        DataService.getCategories(),
-        DataService.getSettings(),
-        DataService.getLentRecords(),
-        DataService.getBorrowedRecords()
+        DataService.getTransactions(userId),
+        DataService.getCategories(userId),
+        DataService.getSettings(userId),
+        DataService.getLentRecords(userId),
+        DataService.getBorrowedRecords(userId)
       ]);
-      setTransactions(txData);
-      setCategories(catData);
-      setSettings(settingsData);
+      setTransactions(txData || []);
+      setCategories(catData || []);
+      setSettings(settingsData || { monthlyBudget: 0 });
       setLentRecords(lentData || []);
       setBorrowedRecords(borrowData || []);
       setError(null);
     } catch (err) {
+      console.error("Data load error:", err);
       setError(err.message || 'Failed to load data');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userId]);
 
+  // Refetch data when user auth state changes (login / switch user / logout)
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  // Auto-migrate legacy/offline records to user cloud account when logging in
+  useEffect(() => {
+    if (userId) {
+      const legacyKeys = [
+        'local_transactions',
+        'transactions',
+        'local_lent_records',
+        'lent_records',
+        'local_borrowed_records',
+        'borrowed_records'
+      ];
+      const hasAnyLegacy = legacyKeys.some(k => Boolean(localStorage.getItem(k)));
+
+      DataService.migrateLocalDataToCloud(userId)
+        .then(({ count }) => {
+          if (count > 0) {
+            toast.success(`Successfully migrated ${count} previous record${count > 1 ? 's' : ''} to your Google account!`, { duration: 5000 });
+            fetchData();
+          }
+        })
+        .catch(err => console.warn("Auto-migration notice:", err));
+    }
+  }, [userId, fetchData]);
+
+  const syncLocalData = async () => {
+    if (!userId) {
+      toast.error('Please sign in to sync data to the cloud.');
+      return;
+    }
+    setIsSyncing(true);
+    try {
+      const { count } = await DataService.migrateLocalDataToCloud(userId);
+      await fetchData();
+      if (count > 0) {
+        toast.success(`Successfully uploaded ${count} items to your cloud backup!`);
+      } else {
+        toast.success('Your cloud data is already up to date!');
+      }
+    } catch (err) {
+      console.error("Manual sync error:", err);
+      toast.error('Failed to sync to cloud');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const updateSettings = async (updates) => {
     try {
-      const updated = await DataService.updateSettings(settings.id || 'global', updates);
+      const updated = await DataService.updateSettings(updates, userId);
       setSettings(prev => ({ ...prev, ...updated }));
       return updated;
     } catch (err) {
@@ -52,8 +105,8 @@ export const TransactionProvider = ({ children }) => {
 
   const addTransaction = async (tx) => {
     try {
-      const newTx = await DataService.addTransaction(tx);
-      setTransactions(prev => [...prev, newTx]);
+      const newTx = await DataService.addTransaction(tx, userId);
+      setTransactions(prev => [newTx, ...prev]);
       return newTx;
     } catch (err) {
       setError('Failed to add transaction');
@@ -63,7 +116,7 @@ export const TransactionProvider = ({ children }) => {
 
   const updateTransaction = async (id, updates) => {
     try {
-      await DataService.updateTransaction(id, updates);
+      await DataService.updateTransaction(id, updates, userId);
       setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
       return { id, ...updates };
     } catch (err) {
@@ -74,7 +127,7 @@ export const TransactionProvider = ({ children }) => {
 
   const deleteTransaction = async (id) => {
     try {
-      await DataService.deleteTransaction(id);
+      await DataService.deleteTransaction(id, userId);
       setTransactions(prev => prev.filter(t => t.id !== id));
     } catch (err) {
       setError('Failed to delete transaction');
@@ -84,7 +137,7 @@ export const TransactionProvider = ({ children }) => {
 
   const addCategory = async (category) => {
     try {
-      const newCategory = await DataService.addCategory(category);
+      const newCategory = await DataService.addCategory(category, userId);
       setCategories(prev => [...prev, newCategory]);
       return newCategory;
     } catch (err) {
@@ -114,7 +167,7 @@ export const TransactionProvider = ({ children }) => {
         loans: initialLoans
       };
 
-      const saved = await DataService.addLentRecord(payload);
+      const saved = await DataService.addLentRecord(payload, userId);
       setLentRecords(prev => [saved, ...prev]);
       return saved;
     } catch (err) {
@@ -125,7 +178,7 @@ export const TransactionProvider = ({ children }) => {
 
   const updateLentRecord = async (id, updates) => {
     try {
-      await DataService.updateLentRecord(id, updates);
+      await DataService.updateLentRecord(id, updates, userId);
       setLentRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
       return { id, ...updates };
     } catch (err) {
@@ -136,7 +189,7 @@ export const TransactionProvider = ({ children }) => {
 
   const deleteLentRecord = async (id) => {
     try {
-      await DataService.deleteLentRecord(id);
+      await DataService.deleteLentRecord(id, userId);
       setLentRecords(prev => prev.filter(r => r.id !== id));
     } catch (err) {
       setError('Failed to delete lent record');
@@ -167,7 +220,7 @@ export const TransactionProvider = ({ children }) => {
         status: newReturned >= parseFloat(current.amount) ? 'settled' : 'partial'
       };
 
-      await DataService.updateLentRecord(id, updates);
+      await DataService.updateLentRecord(id, updates, userId);
       setLentRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
       return updates;
     } catch (err) {
@@ -216,7 +269,7 @@ export const TransactionProvider = ({ children }) => {
         updates.dueDate = loanDetails.dueDate || null;
       }
 
-      await DataService.updateLentRecord(id, updates);
+      await DataService.updateLentRecord(id, updates, userId);
       setLentRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
       return updates;
     } catch (err) {
@@ -250,7 +303,7 @@ export const TransactionProvider = ({ children }) => {
         status: 'settled'
       };
 
-      await DataService.updateLentRecord(id, updates);
+      await DataService.updateLentRecord(id, updates, userId);
       setLentRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
       return updates;
     } catch (err) {
@@ -282,7 +335,7 @@ export const TransactionProvider = ({ children }) => {
         borrows: initialBorrows
       };
 
-      const saved = await DataService.addBorrowedRecord(payload);
+      const saved = await DataService.addBorrowedRecord(payload, userId);
       setBorrowedRecords(prev => [saved, ...prev]);
       return saved;
     } catch (err) {
@@ -293,7 +346,7 @@ export const TransactionProvider = ({ children }) => {
 
   const updateBorrowedRecord = async (id, updates) => {
     try {
-      await DataService.updateBorrowedRecord(id, updates);
+      await DataService.updateBorrowedRecord(id, updates, userId);
       setBorrowedRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
       return { id, ...updates };
     } catch (err) {
@@ -304,7 +357,7 @@ export const TransactionProvider = ({ children }) => {
 
   const deleteBorrowedRecord = async (id) => {
     try {
-      await DataService.deleteBorrowedRecord(id);
+      await DataService.deleteBorrowedRecord(id, userId);
       setBorrowedRecords(prev => prev.filter(r => r.id !== id));
     } catch (err) {
       setError('Failed to delete borrowed record');
@@ -352,7 +405,7 @@ export const TransactionProvider = ({ children }) => {
         updates.dueDate = borrowDetails.dueDate || null;
       }
 
-      await DataService.updateBorrowedRecord(id, updates);
+      await DataService.updateBorrowedRecord(id, updates, userId);
       setBorrowedRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
       return updates;
     } catch (err) {
@@ -384,7 +437,7 @@ export const TransactionProvider = ({ children }) => {
         status: newReturned >= parseFloat(current.amount) ? 'settled' : 'partial'
       };
 
-      await DataService.updateBorrowedRecord(id, updates);
+      await DataService.updateBorrowedRecord(id, updates, userId);
       setBorrowedRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
       return updates;
     } catch (err) {
@@ -418,7 +471,7 @@ export const TransactionProvider = ({ children }) => {
         status: 'settled'
       };
 
-      await DataService.updateBorrowedRecord(id, updates);
+      await DataService.updateBorrowedRecord(id, updates, userId);
       setBorrowedRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
       return updates;
     } catch (err) {
@@ -436,6 +489,8 @@ export const TransactionProvider = ({ children }) => {
       settings,
       loading,
       error,
+      isSyncing,
+      syncLocalData,
       updateSettings,
       addTransaction,
       updateTransaction,

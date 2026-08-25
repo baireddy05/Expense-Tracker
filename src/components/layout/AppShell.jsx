@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
 import { useTransactions } from '../../context/TransactionContext';
@@ -10,6 +10,8 @@ import QuickActionSpeedDial from '../ui/QuickActionSpeedDial';
 import TransactionForm from '../transactions/TransactionForm';
 import LentFormModal from '../lent/LentFormModal';
 import BorrowFormModal from '../borrow/BorrowFormModal';
+import UserProfileMenu from '../auth/UserProfileMenu';
+import AuthModal from '../auth/AuthModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faWallet, 
@@ -17,15 +19,13 @@ import {
   faSun, 
   faEye, 
   faEyeSlash, 
-  faSearch,
-  faKeyboard
+  faSearch
 } from '@fortawesome/free-solid-svg-icons';
 
 const AppShell = () => {
   const { loading, error } = useTransactions();
   const { theme, setTheme } = useTheme();
   const { isPrivacyMode, togglePrivacyMode, openCommandPalette } = useUI();
-  const navigate = useNavigate();
 
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [initialTxType, setInitialTxType] = useState('expense');
@@ -73,7 +73,7 @@ const AppShell = () => {
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto pb-24 md:pb-8 relative scroll-smooth flex flex-col">
         {/* Top Navbar Header */}
-        <header className="sticky top-0 z-30 bg-white/85 dark:bg-gray-900/85 backdrop-blur-md border-b border-gray-200/80 dark:border-gray-800/80 px-4 md:px-8 py-3.5 flex justify-between items-center transition-colors">
+        <header className="sticky top-0 z-30 bg-white/85 dark:bg-gray-900/85 backdrop-blur-md border-b border-gray-200/80 dark:border-gray-800/80 px-4 md:px-8 py-3 flex justify-between items-center transition-colors">
           {/* Logo on mobile / Search trigger on desktop */}
           <div className="flex items-center gap-3">
             <h1 className="md:hidden text-xl font-bold text-primary-600 dark:text-primary-500 flex items-center gap-2">
@@ -95,7 +95,7 @@ const AppShell = () => {
             </button>
           </div>
 
-          {/* Quick Controls */}
+          {/* Quick Controls & User Profile */}
           <div className="flex items-center gap-2">
             {/* Mobile Search Button */}
             <button
@@ -131,6 +131,11 @@ const AppShell = () => {
             >
               <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} />
             </button>
+
+            {/* Firebase Auth User Profile */}
+            <div className="pl-1 border-l border-gray-200 dark:border-gray-800">
+              <UserProfileMenu />
+            </div>
           </div>
         </header>
 
@@ -149,6 +154,9 @@ const AppShell = () => {
 
       {/* Global Command Palette Spotlight */}
       <CommandPalette />
+
+      {/* Global Auth Modal */}
+      <AuthModal />
 
       {/* Mobile Bottom Navigation */}
       <BottomNav />

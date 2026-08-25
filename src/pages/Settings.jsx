@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTransactions } from '../context/TransactionContext';
 import { useTheme } from '../context/ThemeContext';
 import { useUI } from '../context/UIContext';
+import { useAuth } from '../context/AuthContext';
 import Papa from 'papaparse';
-import ConfirmModal from '../components/ui/ConfirmModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faDownload, 
@@ -16,20 +16,44 @@ import {
   faEyeSlash,
   faKeyboard,
   faFileArchive,
-  faTrashAlt,
-  faCoins,
-  faTags
+  faShieldAlt,
+  faSignOutAlt,
+  faKey,
+  faSync,
+  faLock
 } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 
 const Settings = () => {
-  const { transactions, categories, lentRecords = [], borrowedRecords = [], settings, updateSettings, addTransaction, addLentRecord, addBorrowedRecord } = useTransactions();
+  const { 
+    transactions, 
+    categories, 
+    lentRecords = [], 
+    borrowedRecords = [], 
+    settings, 
+    updateSettings, 
+    addTransaction, 
+    addLentRecord, 
+    addBorrowedRecord,
+    isSyncing,
+    syncLocalData
+  } = useTransactions();
+  
   const { theme, setTheme } = useTheme();
   const { isPrivacyMode, togglePrivacyMode } = useUI();
+  const { 
+    currentUser, 
+    logout, 
+    openAuthModal, 
+    resetPassword, 
+    updateUserDisplayName 
+  } = useAuth();
   
   const [budgetInput, setBudgetInput] = useState('');
   const [isSavingBudget, setIsSavingBudget] = useState(false);
-  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const [displayNameInput, setDisplayNameInput] = useState('');
+  const [isSavingName, setIsSavingName] = useState(false);
+  const [isSendingReset, setIsSendingReset] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -38,6 +62,12 @@ const Settings = () => {
       setBudgetInput(settings.monthlyBudget || '');
     }
   }, [settings]);
+
+  useEffect(() => {
+    if (currentUser) {
+      setDisplayNameInput(currentUser.displayName || '');
+    }
+  }, [currentUser]);
 
   const handleSaveBudget = async () => {
     setIsSavingBudget(true);
@@ -49,6 +79,30 @@ const Settings = () => {
       toast.error('Failed to save budget');
     } finally {
       setIsSavingBudget(false);
+    }
+  };
+
+  const handleSaveDisplayName = async () => {
+    if (!displayNameInput.trim()) return;
+    setIsSavingName(true);
+    try {
+      await updateUserDisplayName(displayNameInput.trim());
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!currentUser?.email) return;
+    setIsSendingReset(true);
+    try {
+      await resetPassword(currentUser.email);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSendingReset(false);
     }
   };
 
@@ -76,11 +130,12 @@ const Settings = () => {
     toast.success('Transactions CSV exported');
   };
 
-  // Full System JSON Backup (Transactions + Lent + Borrowed + Categories + Settings)
+  // Full System JSON Backup
   const handleExportFullJSON = () => {
     const fullBackup = {
       version: '2.0',
       exportedAt: new Date().toISOString(),
+      user: currentUser ? { email: currentUser.email, uid: currentUser.uid } : 'Guest',
       transactions,
       categories,
       lentRecords,
@@ -160,10 +215,133 @@ const Settings = () => {
     <div className="space-y-6 pb-20 md:pb-8">
       <header className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Manage budget, privacy, data backups & system preferences</p>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your account, cloud security, budget limits & backups</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Firebase Authentication & Cloud Security */}
+        <div className="glass rounded-2xl p-6 relative overflow-hidden">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <FontAwesomeIcon icon={faShieldAlt} className="text-emerald-500" />
+              <span>Account & Cloud Security</span>
+            </h2>
+            {currentUser && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Firebase Protected
+              </span>
+            )}
+          </div>
+
+          {currentUser ? (
+            <div className="space-y-4">
+              <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 flex items-center gap-3.5">
+                {currentUser.photoURL ? (
+                  <img 
+                    src={currentUser.photoURL} 
+                    alt={currentUser.displayName} 
+                    className="w-12 h-12 rounded-2xl object-cover ring-2 ring-primary-500/30"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white font-bold flex items-center justify-center text-lg shadow-inner ring-2 ring-primary-500/30">
+                    {(currentUser.displayName || currentUser.email || 'U').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="flex-1 overflow-hidden">
+                  <p className="font-bold text-sm text-gray-900 dark:text-white truncate">
+                    {currentUser.displayName || 'No Name Set'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {currentUser.email}
+                  </p>
+                  <p className="text-[10px] text-gray-400 font-mono mt-0.5 truncate">
+                    UID: {currentUser.uid}
+                  </p>
+                </div>
+              </div>
+
+              {/* Edit Display Name */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
+                  Display Name
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={displayNameInput}
+                    onChange={(e) => setDisplayNameInput(e.target.value)}
+                    placeholder="Your Name"
+                    className="flex-1 px-4 py-2 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl text-xs focus:ring-2 focus:ring-primary-500 outline-none text-gray-900 dark:text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveDisplayName}
+                    disabled={isSavingName}
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-semibold rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {isSavingName ? 'Saving...' : 'Update'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={syncLocalData}
+                  disabled={isSyncing}
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/80 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-60"
+                >
+                  <FontAwesomeIcon icon={faSync} className={isSyncing ? 'animate-spin' : ''} />
+                  <span>{isSyncing ? 'Syncing...' : 'Sync Cloud Backup'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePasswordReset}
+                  disabled={isSendingReset}
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-60"
+                >
+                  <FontAwesomeIcon icon={faKey} />
+                  <span>{isSendingReset ? 'Sending...' : 'Reset Password'}</span>
+                </button>
+              </div>
+
+              <div className="pt-2 border-t border-gray-100 dark:border-gray-800 flex justify-end">
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-400 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  <FontAwesomeIcon icon={faSignOutAlt} />
+                  <span>Sign Out Account</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-4 space-y-3">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 flex items-center justify-center text-xl">
+                <FontAwesomeIcon icon={faLock} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-900 dark:text-white">You are in Offline / Guest Mode</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-sm mx-auto">
+                  Sign in with Firebase to automatically sync and protect all your expenses, lent money, and loans safely in the cloud across all your devices.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => openAuthModal('login')}
+                className="py-2.5 px-6 bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-500 hover:to-indigo-500 text-white font-semibold rounded-xl text-xs shadow-md shadow-primary-500/25 transition-all cursor-pointer inline-flex items-center gap-2"
+              >
+                <FontAwesomeIcon icon={faShieldAlt} />
+                <span>Sign In / Create Account</span>
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Budget & Goals */}
         <div className="glass rounded-2xl p-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
@@ -214,7 +392,7 @@ const Settings = () => {
               <div>
                 <p className="font-semibold text-sm text-gray-900 dark:text-white">Privacy Mode (Mask Balances)</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  Masks all sensitive currency amounts with <code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">₹••••••</code> when in public.
+                  Masks sensitive currency amounts with <code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">₹••••••</code> when in public.
                 </p>
               </div>
               <button
@@ -292,20 +470,20 @@ const Settings = () => {
         </div>
 
         {/* Data Management & Full System Backup */}
-        <div className="glass rounded-2xl p-6">
+        <div className="glass rounded-2xl p-6 lg:col-span-2">
           <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
             <FontAwesomeIcon icon={faFileArchive} className="text-indigo-500" />
-            <span>Data Management & Backup</span>
+            <span>Data Management & Offline Backups</span>
           </h2>
           
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {/* Export Full System JSON */}
             <button 
               onClick={handleExportFullJSON}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-primary-600 to-indigo-600 text-white font-semibold rounded-xl hover:opacity-95 transition-opacity text-xs cursor-pointer shadow-md shadow-primary-500/20"
+              className="flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-primary-600 to-indigo-600 text-white font-semibold rounded-xl hover:opacity-95 transition-opacity text-xs cursor-pointer shadow-md shadow-primary-500/20"
             >
               <FontAwesomeIcon icon={faDownload} />
-              <span>Export Complete Backup (JSON)</span>
+              <span>Export Full JSON Backup</span>
             </button>
 
             {/* Import / Restore JSON */}
@@ -318,19 +496,19 @@ const Settings = () => {
             />
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs cursor-pointer"
+              className="flex items-center justify-center gap-2 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs cursor-pointer"
             >
               <FontAwesomeIcon icon={faUpload} />
-              <span>Restore Data from Backup (JSON)</span>
+              <span>Restore Data from Backup</span>
             </button>
 
             {/* Export CSV */}
             <button 
               onClick={handleExportCSV}
-              className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-100 dark:bg-gray-800/60 text-gray-700 dark:text-gray-300 font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-xs cursor-pointer"
+              className="flex items-center justify-center gap-2 py-3 bg-gray-100 dark:bg-gray-800/60 text-gray-700 dark:text-gray-300 font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-xs cursor-pointer"
             >
               <FontAwesomeIcon icon={faDownload} />
-              <span>Export Transactions to CSV</span>
+              <span>Export Transactions CSV</span>
             </button>
           </div>
         </div>

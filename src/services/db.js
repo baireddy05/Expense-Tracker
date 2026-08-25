@@ -1,146 +1,218 @@
-import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, setDoc, writeBatch } from "firebase/firestore";
+import { 
+  collection, 
+  addDoc, 
+  getDocs, 
+  getDoc,
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  setDoc, 
+  writeBatch,
+  query,
+  orderBy
+} from "firebase/firestore";
+import { db } from "./firebase";
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
-};
-
-// Only initialize if config is present, otherwise throw a helpful error
-let app, db;
-try {
-  app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
-} catch (error) {
-  console.warn("Firebase config is missing or invalid. Please check your .env file.");
-}
+const DEFAULT_CATEGORIES = [
+  { name: 'Food', color: '#ef4444', icon: 'fa-utensils', type: 'expense' },
+  { name: 'Groceries', color: '#f97316', icon: 'fa-shopping-cart', type: 'expense' },
+  { name: 'Travel', color: '#eab308', icon: 'fa-plane', type: 'expense' },
+  { name: 'Entertainment', color: '#8b5cf6', icon: 'fa-film', type: 'expense' },
+  { name: 'Medical', color: '#ec4899', icon: 'fa-notes-medical', type: 'expense' },
+  { name: 'From Dad', color: '#22c55e', icon: 'fa-money-bill', type: 'income' },
+  { name: 'Trading', color: '#10b981', icon: 'fa-chart-line', type: 'income' }
+];
 
 export const DataService = {
-  async getTransactions() {
-    if (!db) return [];
-    const querySnapshot = await getDocs(collection(db, "transactions"));
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  // ----------------------------------------------------
+  // Transactions (users/{userId}/transactions)
+  // ----------------------------------------------------
+  async getTransactions(userId) {
+    if (!userId || !db) {
+      const local = localStorage.getItem('local_transactions');
+      return local ? JSON.parse(local) : [];
+    }
+
+    try {
+      const colRef = collection(db, "users", userId, "transactions");
+      const q = query(colRef, orderBy("date", "desc"));
+      const snapshot = await getDocs(q);
+      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      localStorage.setItem(`cache_transactions_${userId}`, JSON.stringify(list));
+      return list;
+    } catch (e) {
+      console.warn("Firestore fetch transactions failed, trying cached data", e);
+      const cached = localStorage.getItem(`cache_transactions_${userId}`);
+      return cached ? JSON.parse(cached) : [];
+    }
   },
 
-  async addTransaction(transaction) {
-    if (!db) throw new Error("Firebase not initialized");
-    const newTx = { ...transaction, createdAt: new Date().toISOString() };
-    const docRef = await addDoc(collection(db, "transactions"), newTx);
-    return { id: docRef.id, ...newTx };
+  async addTransaction(transaction, userId) {
+    const newTx = {
+      ...transaction,
+      createdAt: new Date().toISOString()
+    };
+
+    if (!userId || !db) {
+      const id = 'local_tx_' + Date.now();
+      const item = { id, ...newTx };
+      const local = JSON.parse(localStorage.getItem('local_transactions') || '[]');
+      local.unshift(item);
+      localStorage.setItem('local_transactions', JSON.stringify(local));
+      return item;
+    }
+
+    try {
+      const colRef = collection(db, "users", userId, "transactions");
+      const docRef = await addDoc(colRef, newTx);
+      return { id: docRef.id, ...newTx };
+    } catch (e) {
+      console.error("Failed to add transaction to Firestore", e);
+      throw e;
+    }
   },
 
-  async updateTransaction(id, updates) {
-    if (!db) throw new Error("Firebase not initialized");
-    const txRef = doc(db, "transactions", id);
-    await updateDoc(txRef, updates);
+  async updateTransaction(id, updates, userId) {
+    if (!userId || !db || id.startsWith('local_')) {
+      const local = JSON.parse(localStorage.getItem('local_transactions') || '[]');
+      const updated = local.map(t => t.id === id ? { ...t, ...updates } : t);
+      localStorage.setItem('local_transactions', JSON.stringify(updated));
+      return { id, ...updates };
+    }
+
+    const docRef = doc(db, "users", userId, "transactions", id);
+    await updateDoc(docRef, updates);
     return { id, ...updates };
   },
 
-  async deleteTransaction(id) {
-    if (!db) throw new Error("Firebase not initialized");
-    const txRef = doc(db, "transactions", id);
-    await deleteDoc(txRef);
+  async deleteTransaction(id, userId) {
+    if (!userId || !db || id.startsWith('local_')) {
+      const local = JSON.parse(localStorage.getItem('local_transactions') || '[]');
+      const filtered = local.filter(t => t.id !== id);
+      localStorage.setItem('local_transactions', JSON.stringify(filtered));
+      return true;
+    }
+
+    const docRef = doc(db, "users", userId, "transactions", id);
+    await deleteDoc(docRef);
     return true;
   },
 
-  async getCategories() {
-    if (!db) return [];
-    const querySnapshot = await getDocs(collection(db, "categories"));
-    if (querySnapshot.empty) {
-      // Seed default categories if none exist
-      const defaultCategories = [
-        { name: 'Food', color: '#ef4444', icon: 'fa-utensils', type: 'expense' },
-        { name: 'Groceries', color: '#f97316', icon: 'fa-shopping-cart', type: 'expense' },
-        { name: 'Travel', color: '#eab308', icon: 'fa-plane', type: 'expense' },
-        { name: 'Entertainment', color: '#8b5cf6', icon: 'fa-film', type: 'expense' },
-        { name: 'Medical', color: '#ec4899', icon: 'fa-notes-medical', type: 'expense' },
-        { name: 'From Dad', color: '#22c55e', icon: 'fa-money-bill', type: 'income' },
-        { name: 'Trading', color: '#10b981', icon: 'fa-chart-line', type: 'income' }
-      ];
-      const batch = writeBatch(db);
-      const seeded = [];
-      for (const cat of defaultCategories) {
-        const docRef = doc(collection(db, "categories"));
-        batch.set(docRef, cat);
-        seeded.push({ id: docRef.id, ...cat });
-      }
-      await batch.commit();
+  // ----------------------------------------------------
+  // Categories (users/{userId}/categories)
+  // ----------------------------------------------------
+  async getCategories(userId) {
+    if (!userId || !db) {
+      const local = localStorage.getItem('local_categories');
+      if (local) return JSON.parse(local);
+      const seeded = DEFAULT_CATEGORIES.map((c, i) => ({ id: 'cat_' + i, ...c }));
+      localStorage.setItem('local_categories', JSON.stringify(seeded));
       return seeded;
     }
-    
-    const docs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    
-    // Deduplicate and cleanup database
-    const unique = [];
-    const seen = new Set();
-    const duplicates = [];
-    
-    for (const d of docs) {
-      const key = d.name + '|' + d.type;
-      if (!seen.has(key)) {
-        seen.add(key);
-        unique.push(d);
-      } else {
-        duplicates.push(d);
+
+    try {
+      const colRef = collection(db, "users", userId, "categories");
+      const snapshot = await getDocs(colRef);
+      
+      if (snapshot.empty) {
+        // Seed default categories for this specific user
+        const batch = writeBatch(db);
+        const seeded = [];
+        for (const cat of DEFAULT_CATEGORIES) {
+          const newDocRef = doc(colRef);
+          batch.set(newDocRef, cat);
+          seeded.push({ id: newDocRef.id, ...cat });
+        }
+        await batch.commit();
+        localStorage.setItem(`cache_categories_${userId}`, JSON.stringify(seeded));
+        return seeded;
       }
+
+      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      localStorage.setItem(`cache_categories_${userId}`, JSON.stringify(list));
+      return list;
+    } catch (e) {
+      console.warn("Firestore fetch categories failed, using cached", e);
+      const cached = localStorage.getItem(`cache_categories_${userId}`);
+      return cached ? JSON.parse(cached) : DEFAULT_CATEGORIES.map((c, i) => ({ id: 'cat_' + i, ...c }));
     }
-    
-    if (duplicates.length > 0) {
-      Promise.all(duplicates.map(dup => deleteDoc(doc(db, "categories", dup.id))))
-        .catch(console.error);
-    }
-    
-    return unique;
   },
 
-  async addCategory(category) {
-    if (!db) throw new Error("Firebase not initialized");
-    const docRef = await addDoc(collection(db, "categories"), category);
+  async addCategory(category, userId) {
+    if (!userId || !db) {
+      const id = 'local_cat_' + Date.now();
+      const newCat = { id, ...category };
+      const local = JSON.parse(localStorage.getItem('local_categories') || '[]');
+      local.push(newCat);
+      localStorage.setItem('local_categories', JSON.stringify(local));
+      return newCat;
+    }
+
+    const colRef = collection(db, "users", userId, "categories");
+    const docRef = await addDoc(colRef, category);
     return { id: docRef.id, ...category };
   },
 
-  async getSettings() {
-    if (!db) return { monthlyBudget: 0 };
-    const querySnapshot = await getDocs(collection(db, "settings"));
-    if (querySnapshot.empty) {
-      const defaultSettings = { monthlyBudget: 0 };
-      const docRef = doc(collection(db, "settings"), "global");
-      await setDoc(docRef, defaultSettings);
-      return { id: docRef.id, ...defaultSettings };
+  // ----------------------------------------------------
+  // Settings (users/{userId}/settings/config)
+  // ----------------------------------------------------
+  async getSettings(userId) {
+    const defaultSettings = { monthlyBudget: 0 };
+    if (!userId || !db) {
+      const local = localStorage.getItem('local_settings');
+      return local ? JSON.parse(local) : defaultSettings;
     }
-    const docData = querySnapshot.docs[0];
-    return { id: docData.id, ...docData.data() };
-  },
 
-  async updateSettings(id, updates) {
-    if (!db) throw new Error("Firebase not initialized");
-    const settingsRef = doc(db, "settings", id);
-    await updateDoc(settingsRef, updates);
-    return { id, ...updates };
-  },
-
-  async getLentRecords() {
-    if (!db) {
-      const local = localStorage.getItem('lent_records');
-      return local ? JSON.parse(local) : [];
-    }
     try {
-      const querySnapshot = await getDocs(collection(db, "lent_records"));
-      const records = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      localStorage.setItem('lent_records', JSON.stringify(records));
-      return records;
+      const docRef = doc(db, "users", userId, "settings", "config");
+      const snap = await getDoc(docRef);
+      if (!snap.exists()) {
+        await setDoc(docRef, defaultSettings);
+        return { id: 'config', ...defaultSettings };
+      }
+      return { id: snap.id, ...snap.data() };
     } catch (e) {
-      console.warn("Failed to fetch lent records from Firestore, using local fallback", e);
-      const local = localStorage.getItem('lent_records');
-      return local ? JSON.parse(local) : [];
+      console.warn("Firestore fetch settings failed", e);
+      return defaultSettings;
     }
   },
 
-  async addLentRecord(record) {
+  async updateSettings(updates, userId) {
+    if (!userId || !db) {
+      const local = JSON.parse(localStorage.getItem('local_settings') || '{"monthlyBudget":0}');
+      const updated = { ...local, ...updates };
+      localStorage.setItem('local_settings', JSON.stringify(updated));
+      return updated;
+    }
+
+    const docRef = doc(db, "users", userId, "settings", "config");
+    await setDoc(docRef, updates, { merge: true });
+    return updates;
+  },
+
+  // ----------------------------------------------------
+  // Lent Records (users/{userId}/lent_records)
+  // ----------------------------------------------------
+  async getLentRecords(userId) {
+    if (!userId || !db) {
+      const local = localStorage.getItem('local_lent_records');
+      return local ? JSON.parse(local) : [];
+    }
+
+    try {
+      const colRef = collection(db, "users", userId, "lent_records");
+      const snapshot = await getDocs(colRef);
+      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      localStorage.setItem(`cache_lent_${userId}`, JSON.stringify(list));
+      return list;
+    } catch (e) {
+      console.warn("Firestore fetch lent records failed", e);
+      const cached = localStorage.getItem(`cache_lent_${userId}`);
+      return cached ? JSON.parse(cached) : [];
+    }
+  },
+
+  async addLentRecord(record, userId) {
     const amountVal = parseFloat(record.amount) || 0;
     const initialLoans = (record.loans && Array.isArray(record.loans) && record.loans.length > 0)
       ? record.loans
@@ -162,84 +234,69 @@ export const DataService = {
       createdAt: new Date().toISOString()
     };
 
-    if (!db) {
-      const id = 'local_' + Date.now();
+    if (!userId || !db) {
+      const id = 'local_lent_' + Date.now();
       const saved = { id, ...newRecord };
-      const existing = JSON.parse(localStorage.getItem('lent_records') || '[]');
+      const existing = JSON.parse(localStorage.getItem('local_lent_records') || '[]');
       existing.unshift(saved);
-      localStorage.setItem('lent_records', JSON.stringify(existing));
+      localStorage.setItem('local_lent_records', JSON.stringify(existing));
       return saved;
     }
 
-    try {
-      const docRef = await addDoc(collection(db, "lent_records"), newRecord);
-      const saved = { id: docRef.id, ...newRecord };
-      const existing = JSON.parse(localStorage.getItem('lent_records') || '[]');
-      existing.unshift(saved);
-      localStorage.setItem('lent_records', JSON.stringify(existing));
-      return saved;
-    } catch (e) {
-      console.warn("Firebase write failed, using local storage fallback", e);
-      const id = 'local_' + Date.now();
-      const saved = { id, ...newRecord };
-      const existing = JSON.parse(localStorage.getItem('lent_records') || '[]');
-      existing.unshift(saved);
-      localStorage.setItem('lent_records', JSON.stringify(existing));
-      return saved;
-    }
+    const colRef = collection(db, "users", userId, "lent_records");
+    const docRef = await addDoc(colRef, newRecord);
+    return { id: docRef.id, ...newRecord };
   },
 
-  async updateLentRecord(id, updates) {
-    const existing = JSON.parse(localStorage.getItem('lent_records') || '[]');
-    const updatedList = existing.map(item => item.id === id ? { ...item, ...updates } : item);
-    localStorage.setItem('lent_records', JSON.stringify(updatedList));
-
-    if (db && !id.startsWith('local_')) {
-      try {
-        const recordRef = doc(db, "lent_records", id);
-        await updateDoc(recordRef, updates);
-      } catch (e) {
-        console.warn("Failed to update Firestore lent record", e);
-      }
+  async updateLentRecord(id, updates, userId) {
+    if (!userId || !db || id.startsWith('local_')) {
+      const existing = JSON.parse(localStorage.getItem('local_lent_records') || '[]');
+      const updatedList = existing.map(item => item.id === id ? { ...item, ...updates } : item);
+      localStorage.setItem('local_lent_records', JSON.stringify(updatedList));
+      return { id, ...updates };
     }
+
+    const docRef = doc(db, "users", userId, "lent_records", id);
+    await updateDoc(docRef, updates);
     return { id, ...updates };
   },
 
-  async deleteLentRecord(id) {
-    const existing = JSON.parse(localStorage.getItem('lent_records') || '[]');
-    const updatedList = existing.filter(item => item.id !== id);
-    localStorage.setItem('lent_records', JSON.stringify(updatedList));
-
-    if (db && !id.startsWith('local_')) {
-      try {
-        const recordRef = doc(db, "lent_records", id);
-        await deleteDoc(recordRef);
-      } catch (e) {
-        console.warn("Failed to delete Firestore lent record", e);
-      }
+  async deleteLentRecord(id, userId) {
+    if (!userId || !db || id.startsWith('local_')) {
+      const existing = JSON.parse(localStorage.getItem('local_lent_records') || '[]');
+      const updatedList = existing.filter(item => item.id !== id);
+      localStorage.setItem('local_lent_records', JSON.stringify(updatedList));
+      return true;
     }
+
+    const docRef = doc(db, "users", userId, "lent_records", id);
+    await deleteDoc(docRef);
     return true;
   },
 
-  // Borrowed Money Actions (Money borrowed from friends)
-  async getBorrowedRecords() {
-    if (!db) {
-      const local = localStorage.getItem('borrowed_records');
+  // ----------------------------------------------------
+  // Borrowed Records (users/{userId}/borrowed_records)
+  // ----------------------------------------------------
+  async getBorrowedRecords(userId) {
+    if (!userId || !db) {
+      const local = localStorage.getItem('local_borrowed_records');
       return local ? JSON.parse(local) : [];
     }
+
     try {
-      const querySnapshot = await getDocs(collection(db, "borrowed_records"));
-      const records = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      localStorage.setItem('borrowed_records', JSON.stringify(records));
-      return records;
+      const colRef = collection(db, "users", userId, "borrowed_records");
+      const snapshot = await getDocs(colRef);
+      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      localStorage.setItem(`cache_borrowed_${userId}`, JSON.stringify(list));
+      return list;
     } catch (e) {
-      console.warn("Failed to fetch borrowed records from Firestore, using local fallback", e);
-      const local = localStorage.getItem('borrowed_records');
-      return local ? JSON.parse(local) : [];
+      console.warn("Firestore fetch borrowed records failed", e);
+      const cached = localStorage.getItem(`cache_borrowed_${userId}`);
+      return cached ? JSON.parse(cached) : [];
     }
   },
 
-  async addBorrowedRecord(record) {
+  async addBorrowedRecord(record, userId) {
     const amountVal = parseFloat(record.amount) || 0;
     const initialBorrows = (record.borrows && Array.isArray(record.borrows) && record.borrows.length > 0)
       ? record.borrows
@@ -261,62 +318,191 @@ export const DataService = {
       createdAt: new Date().toISOString()
     };
 
-    if (!db) {
+    if (!userId || !db) {
       const id = 'local_borrow_' + Date.now();
       const saved = { id, ...newRecord };
-      const existing = JSON.parse(localStorage.getItem('borrowed_records') || '[]');
+      const existing = JSON.parse(localStorage.getItem('local_borrowed_records') || '[]');
       existing.unshift(saved);
-      localStorage.setItem('borrowed_records', JSON.stringify(existing));
+      localStorage.setItem('local_borrowed_records', JSON.stringify(existing));
       return saved;
     }
 
-    try {
-      const docRef = await addDoc(collection(db, "borrowed_records"), newRecord);
-      const saved = { id: docRef.id, ...newRecord };
-      const existing = JSON.parse(localStorage.getItem('borrowed_records') || '[]');
-      existing.unshift(saved);
-      localStorage.setItem('borrowed_records', JSON.stringify(existing));
-      return saved;
-    } catch (e) {
-      console.warn("Firebase write failed, using local storage fallback for borrowed record", e);
-      const id = 'local_borrow_' + Date.now();
-      const saved = { id, ...newRecord };
-      const existing = JSON.parse(localStorage.getItem('borrowed_records') || '[]');
-      existing.unshift(saved);
-      localStorage.setItem('borrowed_records', JSON.stringify(existing));
-      return saved;
-    }
+    const colRef = collection(db, "users", userId, "borrowed_records");
+    const docRef = await addDoc(colRef, newRecord);
+    return { id: docRef.id, ...newRecord };
   },
 
-  async updateBorrowedRecord(id, updates) {
-    const existing = JSON.parse(localStorage.getItem('borrowed_records') || '[]');
-    const updatedList = existing.map(item => item.id === id ? { ...item, ...updates } : item);
-    localStorage.setItem('borrowed_records', JSON.stringify(updatedList));
-
-    if (db && !id.startsWith('local_')) {
-      try {
-        const recordRef = doc(db, "borrowed_records", id);
-        await updateDoc(recordRef, updates);
-      } catch (e) {
-        console.warn("Failed to update Firestore borrowed record", e);
-      }
+  async updateBorrowedRecord(id, updates, userId) {
+    if (!userId || !db || id.startsWith('local_')) {
+      const existing = JSON.parse(localStorage.getItem('local_borrowed_records') || '[]');
+      const updatedList = existing.map(item => item.id === id ? { ...item, ...updates } : item);
+      localStorage.setItem('local_borrowed_records', JSON.stringify(updatedList));
+      return { id, ...updates };
     }
+
+    const docRef = doc(db, "users", userId, "borrowed_records", id);
+    await updateDoc(docRef, updates);
     return { id, ...updates };
   },
 
-  async deleteBorrowedRecord(id) {
-    const existing = JSON.parse(localStorage.getItem('borrowed_records') || '[]');
-    const updatedList = existing.filter(item => item.id !== id);
-    localStorage.setItem('borrowed_records', JSON.stringify(updatedList));
-
-    if (db && !id.startsWith('local_')) {
-      try {
-        const recordRef = doc(db, "borrowed_records", id);
-        await deleteDoc(recordRef);
-      } catch (e) {
-        console.warn("Failed to delete Firestore borrowed record", e);
-      }
+  async deleteBorrowedRecord(id, userId) {
+    if (!userId || !db || id.startsWith('local_')) {
+      const existing = JSON.parse(localStorage.getItem('local_borrowed_records') || '[]');
+      const updatedList = existing.filter(item => item.id !== id);
+      localStorage.setItem('local_borrowed_records', JSON.stringify(updatedList));
+      return true;
     }
+
+    const docRef = doc(db, "users", userId, "borrowed_records", id);
+    await deleteDoc(docRef);
     return true;
+  },
+
+  // ----------------------------------------------------
+  // Cloud Sync & Comprehensive Legacy Data Migration
+  // ----------------------------------------------------
+  async migrateLocalDataToCloud(userId) {
+    if (!userId || !db) return { count: 0 };
+    let count = 0;
+
+    try {
+      // 1. Fetch current user transactions to prevent duplicates
+      const existingUserTx = await this.getTransactions(userId);
+      const existingTxKeys = new Set(
+        existingUserTx.map(t => `${t.date}_${t.amount}_${t.categoryId || ''}_${t.note || ''}`)
+      );
+
+      const existingUserLent = await this.getLentRecords(userId);
+      const existingLentNames = new Set(
+        existingUserLent.map(l => `${l.borrowerName || l.personName || ''}_${l.amount}`)
+      );
+
+      const existingUserBorrowed = await this.getBorrowedRecords(userId);
+      const existingBorrowNames = new Set(
+        existingUserBorrowed.map(b => `${b.lenderName || b.personName || ''}_${b.amount}`)
+      );
+
+      const batch = writeBatch(db);
+      let batchCount = 0;
+
+      // Helper to safely commit if batch hits limit (Firestore batch limit is 500)
+      const addToBatch = async (ref, data) => {
+        batch.set(ref, data);
+        batchCount++;
+        count++;
+        if (batchCount >= 450) {
+          await batch.commit();
+          batchCount = 0;
+        }
+      };
+
+      // 2. Check local storage legacy keys
+      const localTx1 = JSON.parse(localStorage.getItem('local_transactions') || '[]');
+      const localTx2 = JSON.parse(localStorage.getItem('transactions') || '[]');
+      const allLocalTx = [...localTx1, ...localTx2];
+
+      for (const item of allLocalTx) {
+        const key = `${item.date}_${item.amount}_${item.categoryId || ''}_${item.note || ''}`;
+        if (!existingTxKeys.has(key)) {
+          existingTxKeys.add(key);
+          const { id, ...data } = item;
+          const ref = doc(collection(db, "users", userId, "transactions"));
+          await addToBatch(ref, data);
+        }
+      }
+      localStorage.removeItem('local_transactions');
+      localStorage.removeItem('transactions');
+
+      // Lent records from localStorage (legacy 'lent_records' and 'local_lent_records')
+      const localLent1 = JSON.parse(localStorage.getItem('local_lent_records') || '[]');
+      const localLent2 = JSON.parse(localStorage.getItem('lent_records') || '[]');
+      const allLocalLent = [...localLent1, ...localLent2];
+
+      for (const item of allLocalLent) {
+        const key = `${item.borrowerName || item.personName || ''}_${item.amount}`;
+        if (!existingLentNames.has(key)) {
+          existingLentNames.add(key);
+          const { id, ...data } = item;
+          const ref = doc(collection(db, "users", userId, "lent_records"));
+          await addToBatch(ref, data);
+        }
+      }
+      localStorage.removeItem('local_lent_records');
+      localStorage.removeItem('lent_records');
+
+      // Borrowed records from localStorage (legacy 'borrowed_records' and 'local_borrowed_records')
+      const localBorrow1 = JSON.parse(localStorage.getItem('local_borrowed_records') || '[]');
+      const localBorrow2 = JSON.parse(localStorage.getItem('borrowed_records') || '[]');
+      const allLocalBorrow = [...localBorrow1, ...localBorrow2];
+
+      for (const item of allLocalBorrow) {
+        const key = `${item.lenderName || item.personName || ''}_${item.amount}`;
+        if (!existingBorrowNames.has(key)) {
+          existingBorrowNames.add(key);
+          const { id, ...data } = item;
+          const ref = doc(collection(db, "users", userId, "borrowed_records"));
+          await addToBatch(ref, data);
+        }
+      }
+      localStorage.removeItem('local_borrowed_records');
+      localStorage.removeItem('borrowed_records');
+
+      // 3. Check legacy root collections in Firestore (if any existed before per-user isolation)
+      try {
+        const rootTxSnap = await getDocs(collection(db, "transactions"));
+        for (const d of rootTxSnap.docs) {
+          const item = d.data();
+          const key = `${item.date}_${item.amount}_${item.categoryId || ''}_${item.note || ''}`;
+          if (!existingTxKeys.has(key)) {
+            existingTxKeys.add(key);
+            const ref = doc(collection(db, "users", userId, "transactions"));
+            await addToBatch(ref, item);
+          }
+        }
+      } catch (err) {
+        // Root collections may not exist or may be restricted by security rules
+        console.log("Root Firestore transactions check skipped:", err.message);
+      }
+
+      try {
+        const rootLentSnap = await getDocs(collection(db, "lent_records"));
+        for (const d of rootLentSnap.docs) {
+          const item = d.data();
+          const key = `${item.borrowerName || item.personName || ''}_${item.amount}`;
+          if (!existingLentNames.has(key)) {
+            existingLentNames.add(key);
+            const ref = doc(collection(db, "users", userId, "lent_records"));
+            await addToBatch(ref, item);
+          }
+        }
+      } catch (err) {
+        console.log("Root Firestore lent_records check skipped:", err.message);
+      }
+
+      try {
+        const rootBorrowSnap = await getDocs(collection(db, "borrowed_records"));
+        for (const d of rootBorrowSnap.docs) {
+          const item = d.data();
+          const key = `${item.lenderName || item.personName || ''}_${item.amount}`;
+          if (!existingBorrowNames.has(key)) {
+            existingBorrowNames.add(key);
+            const ref = doc(collection(db, "users", userId, "borrowed_records"));
+            await addToBatch(ref, item);
+          }
+        }
+      } catch (err) {
+        console.log("Root Firestore borrowed_records check skipped:", err.message);
+      }
+
+      // Commit any remaining writes in batch
+      if (batchCount > 0) {
+        await batch.commit();
+      }
+
+      return { count };
+    } catch (e) {
+      console.error("Migration error:", e);
+      return { count };
+    }
   }
 };
