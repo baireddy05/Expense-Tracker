@@ -72,12 +72,42 @@ export const DataService = {
       } catch (err) {
         snapshot = await getDocs(colRef);
       }
-      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      list.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+      const seen = new Set();
+      const uniqueList = [];
+      const duplicateDocIds = [];
+
+      snapshot.docs.forEach(d => {
+        const data = d.data();
+        const dateStr = (data.date || '').split('T')[0];
+        const noteStr = (data.note || '').trim().toLowerCase();
+        const amtStr = parseFloat(data.amount || 0).toFixed(2);
+        const typeStr = data.type || 'expense';
+        const catStr = data.categoryId || '';
+        const fingerprint = `${dateStr}__${amtStr}__${typeStr}__${noteStr}__${catStr}`;
+
+        if (seen.has(fingerprint)) {
+          duplicateDocIds.push(d.id);
+        } else {
+          seen.add(fingerprint);
+          uniqueList.push({ id: d.id, ...data });
+        }
+      });
+
+      // Silently clean up redundant duplicate documents in Firestore
+      if (duplicateDocIds.length > 0) {
+        const batch = writeBatch(db);
+        duplicateDocIds.forEach(dupId => {
+          batch.delete(doc(db, "users", userId, "transactions", dupId));
+        });
+        batch.commit().catch(e => console.warn("Deduplicate batch error:", e));
+      }
+
+      uniqueList.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
       // Automatically purge any remaining plain local storage copies for security
       DataService.purgeAllLocalData();
-      return list;
+      return uniqueList;
     } catch (e) {
       console.warn("Firestore fetch transactions error:", e);
       return [];
@@ -228,7 +258,34 @@ export const DataService = {
     try {
       const colRef = collection(db, "users", userId, "lent_records");
       const snapshot = await getDocs(colRef);
-      return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const seen = new Set();
+      const uniqueList = [];
+      const duplicateDocIds = [];
+
+      snapshot.docs.forEach(d => {
+        const data = d.data();
+        const nameStr = (data.borrowerName || data.name || '').trim().toLowerCase();
+        const amtStr = parseFloat(data.amount || 0).toFixed(2);
+        const dateStr = (data.dateLent || data.date || '').split('T')[0];
+        const fingerprint = `${nameStr}__${amtStr}__${dateStr}`;
+
+        if (seen.has(fingerprint)) {
+          duplicateDocIds.push(d.id);
+        } else {
+          seen.add(fingerprint);
+          uniqueList.push({ id: d.id, ...data });
+        }
+      });
+
+      if (duplicateDocIds.length > 0) {
+        const batch = writeBatch(db);
+        duplicateDocIds.forEach(dupId => {
+          batch.delete(doc(db, "users", userId, "lent_records", dupId));
+        });
+        batch.commit().catch(e => console.warn("Deduplicate lent error:", e));
+      }
+
+      return uniqueList;
     } catch (e) {
       console.warn("Error fetching user lent records:", e);
       return [];
@@ -309,7 +366,34 @@ export const DataService = {
     try {
       const colRef = collection(db, "users", userId, "borrowed_records");
       const snapshot = await getDocs(colRef);
-      return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const seen = new Set();
+      const uniqueList = [];
+      const duplicateDocIds = [];
+
+      snapshot.docs.forEach(d => {
+        const data = d.data();
+        const nameStr = (data.lenderName || data.name || '').trim().toLowerCase();
+        const amtStr = parseFloat(data.amount || 0).toFixed(2);
+        const dateStr = (data.dateBorrowed || data.date || '').split('T')[0];
+        const fingerprint = `${nameStr}__${amtStr}__${dateStr}`;
+
+        if (seen.has(fingerprint)) {
+          duplicateDocIds.push(d.id);
+        } else {
+          seen.add(fingerprint);
+          uniqueList.push({ id: d.id, ...data });
+        }
+      });
+
+      if (duplicateDocIds.length > 0) {
+        const batch = writeBatch(db);
+        duplicateDocIds.forEach(dupId => {
+          batch.delete(doc(db, "users", userId, "borrowed_records", dupId));
+        });
+        batch.commit().catch(e => console.warn("Deduplicate borrowed error:", e));
+      }
+
+      return uniqueList;
     } catch (e) {
       console.warn("Error fetching user borrowed records:", e);
       return [];
