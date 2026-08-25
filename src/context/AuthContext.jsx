@@ -30,16 +30,36 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      if (user) {
-        setIsGuestMode(false);
-        localStorage.removeItem('extrack_guest_mode');
-      }
+    // Safety timeout: ensure loading becomes false after max 2.5s even if network hangs
+    const safetyTimer = setTimeout(() => {
       setLoading(false);
-    });
+    }, 2500);
 
-    return () => unsubscribe();
+    let unsubscribe = () => {};
+    try {
+      unsubscribe = onAuthStateChanged(auth, (user) => {
+        clearTimeout(safetyTimer);
+        setCurrentUser(user);
+        if (user) {
+          setIsGuestMode(false);
+          DataService.purgeAllLocalData();
+        }
+        setLoading(false);
+      }, (error) => {
+        console.warn("Auth state observer error:", error);
+        clearTimeout(safetyTimer);
+        setLoading(false);
+      });
+    } catch (err) {
+      console.warn("Auth initialization exception:", err);
+      clearTimeout(safetyTimer);
+      setLoading(false);
+    }
+
+    return () => {
+      clearTimeout(safetyTimer);
+      unsubscribe();
+    };
   }, []);
 
   const openAuthModal = (tab = 'login') => {
@@ -64,9 +84,9 @@ export const AuthProvider = ({ children }) => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       if (displayName && userCredential.user) {
         await updateProfile(userCredential.user, { displayName });
-        // Trigger reload to update current user state
         setCurrentUser({ ...userCredential.user, displayName });
       }
+      DataService.purgeAllLocalData();
       setAuthModalOpen(false);
       toast.success(`Welcome to ExTrack, ${displayName || 'User'}!`);
       return userCredential.user;
@@ -85,6 +105,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      DataService.purgeAllLocalData();
       setAuthModalOpen(false);
       toast.success(`Welcome back, ${userCredential.user.displayName || userCredential.user.email}!`);
       return userCredential.user;
@@ -105,6 +126,7 @@ export const AuthProvider = ({ children }) => {
   const loginWithGoogle = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
+      DataService.purgeAllLocalData();
       setAuthModalOpen(false);
       toast.success(`Signed in as ${result.user.displayName || result.user.email}`);
       return result.user;
@@ -178,7 +200,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

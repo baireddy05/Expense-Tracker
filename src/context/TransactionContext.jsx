@@ -44,6 +44,10 @@ export const TransactionProvider = ({ children }) => {
   // Refetch data when user auth state changes (login / switch user / logout)
   useEffect(() => {
     fetchData();
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+    return () => clearTimeout(timer);
   }, [fetchData]);
 
   // Auto-migrate legacy/offline records to user cloud account when logging in

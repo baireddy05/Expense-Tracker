@@ -65,12 +65,18 @@ export const DataService = {
 
     try {
       const colRef = collection(db, "users", userId, "transactions");
-      const q = query(colRef, orderBy("date", "desc"));
-      const snapshot = await getDocs(q);
+      let snapshot;
+      try {
+        const q = query(colRef, orderBy("date", "desc"));
+        snapshot = await getDocs(q);
+      } catch (err) {
+        snapshot = await getDocs(colRef);
+      }
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      list.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
       // Automatically purge any remaining plain local storage copies for security
-      this.purgeAllLocalData();
+      DataService.purgeAllLocalData();
       return list;
     } catch (e) {
       console.warn("Firestore fetch transactions error:", e);
