@@ -14,6 +14,32 @@ const TransactionForm = ({
 }) => {
   const { transactions = [], categories, addTransaction, updateTransaction, addCategory } = useTransactions();
 
+  const getLocalToday = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const getOffsetDateStr = (daysAgo) => {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const [type, setType] = useState('expense');
+  const [amount, setAmount] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [date, setDate] = useState(getLocalToday());
+  const [note, setNote] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
   // Extract unique non-empty notes from previous transactions sorted by frequency/recency
   const previousNoteSuggestions = useMemo(() => {
     if (!transactions || transactions.length === 0) return [];
@@ -49,76 +75,6 @@ const TransactionForm = ({
       .filter(s => s.toLowerCase().includes(q))
       .slice(0, 8);
   }, [previousNoteSuggestions, note]);
-  
-  const getLocalToday = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const getOffsetDateStr = (daysAgo) => {
-    const d = new Date();
-    d.setDate(d.getDate() - daysAgo);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const formatDateDisplay = (dateStr) => {
-    if (!dateStr) return '';
-    try {
-      const [y, m, d] = dateStr.split('-').map(Number);
-      const dateObj = new Date(y, m - 1, d);
-      if (isNaN(dateObj.getTime())) return dateStr;
-      return dateObj.toLocaleDateString('en-GB', {
-        weekday: 'short',
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-      });
-    } catch {
-      return dateStr;
-    }
-  };
-
-  const formatDateChipLabel = (dateStr) => {
-    if (!dateStr) return '';
-    try {
-      const [y, m, d] = dateStr.split('-').map(Number);
-      const dateObj = new Date(y, m - 1, d);
-      if (isNaN(dateObj.getTime())) return dateStr;
-      return dateObj.toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short'
-      });
-    } catch {
-      return dateStr;
-    }
-  };
-
-  const todayStr = getLocalToday();
-  const yesterdayStr = getOffsetDateStr(1);
-  const twoDaysAgoStr = getOffsetDateStr(2);
-  const threeDaysAgoStr = getOffsetDateStr(3);
-
-  const quickDatePresets = [
-    { label: 'Today', value: todayStr },
-    { label: 'Yesterday', value: yesterdayStr },
-    { label: '2d ago', value: twoDaysAgoStr },
-    { label: '3d ago', value: threeDaysAgoStr },
-  ];
-
-  const [type, setType] = useState('expense');
-  const [amount, setAmount] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [date, setDate] = useState(getLocalToday());
-  const [note, setNote] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
 
   // Lock body scroll when modal is open
   useEffect(() => {
