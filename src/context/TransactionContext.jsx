@@ -152,7 +152,10 @@ export const TransactionProvider = ({ children }) => {
 
       // Directly reflect in main Transactions list on the record's date
       try {
-        const cat = categories.find(c => c.name.toLowerCase().includes('lent') || c.type === 'expense');
+        const cat = categories.find(c => c.name.toLowerCase() === 'lent money') ||
+                    categories.find(c => c.name.toLowerCase().includes('lent')) ||
+                    categories.find(c => c.name.toLowerCase().includes('lend')) ||
+                    categories.find(c => c.type === 'expense');
         await addTransaction({
           amount: initialAmount,
           type: 'expense',
@@ -220,7 +223,10 @@ export const TransactionProvider = ({ children }) => {
 
       // Directly reflect return in main Transactions list on repayment date (Income inflow)
       try {
-        const cat = categories.find(c => c.name.toLowerCase().includes('returned') || c.name.toLowerCase().includes('lent') || c.type === 'income');
+        const cat = categories.find(c => c.name.toLowerCase() === 'lent returned') ||
+                    categories.find(c => c.name.toLowerCase().includes('returned')) ||
+                    categories.find(c => c.name.toLowerCase().includes('lent')) ||
+                    categories.find(c => c.type === 'income');
         await addTransaction({
           amount: repayAmount,
           type: 'income',
@@ -284,7 +290,10 @@ export const TransactionProvider = ({ children }) => {
 
       // Directly reflect top-up loan in main Transactions list on top-up date
       try {
-        const cat = categories.find(c => c.name.toLowerCase().includes('lent') || c.type === 'expense');
+        const cat = categories.find(c => c.name.toLowerCase() === 'lent money') ||
+                    categories.find(c => c.name.toLowerCase().includes('lent')) ||
+                    categories.find(c => c.name.toLowerCase().includes('lend')) ||
+                    categories.find(c => c.type === 'expense');
         await addTransaction({
           amount: addAmount,
           type: 'expense',
@@ -333,7 +342,10 @@ export const TransactionProvider = ({ children }) => {
 
       if (remaining > 0) {
         try {
-          const cat = categories.find(c => c.name.toLowerCase().includes('returned') || c.name.toLowerCase().includes('lent') || c.type === 'income');
+          const cat = categories.find(c => c.name.toLowerCase() === 'lent returned') ||
+                      categories.find(c => c.name.toLowerCase().includes('returned')) ||
+                      categories.find(c => c.name.toLowerCase().includes('lent')) ||
+                      categories.find(c => c.type === 'income');
           await addTransaction({
             amount: remaining,
             type: 'income',
@@ -381,7 +393,9 @@ export const TransactionProvider = ({ children }) => {
 
       // Directly reflect in main Transactions list on dateBorrowed (Income Inflow)
       try {
-        const cat = categories.find(c => c.name.toLowerCase().includes('borrow') || c.type === 'income');
+        const cat = categories.find(c => c.name.toLowerCase() === 'borrowed money') ||
+                    categories.find(c => c.name.toLowerCase().includes('borrow')) ||
+                    categories.find(c => c.type === 'income');
         await addTransaction({
           amount: initialAmount,
           type: 'income',
@@ -466,7 +480,9 @@ export const TransactionProvider = ({ children }) => {
 
       // Directly reflect top-up borrowed entry in main Transactions list on top-up date
       try {
-        const cat = categories.find(c => c.name.toLowerCase().includes('borrow') || c.type === 'income');
+        const cat = categories.find(c => c.name.toLowerCase() === 'borrowed money') ||
+                    categories.find(c => c.name.toLowerCase().includes('borrow')) ||
+                    categories.find(c => c.type === 'income');
         await addTransaction({
           amount: addAmount,
           type: 'income',
@@ -513,7 +529,9 @@ export const TransactionProvider = ({ children }) => {
 
       // Directly reflect debt repayment in main Transactions list on repayment date (Expense outflow)
       try {
-        const cat = categories.find(c => c.name.toLowerCase().includes('debt') || c.type === 'expense');
+        const cat = categories.find(c => c.name.toLowerCase() === 'debt repayment') ||
+                    categories.find(c => c.name.toLowerCase().includes('debt')) ||
+                    categories.find(c => c.type === 'expense');
         await addTransaction({
           amount: repayAmount,
           type: 'expense',
@@ -562,7 +580,9 @@ export const TransactionProvider = ({ children }) => {
 
       if (remaining > 0) {
         try {
-          const cat = categories.find(c => c.name.toLowerCase().includes('debt') || c.type === 'expense');
+          const cat = categories.find(c => c.name.toLowerCase() === 'debt repayment') ||
+                      categories.find(c => c.name.toLowerCase().includes('debt')) ||
+                      categories.find(c => c.type === 'expense');
           await addTransaction({
             amount: remaining,
             type: 'expense',
