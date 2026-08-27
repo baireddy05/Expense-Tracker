@@ -33,8 +33,11 @@ const Transactions = () => {
   const { transactions, categories, deleteTransaction, loading } = useTransactions();
   const { isPrivacyMode } = useUI();
   const { currentUser, openAuthModal } = useAuth();
+  
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
+  const [formDefaultDate, setFormDefaultDate] = useState(null);
+  const [formDefaultType, setFormDefaultType] = useState('expense');
   
   const [search, setSearch] = useState('');
   const getLocalToday = () => {
@@ -231,7 +234,6 @@ const Transactions = () => {
   const isDateExpanded = (dateKey) => {
     if (selectedDateGroup === dateKey) return true;
     if (expandedDates[dateKey] !== undefined) return expandedDates[dateKey];
-    // Auto-expand if only 1 or 2 date groups, collapse by default if many dates
     return dateGroups.length <= 2;
   };
 
@@ -258,14 +260,45 @@ const Transactions = () => {
     setExpandedDates(next);
   };
 
+  const openAddTransaction = (presetDate = null, presetType = 'expense') => {
+    let targetDate = presetDate;
+    if (!targetDate) {
+      if (timeFilter === 'custom' && customDate) {
+        targetDate = customDate;
+      } else if (timeFilter === 'yesterday') {
+        const y = new Date();
+        y.setDate(y.getDate() - 1);
+        const year = y.getFullYear();
+        const month = String(y.getMonth() + 1).padStart(2, '0');
+        const day = String(y.getDate()).padStart(2, '0');
+        targetDate = `${year}-${month}-${day}`;
+      } else if (timeFilter === 'today') {
+        targetDate = getLocalToday();
+      } else if (timeFilter === 'all' && selectedDateGroup !== 'all') {
+        targetDate = selectedDateGroup;
+      } else {
+        targetDate = getLocalToday();
+      }
+    }
+    setFormDefaultDate(targetDate);
+    setFormDefaultType(presetType);
+    setEditingTx(null);
+    setIsFormOpen(true);
+  };
+
   const handleEdit = (tx) => {
     setEditingTx(tx);
+    setFormDefaultDate(null);
+    setFormDefaultType(tx.type || 'expense');
     setIsFormOpen(true);
   };
 
   const handleCloseForm = () => {
     setIsFormOpen(false);
-    setTimeout(() => setEditingTx(null), 300); // Clear after animation
+    setTimeout(() => {
+      setEditingTx(null);
+      setFormDefaultDate(null);
+    }, 300);
   };
 
   const requestDelete = (id) => {
@@ -297,21 +330,18 @@ const Transactions = () => {
   const exportToPDF = () => {
     const doc = new jsPDF();
     
-    // Nice Header
     doc.setFontSize(22);
-    doc.setTextColor(31, 41, 55); // gray-800
+    doc.setTextColor(31, 41, 55);
     doc.text("Transactions Report", 14, 22);
     
-    // Subtext
     doc.setFontSize(11);
-    doc.setTextColor(107, 114, 128); // gray-500
+    doc.setTextColor(107, 114, 128);
     doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN', { dateStyle: 'long' })}`, 14, 32);
     const catName = categoryFilter === 'all' ? 'ALL' : (resolveCategory(categoryFilter, categories)?.name || 'UNKNOWN');
     const dateText = timeFilter === 'all' && selectedDateGroup !== 'all' ? ` | Date: ${formatDateHeader(selectedDateGroup)}` : '';
     doc.text(`Filters: Type: ${filterType.toUpperCase()} | Cat: ${catName.toUpperCase()} | Time: ${timeFilter.toUpperCase()}${dateText} | Search: "${search || 'None'}"`, 14, 38);
 
-    // Separator line
-    doc.setDrawColor(229, 231, 235); // gray-200
+    doc.setDrawColor(229, 231, 235);
     doc.setLineWidth(0.5);
     doc.line(14, 42, 196, 42);
 
@@ -344,24 +374,22 @@ const Transactions = () => {
       startY: 48,
       theme: 'grid',
       styles: { fontSize: 10, cellPadding: 4, textColor: [55, 65, 81] },
-      headStyles: { fillColor: [99, 102, 241], textColor: 255, fontStyle: 'bold' }, // primary-500
+      headStyles: { fillColor: [99, 102, 241], textColor: 255, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [249, 250, 251] },
       columnStyles: {
-        4: { halign: 'right', fontStyle: 'bold' } // Align amount column to right
+        4: { halign: 'right', fontStyle: 'bold' }
       },
       didParseCell: function(data) {
-        // Highlight totals row
         if (data.row.index >= displayedTransactions.length) {
           data.cell.styles.fontStyle = 'bold';
-          data.cell.styles.fillColor = [243, 244, 246]; // gray-100
-          data.cell.styles.textColor = [17, 24, 39]; // gray-900
+          data.cell.styles.fillColor = [243, 244, 246];
+          data.cell.styles.textColor = [17, 24, 39];
           
-          // Add income/expense colors to the total amount cell
           if (data.row.index === displayedTransactions.length && data.column.index === 4) {
-            data.cell.styles.textColor = [34, 197, 94]; // green-500
+            data.cell.styles.textColor = [34, 197, 94];
           }
           if (data.row.index === displayedTransactions.length + 1 && data.column.index === 4) {
-            data.cell.styles.textColor = [239, 68, 68]; // red-500
+            data.cell.styles.textColor = [239, 68, 68];
           }
         }
       }
@@ -389,7 +417,7 @@ const Transactions = () => {
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">Comprehensive income & expense log</p>
         </div>
         
-        <div className="flex gap-2.5 w-full sm:w-auto">
+        <div className="flex flex-wrap gap-2.5 w-full sm:w-auto">
           <button 
             onClick={handleExportPDF}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all touch-feedback cursor-pointer shadow-2xs"
@@ -399,7 +427,7 @@ const Transactions = () => {
           </button>
           
           <button 
-            onClick={() => setIsFormOpen(true)}
+            onClick={() => openAddTransaction()}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 px-4.5 py-2.5 rounded-xl text-xs font-semibold transition-all touch-feedback shadow-xs cursor-pointer"
           >
             <FontAwesomeIcon icon={faPlus} className="text-xs" />
@@ -523,13 +551,31 @@ const Transactions = () => {
         </div>
 
         {timeFilter === 'custom' && (
-          <div className="relative sm:col-span-2 lg:col-span-4 animate-fade-in">
+          <div className="relative sm:col-span-2 lg:col-span-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 animate-fade-in">
             <input 
               type="date" 
               value={customDate}
               onChange={e => setCustomDate(e.target.value)}
-              className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white text-xs"
+              className="flex-1 px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none transition-all dark:text-white text-xs font-medium"
             />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => openAddTransaction(customDate, 'expense')}
+                className="px-3.5 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/40 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer touch-feedback"
+              >
+                <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
+                <span>Add Expense ({formatDateHeader(customDate)})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => openAddTransaction(customDate, 'income')}
+                className="px-3.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer touch-feedback"
+              >
+                <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
+                <span>Add Income</span>
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -595,26 +641,28 @@ const Transactions = () => {
                 )}
               </div>
 
-              {selectedDateGroup === 'all' && dateGroups.length > 1 && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={expandAllDates}
-                    className="px-3 py-1.5 text-xs font-medium bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-                    title="Expand all date dropdowns"
-                  >
-                    <FontAwesomeIcon icon={faExpandAlt} className="text-[11px] text-gray-500" />
-                    <span>Expand All</span>
-                  </button>
-                  <button
-                    onClick={collapseAllDates}
-                    className="px-3 py-1.5 text-xs font-medium bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-                    title="Collapse all date dropdowns"
-                  >
-                    <FontAwesomeIcon icon={faCompressAlt} className="text-[11px] text-gray-500" />
-                    <span>Collapse All</span>
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                {selectedDateGroup === 'all' && dateGroups.length > 1 && (
+                  <>
+                    <button
+                      onClick={expandAllDates}
+                      className="px-3 py-1.5 text-xs font-medium bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      title="Expand all date dropdowns"
+                    >
+                      <FontAwesomeIcon icon={faExpandAlt} className="text-[11px] text-gray-500" />
+                      <span>Expand All</span>
+                    </button>
+                    <button
+                      onClick={collapseAllDates}
+                      className="px-3 py-1.5 text-xs font-medium bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      title="Collapse all date dropdowns"
+                    >
+                      <FontAwesomeIcon icon={faCompressAlt} className="text-[11px] text-gray-500" />
+                      <span>Collapse All</span>
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           )}
 
@@ -629,14 +677,14 @@ const Transactions = () => {
                   key={g.dateKey} 
                   className="glass rounded-2xl overflow-hidden border border-gray-200/80 dark:border-gray-800/80 transition-all duration-200 shadow-sm"
                 >
-                  {/* Collapsible Date Header / Dropdown Button */}
-                  <button
-                    type="button"
-                    onClick={() => toggleDateExpand(g.dateKey)}
-                    className="w-full text-left p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 bg-white/70 dark:bg-gray-900/70 hover:bg-gray-50/90 dark:hover:bg-gray-800/60 transition-colors cursor-pointer select-none"
-                  >
-                    {/* Top Row on mobile / Left on desktop: Icon, Date Name & Tx Count */}
-                    <div className="flex items-center justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
+                  {/* Collapsible Date Header & Quick Action Row */}
+                  <div className="w-full p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 bg-white/70 dark:bg-gray-900/70 hover:bg-gray-50/90 dark:hover:bg-gray-800/60 transition-colors select-none">
+                    {/* Left: Clickable Title & Icon to Toggle Accordion */}
+                    <button
+                      type="button"
+                      onClick={() => toggleDateExpand(g.dateKey)}
+                      className="flex items-center justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto text-left cursor-pointer"
+                    >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 rounded-xl bg-primary-50 dark:bg-primary-950/60 border border-primary-100 dark:border-primary-900/40 text-primary-600 dark:text-primary-400 flex items-center justify-center text-xs sm:text-sm shadow-xs">
                           <FontAwesomeIcon icon={faCalendarDay} />
@@ -659,10 +707,10 @@ const Transactions = () => {
                           <FontAwesomeIcon icon={isExpanded ? faChevronUp : faChevronDown} className="text-xs" />
                         </div>
                       </div>
-                    </div>
+                    </button>
 
-                    {/* Bottom Row on mobile / Right on desktop: Income / Expense / Net badges & Chevron */}
-                    <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2.5 flex-wrap sm:ml-auto w-full sm:w-auto pt-1 sm:pt-0 border-t border-gray-100/60 dark:border-gray-800/40 sm:border-0">
+                    {/* Right: Badges, Direct "+ Add" Actions, and Desktop Chevron */}
+                    <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 flex-wrap sm:ml-auto w-full sm:w-auto pt-1 sm:pt-0 border-t border-gray-100/60 dark:border-gray-800/40 sm:border-0">
                       <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                         {g.totalIncome > 0 && (
                           <span className="text-[11px] sm:text-xs font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40 px-1.5 sm:px-2 py-0.5 rounded-md border border-green-200/50 dark:border-green-800/40 whitespace-nowrap">
@@ -674,7 +722,6 @@ const Transactions = () => {
                             -{formatCurrency(g.totalExpense)}
                           </span>
                         )}
-                        {/* Net Daily Badge - Visible on both Mobile & Desktop */}
                         <span className={`text-[11px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-md border inline-flex items-center whitespace-nowrap ${
                           netTotal > 0 
                             ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800/60' 
@@ -686,15 +733,48 @@ const Transactions = () => {
                         </span>
                       </div>
 
+                      {/* Direct Add Quick Buttons right on this date card header */}
+                      <div className="flex items-center gap-1 sm:gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openAddTransaction(g.dateKey, 'expense');
+                          }}
+                          className="px-2 sm:px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/40 transition-all touch-feedback cursor-pointer flex items-center gap-1"
+                          title={`Add Expense on ${formatDateHeader(g.dateKey)}`}
+                        >
+                          <FontAwesomeIcon icon={faPlus} className="text-[9px]" />
+                          <span>Expense</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openAddTransaction(g.dateKey, 'income');
+                          }}
+                          className="px-2 sm:px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40 transition-all touch-feedback cursor-pointer flex items-center gap-1"
+                          title={`Add Income on ${formatDateHeader(g.dateKey)}`}
+                        >
+                          <FontAwesomeIcon icon={faPlus} className="text-[9px]" />
+                          <span>Income</span>
+                        </button>
+                      </div>
+
                       {/* Desktop Chevron */}
-                      <div className="hidden sm:flex items-center gap-1.5 pl-1 text-gray-400 dark:text-gray-500">
+                      <button
+                        type="button"
+                        onClick={() => toggleDateExpand(g.dateKey)}
+                        className="hidden sm:flex items-center gap-1.5 pl-1 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"
+                      >
                         <span className="text-xs">{isExpanded ? 'Hide' : 'View'}</span>
                         <div className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
                           <FontAwesomeIcon icon={isExpanded ? faChevronUp : faChevronDown} className="text-xs" />
                         </div>
-                      </div>
+                      </button>
                     </div>
-                  </button>
+                  </div>
 
                   {/* Expanded Content Dropdown Body */}
                   {isExpanded && (
@@ -765,6 +845,31 @@ const Transactions = () => {
                             })}
                           </tbody>
                         </table>
+
+                        {/* Quick Add footer for this date on desktop */}
+                        <div className="p-3 bg-gray-50/40 dark:bg-gray-950/30 border-t border-gray-100 dark:border-gray-800/60 flex items-center justify-between">
+                          <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                            Direct add for {formatDateHeader(g.dateKey)}:
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openAddTransaction(g.dateKey, 'expense')}
+                              className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all cursor-pointer touch-feedback flex items-center gap-1.5 shadow-2xs"
+                            >
+                              <FontAwesomeIcon icon={faPlus} className="text-[10px] text-rose-400 dark:text-rose-500" />
+                              <span>Add Expense</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openAddTransaction(g.dateKey, 'income')}
+                              className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition-all cursor-pointer touch-feedback flex items-center gap-1.5 shadow-2xs"
+                            >
+                              <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
+                              <span>Add Income</span>
+                            </button>
+                          </div>
+                        </div>
                       </div>
 
                       {/* Mobile Stacked Items inside Date Group */}
@@ -820,6 +925,26 @@ const Transactions = () => {
                             </SwipeableItem>
                           );
                         })}
+
+                        {/* Quick Add buttons at bottom of mobile date section */}
+                        <div className="pt-2 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openAddTransaction(g.dateKey, 'expense')}
+                            className="flex-1 py-2 text-xs font-semibold rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/40 transition-all touch-feedback flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
+                            <span>+ Expense</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openAddTransaction(g.dateKey, 'income')}
+                            className="flex-1 py-2 text-xs font-semibold rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40 transition-all touch-feedback flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
+                            <span>+ Income</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -828,10 +953,20 @@ const Transactions = () => {
             })}
 
             {displayedDateGroups.length === 0 && (
-              <div className="glass rounded-2xl p-10 text-center text-gray-500">
-                <FontAwesomeIcon icon={faSearch} className="text-3xl text-gray-400 mb-3" />
+              <div className="glass rounded-2xl p-10 text-center text-gray-500 space-y-3">
+                <FontAwesomeIcon icon={faSearch} className="text-3xl text-gray-400" />
                 <p className="font-medium text-base">No transactions found.</p>
-                <p className="text-sm text-gray-400 mt-1">Try adjusting your filters or search query.</p>
+                <p className="text-sm text-gray-400 mt-1">Try adjusting your filters or search query, or add a transaction directly.</p>
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => openAddTransaction()}
+                    className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer touch-feedback shadow-xs"
+                  >
+                    <FontAwesomeIcon icon={faPlus} className="text-xs" />
+                    <span>Add New Transaction</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -900,12 +1035,49 @@ const Transactions = () => {
                   })}
                   {filteredTransactions.length === 0 && (
                     <tr>
-                      <td colSpan="5" className="p-8 text-center text-gray-500">No transactions found.</td>
+                      <td colSpan="5" className="p-8 text-center text-gray-500">
+                        <p className="font-medium">No transactions found for this period.</p>
+                        <button
+                          type="button"
+                          onClick={() => openAddTransaction()}
+                          className="mt-3 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer touch-feedback"
+                        >
+                          <FontAwesomeIcon icon={faPlus} className="text-xs" />
+                          <span>Add Transaction Here</span>
+                        </button>
+                      </td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
+            
+            {/* Direct Add footer on standard table */}
+            {filteredTransactions.length > 0 && (
+              <div className="p-3.5 bg-gray-50/50 dark:bg-gray-900/50 border-t border-gray-200/80 dark:border-gray-800/80 flex items-center justify-between">
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Quick add to this view:
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openAddTransaction(null, 'expense')}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all cursor-pointer touch-feedback flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <FontAwesomeIcon icon={faPlus} className="text-[10px] text-rose-400 dark:text-rose-500" />
+                    <span>Add Expense</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openAddTransaction(null, 'income')}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition-all cursor-pointer touch-feedback flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
+                    <span>Add Income</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Mobile Stacked List View */}
@@ -967,8 +1139,40 @@ const Transactions = () => {
                 </SwipeableItem>
               );
             })}
+            
+            {filteredTransactions.length > 0 && (
+              <div className="pt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => openAddTransaction(null, 'expense')}
+                  className="flex-1 py-2.5 text-xs font-semibold rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/40 transition-all touch-feedback flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
+                  <span>Add Expense</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openAddTransaction(null, 'income')}
+                  className="flex-1 py-2.5 text-xs font-semibold rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40 transition-all touch-feedback flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
+                  <span>Add Income</span>
+                </button>
+              </div>
+            )}
+
             {filteredTransactions.length === 0 && (
-              <div className="text-center p-8 text-gray-500 glass rounded-2xl">No transactions found.</div>
+              <div className="text-center p-8 text-gray-500 glass rounded-2xl space-y-3">
+                <p>No transactions found for this period.</p>
+                <button
+                  type="button"
+                  onClick={() => openAddTransaction()}
+                  className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer touch-feedback"
+                >
+                  <FontAwesomeIcon icon={faPlus} className="text-xs" />
+                  <span>Add Transaction</span>
+                </button>
+              </div>
             )}
           </div>
         </>
@@ -976,15 +1180,21 @@ const Transactions = () => {
 
       {/* Mobile Sticky FAB */}
       <button 
-        onClick={() => setIsFormOpen(true)}
-        className="md:hidden fixed bottom-20 right-6 w-14 h-14 bg-primary-600 hover:bg-primary-500 text-white rounded-full flex items-center justify-center text-xl shadow-lg shadow-primary-500/40 z-40 transition-transform active:scale-95 cursor-pointer"
+        onClick={() => openAddTransaction()}
+        className="md:hidden fixed bottom-20 right-6 w-14 h-14 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:opacity-90 rounded-full flex items-center justify-center text-xl shadow-lg shadow-black/20 z-40 transition-transform active:scale-95 cursor-pointer"
         aria-label="Add Transaction"
       >
         <FontAwesomeIcon icon={faPlus} />
       </button>
 
       {/* Transaction Modal */}
-      <TransactionForm isOpen={isFormOpen} onClose={handleCloseForm} initialData={editingTx} />
+      <TransactionForm 
+        isOpen={isFormOpen} 
+        onClose={handleCloseForm} 
+        initialData={editingTx}
+        defaultDate={formDefaultDate}
+        defaultType={formDefaultType}
+      />
 
       {/* Fancy Confirmation Modals */}
       <ConfirmModal 

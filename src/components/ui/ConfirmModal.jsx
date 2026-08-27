@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExclamationTriangle, faTimes, faQuestionCircle } from '@fortawesome/free-solid-svg-icons';
 
@@ -13,21 +14,23 @@ const ConfirmModal = ({
 }) => {
   useEffect(() => {
     if (isOpen) {
+      const orig = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
+      return () => {
+        document.body.style.overflow = orig;
+      };
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+  return createPortal(
+    <div 
+      className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in"
+      onClick={onClose}
+    >
       <div 
-        className="liquid-glass-dock rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden z-10 animate-scale-in border border-white/60 dark:border-white/10 relative"
+        className="liquid-glass-dock rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden z-10 animate-scale-in border border-white/60 dark:border-white/10 relative my-auto"
         onClick={e => e.stopPropagation()}
       >
         <button 
@@ -72,7 +75,8 @@ const ConfirmModal = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
