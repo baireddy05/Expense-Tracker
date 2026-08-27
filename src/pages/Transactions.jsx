@@ -61,6 +61,9 @@ const Transactions = () => {
 
   const getDateKey = (dateVal) => {
     if (!dateVal) return 'Unknown Date';
+    if (typeof dateVal === 'string' && dateVal.length >= 10 && dateVal[4] === '-' && dateVal[7] === '-') {
+      return dateVal.slice(0, 10);
+    }
     try {
       const d = new Date(dateVal?.seconds ? dateVal.seconds * 1000 : dateVal);
       if (isNaN(d.getTime())) return 'Unknown Date';
@@ -150,23 +153,22 @@ const Transactions = () => {
           } else if (timeFilter === 'year') {
             if (txDate.getFullYear() !== currentYear) return false;
           } else if (timeFilter === 'custom' && customDate) {
-            try {
-              const y = txDate.getFullYear();
-              const m = String(txDate.getMonth() + 1).padStart(2, '0');
-              const d = String(txDate.getDate()).padStart(2, '0');
-              if (`${y}-${m}-${d}` !== customDate) return false;
-            } catch {
-              return false;
-            }
+            const dateStr = typeof t.date === 'string' && t.date.length >= 10 ? t.date.slice(0, 10) : '';
+            if (dateStr !== customDate) return false;
           }
         }
 
         return true;
       })
       .sort((a, b) => {
-        const dateDiff = new Date(b.date) - new Date(a.date);
-        if (dateDiff !== 0) return dateDiff;
-        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        const bDateStr = typeof b.date === 'string' ? b.date : '';
+        const aDateStr = typeof a.date === 'string' ? a.date : '';
+        if (bDateStr !== aDateStr) {
+          return bDateStr > aDateStr ? 1 : -1;
+        }
+        const bCreated = b.createdAt || '';
+        const aCreated = a.createdAt || '';
+        return bCreated > aCreated ? 1 : (bCreated < aCreated ? -1 : 0);
       });
   }, [transactions, search, filterType, categoryFilter, timeFilter, customDate, categories]);
 
@@ -232,8 +234,8 @@ const Transactions = () => {
   }, [timeFilter]);
 
   const isDateExpanded = (dateKey) => {
-    if (selectedDateGroup === dateKey) return true;
     if (expandedDates[dateKey] !== undefined) return expandedDates[dateKey];
+    if (selectedDateGroup === dateKey) return true;
     return dateGroups.length <= 2;
   };
 
@@ -678,13 +680,12 @@ const Transactions = () => {
                   className="glass rounded-2xl overflow-hidden border border-gray-200/80 dark:border-gray-800/80 transition-all duration-200 shadow-sm"
                 >
                   {/* Collapsible Date Header & Quick Action Row */}
-                  <div className="w-full p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 bg-white/70 dark:bg-gray-900/70 hover:bg-gray-50/90 dark:hover:bg-gray-800/60 transition-colors select-none">
-                    {/* Left: Clickable Title & Icon to Toggle Accordion */}
-                    <button
-                      type="button"
-                      onClick={() => toggleDateExpand(g.dateKey)}
-                      className="flex items-center justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto text-left cursor-pointer"
-                    >
+                  <div 
+                    onClick={() => toggleDateExpand(g.dateKey)}
+                    className="w-full p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 bg-white/70 dark:bg-gray-900/70 hover:bg-gray-50/90 dark:hover:bg-gray-800/60 transition-colors cursor-pointer select-none"
+                  >
+                    {/* Left: Icon, Date Title & Tx Count */}
+                    <div className="flex items-center justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 rounded-xl bg-primary-50 dark:bg-primary-950/60 border border-primary-100 dark:border-primary-900/40 text-primary-600 dark:text-primary-400 flex items-center justify-center text-xs sm:text-sm shadow-xs">
                           <FontAwesomeIcon icon={faCalendarDay} />
@@ -707,7 +708,7 @@ const Transactions = () => {
                           <FontAwesomeIcon icon={isExpanded ? faChevronUp : faChevronDown} className="text-xs" />
                         </div>
                       </div>
-                    </button>
+                    </div>
 
                     {/* Right: Badges, Direct "+ Add" Actions, and Desktop Chevron */}
                     <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 flex-wrap sm:ml-auto w-full sm:w-auto pt-1 sm:pt-0 border-t border-gray-100/60 dark:border-gray-800/40 sm:border-0">
@@ -734,7 +735,10 @@ const Transactions = () => {
                       </div>
 
                       {/* Direct Add Quick Buttons right on this date card header */}
-                      <div className="flex items-center gap-1 sm:gap-1.5">
+                      <div 
+                        className="flex items-center gap-1 sm:gap-1.5"
+                        onClick={e => e.stopPropagation()}
+                      >
                         <button
                           type="button"
                           onClick={(e) => {
@@ -762,17 +766,13 @@ const Transactions = () => {
                         </button>
                       </div>
 
-                      {/* Desktop Chevron */}
-                      <button
-                        type="button"
-                        onClick={() => toggleDateExpand(g.dateKey)}
-                        className="hidden sm:flex items-center gap-1.5 pl-1 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"
-                      >
+                      {/* Desktop Chevron & Action Text */}
+                      <div className="hidden sm:flex items-center gap-1.5 pl-1 text-gray-400 dark:text-gray-500">
                         <span className="text-xs">{isExpanded ? 'Hide' : 'View'}</span>
                         <div className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
                           <FontAwesomeIcon icon={isExpanded ? faChevronUp : faChevronDown} className="text-xs" />
                         </div>
-                      </button>
+                      </div>
                     </div>
                   </div>
 

@@ -166,20 +166,20 @@ const TransactionForm = ({
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-0 sm:p-4 animate-fade-in"
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4 animate-fade-in"
       onClick={onClose}
     >
       <div 
-        className="liquid-glass-dock w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden border border-white/60 dark:border-white/10 flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-fade-in my-auto"
+        className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-fade-in my-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-center px-5 py-3.5 border-b border-white/50 dark:border-white/10 shrink-0">
+        <div className="flex justify-between items-center px-5 py-3.5 border-b border-zinc-100 dark:border-zinc-800/80 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${
               type === 'income' 
-                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' 
-                : 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-500/20' 
+                : 'bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400 border border-rose-200/60 dark:border-rose-500/20'
             }`}>
               {type === 'income' ? '↓' : '↑'}
             </div>
@@ -195,7 +195,7 @@ const TransactionForm = ({
           <button 
             type="button" 
             onClick={onClose} 
-            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/10 transition-colors touch-feedback cursor-pointer"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors touch-feedback cursor-pointer"
           >
             <FontAwesomeIcon icon={faTimes} className="text-xs" />
           </button>
@@ -204,14 +204,14 @@ const TransactionForm = ({
         {/* Form Body - Compact and Non-Scrollable on Desktop */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto sm:overflow-visible p-4 sm:p-5 space-y-3 sm:space-y-3.5 pb-8 sm:pb-5">
           {/* Expense / Income Toggle */}
-          <div className="flex rounded-xl liquid-glass-subtle p-1 shrink-0">
+          <div className="flex rounded-xl bg-zinc-100 dark:bg-zinc-800/80 p-1 shrink-0 border border-zinc-200/60 dark:border-zinc-700/60">
             <button 
               type="button" 
               onClick={() => setType('expense')}
               className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all touch-feedback cursor-pointer ${
                 type === 'expense' 
                   ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs' 
-                  : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
               }`}
             >
               Expense
@@ -222,7 +222,7 @@ const TransactionForm = ({
               className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all touch-feedback cursor-pointer ${
                 type === 'income' 
                   ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs' 
-                  : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
               }`}
             >
               Income
@@ -231,11 +231,11 @@ const TransactionForm = ({
 
           {/* Amount Input */}
           <div>
-            <label className="block text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1">
-              Amount (INR)
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1">
+              Amount (INR) <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-base">₹</span>
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400 font-bold text-base">₹</span>
               <input 
                 type="number" 
                 step="0.01" 
@@ -243,7 +243,7 @@ const TransactionForm = ({
                 required
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
-                className="w-full pl-8 pr-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-base font-bold dark:text-white"
+                className="w-full pl-8 pr-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 focus:border-zinc-900 dark:focus:border-white outline-none text-base font-bold text-zinc-900 dark:text-white transition-colors"
                 placeholder="0.00"
               />
             </div>
@@ -254,14 +254,14 @@ const TransactionForm = ({
             {/* Category Selector */}
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="block text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                  Category
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+                  Category <span className="text-rose-500">*</span>
                 </label>
                 {!isCreatingCategory && (
                   <button 
                     type="button" 
                     onClick={() => setIsCreatingCategory(true)} 
-                    className="text-[10px] sm:text-[11px] text-zinc-500 hover:text-zinc-900 dark:hover:text-white font-medium cursor-pointer"
+                    className="text-[11px] text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white font-semibold cursor-pointer"
                   >
                     + New
                   </button>
@@ -275,20 +275,20 @@ const TransactionForm = ({
                     value={newCategoryName}
                     onChange={e => setNewCategoryName(e.target.value)}
                     placeholder="Name"
-                    className="flex-1 px-2.5 py-1.5 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white"
+                    className="flex-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white font-medium"
                     autoFocus
                   />
                   <button 
                     type="button" 
                     onClick={handleCreateCategory} 
-                    className="px-2.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-semibold transition-colors touch-feedback cursor-pointer"
+                    className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-semibold transition-colors touch-feedback cursor-pointer"
                   >
                     Save
                   </button>
                   <button 
                     type="button" 
                     onClick={() => setIsCreatingCategory(false)} 
-                    className="px-2 py-1.5 liquid-glass-subtle text-zinc-700 dark:text-zinc-300 rounded-xl text-xs font-semibold hover:bg-white/60 dark:hover:bg-white/10 transition-colors touch-feedback cursor-pointer"
+                    className="px-2.5 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl text-xs font-semibold transition-colors touch-feedback cursor-pointer"
                   >
                     ✕
                   </button>
@@ -298,7 +298,7 @@ const TransactionForm = ({
                   required
                   value={categoryId}
                   onChange={e => setCategoryId(e.target.value)}
-                  className="w-full px-3 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white appearance-none cursor-pointer font-medium"
+                  className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white font-medium cursor-pointer"
                 >
                   <option value="" disabled>Select category</option>
                   {filteredCategories.map(cat => (
@@ -311,8 +311,8 @@ const TransactionForm = ({
             {/* Date Picker with Quick Preset Chips */}
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="block text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                  Date
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+                  Date <span className="text-rose-500">*</span>
                 </label>
               </div>
 
@@ -328,7 +328,7 @@ const TransactionForm = ({
                       className={`px-2 py-0.5 text-[11px] font-semibold rounded-md transition-all touch-feedback cursor-pointer shrink-0 ${
                         isSelected
                           ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs'
-                          : 'liquid-glass-subtle text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                          : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700'
                       }`}
                     >
                       {preset.label}
@@ -348,21 +348,21 @@ const TransactionForm = ({
                 required
                 value={date}
                 onChange={e => setDate(e.target.value)}
-                className="w-full px-3 py-1.5 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white font-medium"
+                className="w-full px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white font-medium"
               />
             </div>
           </div>
 
           {/* Note Input */}
           <div>
-            <label className="block text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1">
               Note (Optional)
             </label>
             <input 
               type="text" 
               value={note}
               onChange={e => setNote(e.target.value)}
-              className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white"
+              className="w-full px-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400"
               placeholder="e.g. Dinner, Coffee, Groceries"
             />
           </div>

@@ -56,19 +56,32 @@ export const UIProvider = ({ children }) => {
     return `${prefix}••••••`;
   }, [isPrivacyMode]);
 
+  const contextValue = React.useMemo(() => ({
+    isPrivacyMode,
+    togglePrivacyMode,
+    maskNumber,
+    isCommandPaletteOpen,
+    openCommandPalette,
+    closeCommandPalette,
+    toggleCommandPalette,
+    isQuickAddOpen,
+    openQuickAdd,
+    closeQuickAdd
+  }), [
+    isPrivacyMode,
+    togglePrivacyMode,
+    maskNumber,
+    isCommandPaletteOpen,
+    openCommandPalette,
+    closeCommandPalette,
+    toggleCommandPalette,
+    isQuickAddOpen,
+    openQuickAdd,
+    closeQuickAdd
+  ]);
+
   return (
-    <UIContext.Provider value={{
-      isPrivacyMode,
-      togglePrivacyMode,
-      maskNumber,
-      isCommandPaletteOpen,
-      openCommandPalette,
-      closeCommandPalette,
-      toggleCommandPalette,
-      isQuickAddOpen,
-      openQuickAdd,
-      closeQuickAdd
-    }}>
+    <UIContext.Provider value={contextValue}>
       {children}
     </UIContext.Provider>
   );

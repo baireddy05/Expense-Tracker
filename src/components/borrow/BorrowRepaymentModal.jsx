@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTransactions } from '../../context/TransactionContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faCheckCircle, faCalendarAlt, faFileAlt, faArrowRotateLeft } from '@fortawesome/free-solid-svg-icons';
@@ -23,6 +24,16 @@ const BorrowRepaymentModal = ({ isOpen, onClose, record }) => {
   const totalAmount = record ? parseFloat(record.amount) || 0 : 0;
   const returnedAmount = record ? parseFloat(record.returnedAmount) || 0 : 0;
   const remainingAmount = Math.max(0, totalAmount - returnedAmount);
+
+  useEffect(() => {
+    if (isOpen) {
+      const orig = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = orig;
+      };
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (record) {
@@ -64,51 +75,57 @@ const BorrowRepaymentModal = ({ isOpen, onClose, record }) => {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4 animate-fade-in">
-      <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col max-h-[90dvh]">
+  return createPortal(
+    <div 
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-0 sm:p-4 animate-fade-in"
+      onClick={onClose}
+    >
+      <div 
+        className="liquid-glass-dock w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-fade-in my-auto bg-white dark:bg-gray-900"
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
+        <div className="flex justify-between items-center px-5 py-4 border-b border-white/50 dark:border-white/10 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-green-500/10 dark:bg-green-400/10 flex items-center justify-center text-green-600 dark:text-green-400">
-              <FontAwesomeIcon icon={faArrowRotateLeft} className="text-lg" />
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-sm shadow-2xs">
+              <FontAwesomeIcon icon={faArrowRotateLeft} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+              <h2 className="text-base font-bold text-zinc-900 dark:text-white">
                 Record Repayment Made
               </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Paying back to <span className="font-semibold text-gray-800 dark:text-gray-200">{record.lenderName}</span>
+              <p className="text-xs text-zinc-400">
+                Paying back to <span className="font-semibold text-zinc-800 dark:text-zinc-200">{record.lenderName}</span>
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/10 transition-colors touch-feedback cursor-pointer"
           >
-            <FontAwesomeIcon icon={faTimes} />
+            <FontAwesomeIcon icon={faTimes} className="text-xs" />
           </button>
         </div>
 
         {/* Repayment Summary Box */}
-        <div className="px-6 pt-4 pb-2">
-          <div className="p-3.5 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800 flex justify-between items-center text-xs">
-            <div>
-              <p className="text-gray-500 dark:text-gray-400">Total Borrowed</p>
-              <p className="font-bold text-gray-900 dark:text-white text-sm">
+        <div className="p-4 bg-emerald-500/5 dark:bg-emerald-500/10 border-b border-white/50 dark:border-white/10 shrink-0">
+          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+            <div className="p-2 rounded-xl liquid-glass-subtle">
+              <p className="text-zinc-400 text-[10px] font-semibold uppercase">Total Borrowed</p>
+              <p className="font-bold text-zinc-800 dark:text-zinc-200 text-xs mt-0.5">
                 ₹{totalAmount.toLocaleString('en-IN')}
               </p>
             </div>
-            <div className="text-center">
-              <p className="text-gray-500 dark:text-gray-400">Already Repaid</p>
-              <p className="font-bold text-green-600 dark:text-green-400 text-sm">
+            <div className="p-2 rounded-xl liquid-glass-subtle">
+              <p className="text-zinc-400 text-[10px] font-semibold uppercase">Already Repaid</p>
+              <p className="font-bold text-emerald-600 dark:text-emerald-400 text-xs mt-0.5">
                 ₹{returnedAmount.toLocaleString('en-IN')}
               </p>
             </div>
-            <div className="text-right">
-              <p className="text-gray-500 dark:text-gray-400">Remaining Debt</p>
-              <p className="font-bold text-rose-600 dark:text-rose-400 text-sm">
+            <div className="p-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30">
+              <p className="text-emerald-700 dark:text-emerald-400 text-[10px] font-bold uppercase">Remaining Debt</p>
+              <p className="font-bold text-emerald-700 dark:text-emerald-300 text-xs mt-0.5">
                 ₹{remainingAmount.toLocaleString('en-IN')}
               </p>
             </div>
@@ -116,54 +133,56 @@ const BorrowRepaymentModal = ({ isOpen, onClose, record }) => {
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto sm:overflow-visible p-5 space-y-4 pb-8 sm:pb-5">
+          {/* Amount */}
           <div>
             <div className="flex justify-between items-center mb-1.5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">
-                Amount Paid Back (₹) <span className="text-red-500">*</span>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                Amount Repaid (₹) <span className="text-rose-500">*</span>
               </label>
               {remainingAmount > 0 && (
                 <button
                   type="button"
                   onClick={() => setAmount(String(remainingAmount))}
-                  className="text-xs text-purple-600 dark:text-purple-400 font-semibold hover:underline cursor-pointer"
+                  className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
                 >
                   Pay Full (₹{remainingAmount.toLocaleString('en-IN')})
                 </button>
               )}
             </div>
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">₹</span>
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 font-semibold text-sm">₹</span>
               <input
                 type="number"
                 step="0.01"
-                min="1"
+                min="0.01"
                 max={remainingAmount}
                 required
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
-                className="w-full pl-8 pr-4 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-green-500 outline-none transition-all dark:text-white text-lg font-medium"
-                autoFocus
+                className="w-full pl-8 pr-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-sm font-semibold dark:text-white bg-gray-50 dark:bg-gray-800"
               />
             </div>
           </div>
 
+          {/* Date */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">
-              Repayment Date <span className="text-red-500">*</span>
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1.5">
+              Date Repaid <span className="text-rose-500">*</span>
             </label>
             <input
               type="date"
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-green-500 outline-none transition-all dark:text-white text-sm"
+              className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white font-medium bg-gray-50 dark:bg-gray-800"
             />
           </div>
 
+          {/* Note / Mode */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1.5">
               Payment Method / Note
             </label>
             <input
@@ -171,7 +190,7 @@ const BorrowRepaymentModal = ({ isOpen, onClose, record }) => {
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="e.g. GPay, PhonePe, Netbanking, Cash"
-              className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-green-500 outline-none transition-all dark:text-white text-sm"
+              className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white bg-gray-50 dark:bg-gray-800"
             />
           </div>
 
@@ -179,13 +198,13 @@ const BorrowRepaymentModal = ({ isOpen, onClose, record }) => {
             <button
               type="submit"
               disabled={loading || remainingAmount <= 0}
-              className="w-full py-3 px-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white font-semibold rounded-xl shadow-lg shadow-green-600/25 transition-all duration-200 disabled:opacity-70 flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-all disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer touch-feedback"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <FontAwesomeIcon icon={faCheckCircle} className="text-xs" />
                   <span>Confirm Repayment</span>
                 </>
               )}
@@ -193,7 +212,8 @@ const BorrowRepaymentModal = ({ isOpen, onClose, record }) => {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

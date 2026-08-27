@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -34,7 +35,17 @@ const AuthModal = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (authModalOpen) {
+      const orig = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = orig;
+      };
+    }
+  }, [authModalOpen]);
+
+  useEffect(() => {
     if (authModalTab) {
       setActiveTab(authModalTab);
       setFormError('');
@@ -103,10 +114,10 @@ const AuthModal = () => {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in" onClick={closeAuthModal}>
       <div 
-        className="liquid-glass-dock w-full max-w-md rounded-3xl overflow-hidden border border-white/60 dark:border-white/10 shadow-2xl animate-scale-in"
+        className="liquid-glass-dock w-full max-w-md rounded-3xl overflow-hidden border border-white/60 dark:border-white/10 shadow-2xl animate-scale-in my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Modal */}
@@ -360,7 +371,8 @@ const AuthModal = () => {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

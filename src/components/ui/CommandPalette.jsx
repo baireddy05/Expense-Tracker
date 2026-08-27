@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useTransactions } from '../../context/TransactionContext';
 import { useUI } from '../../context/UIContext';
@@ -34,9 +35,14 @@ const CommandPalette = () => {
 
   useEffect(() => {
     if (isCommandPaletteOpen) {
+      const orig = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
       setQuery('');
       setSelectedIndex(0);
       setTimeout(() => inputRef.current?.focus(), 50);
+      return () => {
+        document.body.style.overflow = orig;
+      };
     }
   }, [isCommandPaletteOpen]);
 
@@ -138,7 +144,7 @@ const CommandPalette = () => {
 
   if (!isCommandPaletteOpen) return null;
 
-  return (
+  return createPortal(
     <div 
       className="fixed inset-0 z-[100] flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/60 backdrop-blur-md animate-fade-in"
       onClick={closeCommandPalette}
@@ -186,14 +192,14 @@ const CommandPalette = () => {
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`flex items-center justify-between px-3 py-2.5 rounded-2xl cursor-pointer transition-all ${
                     isSelected 
-                      ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs'
+                      ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs' 
                       : 'hover:bg-white/40 dark:hover:bg-white/5 text-zinc-700 dark:text-zinc-300'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs shrink-0 ${
-                      isSelected
-                        ? 'bg-white/20 dark:bg-zinc-900/20 text-white dark:text-zinc-900'
+                      isSelected 
+                        ? 'bg-white/20 dark:bg-zinc-900/20 text-white dark:text-zinc-900' 
                         : 'liquid-glass-subtle text-zinc-500 dark:text-zinc-400'
                     }`}>
                       <FontAwesomeIcon icon={item.icon} />
@@ -205,7 +211,7 @@ const CommandPalette = () => {
                         </span>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 font-medium ${
                           isSelected 
-                            ? 'bg-white/20 dark:bg-black/20 text-white dark:text-zinc-900'
+                            ? 'bg-white/20 dark:bg-black/20 text-white dark:text-zinc-900' 
                             : 'liquid-glass-subtle text-zinc-500 dark:text-zinc-400'
                         }`}>
                           {item.category}
@@ -237,7 +243,8 @@ const CommandPalette = () => {
           <span className="font-semibold text-zinc-600 dark:text-zinc-400">ExTrack Spotlight</span>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

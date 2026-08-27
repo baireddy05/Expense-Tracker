@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { useUI } from '../../context/UIContext';
 
+// Hoisted shared currency formatter to prevent object creation per animation frame
+const currencyFormatter = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
+
 const AnimatedCounter = ({ value, isCurrency = true, className = "" }) => {
   const { isPrivacyMode } = useUI();
   const count = useMotionValue(0);
@@ -10,7 +13,7 @@ const AnimatedCounter = ({ value, isCurrency = true, className = "" }) => {
   // Format the number based on whether it's currency or not
   const rounded = useTransform(count, (latest) => {
     if (isCurrency) {
-      return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(latest);
+      return currencyFormatter.format(latest);
     }
     return Math.round(latest).toString();
   });
@@ -18,7 +21,7 @@ const AnimatedCounter = ({ value, isCurrency = true, className = "" }) => {
   useEffect(() => {
     setIsReady(true);
     const controls = animate(count, value, {
-      duration: 1.2,
+      duration: 1.0,
       ease: "easeOut",
     });
 
@@ -34,4 +37,4 @@ const AnimatedCounter = ({ value, isCurrency = true, className = "" }) => {
   return <motion.span className={className}>{rounded}</motion.span>;
 };
 
-export default AnimatedCounter;
+export default React.memo(AnimatedCounter);

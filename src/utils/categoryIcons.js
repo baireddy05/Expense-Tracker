@@ -56,56 +56,73 @@ export const getCategoryIcon = (iconName) => {
   return ICON_MAP[iconName] || faTag;
 };
 
+// Fast category lookup map cache
+let lastCategoriesRef = null;
+let categoryIdMap = new Map();
+let categoryNameMap = new Map();
+
+const updateCategoryMaps = (categories) => {
+  if (categories === lastCategoriesRef) return;
+  lastCategoriesRef = categories;
+  categoryIdMap = new Map();
+  categoryNameMap = new Map();
+
+  for (let i = 0; i < categories.length; i++) {
+    const c = categories[i];
+    if (c.id) {
+      categoryIdMap.set(c.id, c);
+      categoryIdMap.set(c.id.toLowerCase(), c);
+    }
+    if (c.name) {
+      categoryNameMap.set(c.name.toLowerCase(), c);
+    }
+  }
+};
+
 /**
  * High-performance Category Resolver:
- * Resolves category by id, category name, or compiled regex keyword inference
+ * Resolves category by id, category name, or compiled regex keyword inference in O(1) time
  */
 export const resolveCategory = (categoryId, categories = [], note = '') => {
   if (!categories || !Array.isArray(categories) || categories.length === 0) {
     return null;
   }
 
-  // 1. Direct ID match (O(1) loop)
-  for (let i = 0; i < categories.length; i++) {
-    if (categories[i].id === categoryId) return categories[i];
-  }
+  updateCategoryMaps(categories);
 
-  // 2. Fast Case-Insensitive ID / Name match
+  // 1. Direct O(1) Map lookup by ID
   if (categoryId) {
-    const searchVal = String(categoryId).trim().toLowerCase();
-    for (let i = 0; i < categories.length; i++) {
-      const c = categories[i];
-      if (c.id?.toLowerCase() === searchVal || c.name?.toLowerCase() === searchVal) {
-        return c;
-      }
-    }
+    const directMatch = categoryIdMap.get(categoryId);
+    if (directMatch) return directMatch;
+
+    const lowerMatch = categoryIdMap.get(String(categoryId).trim().toLowerCase());
+    if (lowerMatch) return lowerMatch;
+
+    const nameMatch = categoryNameMap.get(String(categoryId).trim().toLowerCase());
+    if (nameMatch) return nameMatch;
   }
 
-  // 3. High-performance Regex Note Keyword Matching
+  // 2. High-performance Regex Note Keyword Matching
   if (note) {
     if (FOOD_KEYWORDS.test(note)) {
-      const cat = categories.find(c => {
-        const n = c.name?.toLowerCase();
-        return n === 'food' || n === 'groceries';
-      });
+      const cat = categoryNameMap.get('food') || categoryNameMap.get('groceries');
       if (cat) return cat;
     }
 
     if (LEND_KEYWORDS.test(note)) {
-      const cat = categories.find(c => {
-        const n = c.name?.toLowerCase();
-        return n?.includes('lend') || n?.includes('borrow');
-      });
-      if (cat) return cat;
+      for (let i = 0; i < categories.length; i++) {
+        const n = categories[i].name?.toLowerCase();
+        if (n && (n.includes('lend') || n.includes('borrow'))) return categories[i];
+      }
     }
 
     if (TRAVEL_KEYWORDS.test(note)) {
-      const cat = categories.find(c => c.name?.toLowerCase() === 'travel');
+      const cat = categoryNameMap.get('travel');
       if (cat) return cat;
     }
 
     if (ENTERTAINMENT_KEYWORDS.test(note)) {
-      const cat = categories.find(c => c.name?.toLowerCase() === 'entertainment');
+      const cat = categoryNameMap.get('entertainment');
       if (cat) return cat;
     }
   }

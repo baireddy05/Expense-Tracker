@@ -19,6 +19,8 @@ import { useUI } from '../context/UIContext';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement);
 
+const currencyFormatter = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
+
 const Analytics = () => {
   const { transactions, categories, lentRecords = [], borrowedRecords = [] } = useTransactions();
   const { isPrivacyMode } = useUI();
@@ -118,7 +120,7 @@ const Analytics = () => {
     if (isPrivacyMode) {
       return '₹••••••';
     }
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
+    return currencyFormatter.format(amount);
   };
 
   return (

@@ -460,42 +460,55 @@ export const TransactionProvider = ({ children }) => {
     }
   };
 
-  const purgeLocalCache = () => {
+  const purgeLocalCache = useCallback(() => {
     DataService.purgeAllLocalData();
     toast.success('Local browser cache purged! Your data is protected in Cloud Firestore.', { icon: '🛡️' });
-  };
+  }, []);
+
+  const contextValue = React.useMemo(() => ({
+    transactions,
+    categories,
+    lentRecords,
+    borrowedRecords,
+    settings,
+    loading,
+    error,
+    isSyncing,
+    syncLocalData,
+    purgeLocalCache,
+    updateSettings,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    addCategory,
+    addLentRecord,
+    updateLentRecord,
+    deleteLentRecord,
+    lendMoreMoney,
+    recordRepayment,
+    settleLentRecord,
+    addBorrowedRecord,
+    updateBorrowedRecord,
+    deleteBorrowedRecord,
+    borrowMoreMoney,
+    recordBorrowedRepayment,
+    settleBorrowedRecord,
+    refreshData: fetchData
+  }), [
+    transactions,
+    categories,
+    lentRecords,
+    borrowedRecords,
+    settings,
+    loading,
+    error,
+    isSyncing,
+    fetchData,
+    purgeLocalCache
+  ]);
 
   return (
-    <TransactionContext.Provider value={{
-      transactions,
-      categories,
-      lentRecords,
-      borrowedRecords,
-      settings,
-      loading,
-      error,
-      isSyncing,
-      syncLocalData,
-      purgeLocalCache,
-      updateSettings,
-      addTransaction,
-      updateTransaction,
-      deleteTransaction,
-      addCategory,
-      addLentRecord,
-      updateLentRecord,
-      deleteLentRecord,
-      lendMoreMoney,
-      recordRepayment,
-      settleLentRecord,
-      addBorrowedRecord,
-      updateBorrowedRecord,
-      deleteBorrowedRecord,
-      borrowMoreMoney,
-      recordBorrowedRepayment,
-      settleBorrowedRecord,
-      refreshData: fetchData
-    }}>
+    <TransactionContext.Provider value={contextValue}>
       {children}
     </TransactionContext.Provider>
   );

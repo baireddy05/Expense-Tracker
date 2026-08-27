@@ -146,13 +146,14 @@ const BorrowedMoney = () => {
 
   // Filtered and Sorted Records
   const filteredRecords = useMemo(() => {
+    const q = search.toLowerCase().trim();
     return borrowedRecords
       .filter(r => {
-        const matchesSearch = 
-          r.lenderName?.toLowerCase().includes(search.toLowerCase()) ||
-          r.note?.toLowerCase().includes(search.toLowerCase()) ||
-          r.phone?.includes(search) ||
-          (r.borrows && r.borrows.some(b => b.note?.toLowerCase().includes(search.toLowerCase())));
+        const matchesSearch = !q ||
+          r.lenderName?.toLowerCase().includes(q) ||
+          r.note?.toLowerCase().includes(q) ||
+          r.phone?.includes(q) ||
+          (r.borrows && r.borrows.some(b => b.note?.toLowerCase().includes(q)));
 
         const currentStatus = getRecordStatus(r);
         const matchesStatus = 
@@ -169,10 +170,14 @@ const BorrowedMoney = () => {
         const pendingB = Math.max(0, totalB - (parseFloat(b.returnedAmount) || 0));
 
         if (sortBy === 'date-desc') {
-          return new Date(b.dateBorrowed || b.createdAt || 0) - new Date(a.dateBorrowed || a.createdAt || 0);
+          const dateA = a.dateBorrowed || a.createdAt || '';
+          const dateB = b.dateBorrowed || b.createdAt || '';
+          return dateB > dateA ? 1 : dateB < dateA ? -1 : 0;
         }
         if (sortBy === 'date-asc') {
-          return new Date(a.dateBorrowed || a.createdAt || 0) - new Date(b.dateBorrowed || b.createdAt || 0);
+          const dateA = a.dateBorrowed || a.createdAt || '';
+          const dateB = b.dateBorrowed || b.createdAt || '';
+          return dateA > dateB ? 1 : dateA < dateB ? -1 : 0;
         }
         if (sortBy === 'amount-desc') {
           return totalB - totalA;
@@ -183,7 +188,7 @@ const BorrowedMoney = () => {
         if (sortBy === 'due-asc') {
           if (!a.dueDate) return 1;
           if (!b.dueDate) return -1;
-          return new Date(a.dueDate) - new Date(b.dueDate);
+          return a.dueDate > b.dueDate ? 1 : a.dueDate < b.dueDate ? -1 : 0;
         }
         return 0;
       });

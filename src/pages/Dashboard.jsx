@@ -156,9 +156,10 @@ const Dashboard = () => {
   const velocityMeter = Math.min((stats.monthlyExpense / (stats.monthlyIncome || 1)) * 100, 100);
 
   const expenseByCategory = useMemo(() => {
-    const expenses = transactions.filter(t => t.type === 'expense');
     const grouped = {};
-    expenses.forEach(t => {
+    for (let i = 0; i < transactions.length; i++) {
+      const t = transactions[i];
+      if (t.type !== 'expense') continue;
       const cat = resolveCategory(t.categoryId, categories, t.note);
       const catName = cat?.name || 'General';
       const catColor = cat?.color || '#71717a';
@@ -166,45 +167,49 @@ const Dashboard = () => {
         grouped[catName] = { name: catName, amount: 0, color: catColor };
       }
       grouped[catName].amount += parseFloat(t.amount) || 0;
-    });
-    
+    }
     return Object.values(grouped).sort((a, b) => b.amount - a.amount);
   }, [transactions, categories]);
 
   const trendData = useMemo(() => {
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - (6 - i));
-      return d;
-    });
+    const labels = [];
+    const incomeData = new Float64Array(7);
+    const expenseData = new Float64Array(7);
+    const dayMap = new Map();
 
-    const labels = last7Days.map(d => d.toLocaleDateString('en-US', { weekday: 'short' }));
-    const incomeData = new Array(7).fill(0);
-    const expenseData = new Array(7).fill(0);
+    const now = new Date();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - (6 - i));
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const key = `${year}-${month}-${day}`;
+      dayMap.set(key, i);
+      labels.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
+    }
 
     transactions.forEach(t => {
-      const tDate = new Date(t.date);
-      const index = last7Days.findIndex(d => 
-        d.getDate() === tDate.getDate() && 
-        d.getMonth() === tDate.getMonth() && 
-        d.getFullYear() === tDate.getFullYear()
-      );
-      
-      if (index !== -1) {
-        if (t.type === 'income') incomeData[index] += parseFloat(t.amount);
-        else expenseData[index] += parseFloat(t.amount);
+      if (!t.date) return;
+      const dateKey = typeof t.date === 'string' && t.date.length >= 10 ? t.date.slice(0, 10) : '';
+      const index = dayMap.get(dateKey);
+      if (index !== undefined) {
+        const amt = parseFloat(t.amount) || 0;
+        if (t.type === 'income') incomeData[index] += amt;
+        else if (t.type === 'expense') expenseData[index] += amt;
       }
     });
 
-    return { labels, incomeData, expenseData };
+    return { labels, incomeData: Array.from(incomeData), expenseData: Array.from(expenseData) };
   }, [transactions]);
 
   const recentTransactions = useMemo(() => {
+    if (!transactions.length) return [];
     return [...transactions]
       .sort((a, b) => {
-        const dateDiff = new Date(b.date) - new Date(a.date);
-        if (dateDiff !== 0) return dateDiff;
-        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        const bTime = typeof b.date === 'string' ? (new Date(b.date).getTime() || 0) : 0;
+        const aTime = typeof a.date === 'string' ? (new Date(a.date).getTime() || 0) : 0;
+        return bTime - aTime;
       })
       .slice(0, 5);
   }, [transactions]);
