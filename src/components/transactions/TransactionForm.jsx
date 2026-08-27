@@ -31,6 +31,38 @@ const TransactionForm = ({
     return `${year}-${month}-${day}`;
   };
 
+  const formatDateDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      if (isNaN(dateObj.getTime())) return dateStr;
+      return dateObj.toLocaleDateString('en-GB', {
+        weekday: 'short',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const formatDateChipLabel = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      if (isNaN(dateObj.getTime())) return dateStr;
+      return dateObj.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short'
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
   const [type, setType] = useState('expense');
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -39,6 +71,18 @@ const TransactionForm = ({
   const [loading, setLoading] = useState(false);
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+
+  const todayStr = getLocalToday();
+  const yesterdayStr = getOffsetDateStr(1);
+  const twoDaysAgoStr = getOffsetDateStr(2);
+  const threeDaysAgoStr = getOffsetDateStr(3);
+
+  const quickDatePresets = [
+    { label: 'Today', value: todayStr },
+    { label: 'Yesterday', value: yesterdayStr },
+    { label: '2d ago', value: twoDaysAgoStr },
+    { label: '3d ago', value: threeDaysAgoStr },
+  ];
 
   // Extract unique non-empty notes from previous transactions sorted by frequency/recency
   const previousNoteSuggestions = useMemo(() => {
