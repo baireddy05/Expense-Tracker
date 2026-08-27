@@ -149,6 +149,21 @@ export const TransactionProvider = ({ children }) => {
 
       const saved = await DataService.addLentRecord(payload, userId);
       setLentRecords(prev => [saved, ...prev]);
+
+      // Directly reflect in main Transactions list on the record's date
+      try {
+        const cat = categories.find(c => c.name.toLowerCase().includes('lent') || c.type === 'expense');
+        await addTransaction({
+          amount: initialAmount,
+          type: 'expense',
+          date: record.dateLent || new Date().toISOString().split('T')[0],
+          categoryId: cat?.id || (categories.find(c => c.type === 'expense')?.id || 'cat_expense'),
+          note: `Lent to ${record.borrowerName}${record.note ? ' - ' + record.note : ''}`
+        });
+      } catch (syncErr) {
+        console.error("Failed to auto-sync lent transaction:", syncErr);
+      }
+
       return saved;
     } catch (err) {
       setError('Failed to add lent record');
@@ -202,6 +217,21 @@ export const TransactionProvider = ({ children }) => {
 
       await DataService.updateLentRecord(id, updates, userId);
       setLentRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+
+      // Directly reflect return in main Transactions list on repayment date (Income inflow)
+      try {
+        const cat = categories.find(c => c.name.toLowerCase().includes('returned') || c.name.toLowerCase().includes('lent') || c.type === 'income');
+        await addTransaction({
+          amount: repayAmount,
+          type: 'income',
+          date: repayment.date || new Date().toISOString().split('T')[0],
+          categoryId: cat?.id || (categories.find(c => c.type === 'income')?.id || 'cat_income'),
+          note: `Returned by ${current.borrowerName}${repayment.note ? ' - ' + repayment.note : ''}`
+        });
+      } catch (syncErr) {
+        console.error("Failed to auto-sync lent return transaction:", syncErr);
+      }
+
       return updates;
     } catch (err) {
       setError('Failed to record repayment');
@@ -251,6 +281,21 @@ export const TransactionProvider = ({ children }) => {
 
       await DataService.updateLentRecord(id, updates, userId);
       setLentRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+
+      // Directly reflect top-up loan in main Transactions list on top-up date
+      try {
+        const cat = categories.find(c => c.name.toLowerCase().includes('lent') || c.type === 'expense');
+        await addTransaction({
+          amount: addAmount,
+          type: 'expense',
+          date: loanDetails.date || new Date().toISOString().split('T')[0],
+          categoryId: cat?.id || (categories.find(c => c.type === 'expense')?.id || 'cat_expense'),
+          note: `Lent top-up to ${current.borrowerName}${loanDetails.note ? ' - ' + loanDetails.note : ''}`
+        });
+      } catch (syncErr) {
+        console.error("Failed to auto-sync top-up loan transaction:", syncErr);
+      }
+
       return updates;
     } catch (err) {
       setError('Failed to lend more money');
@@ -285,6 +330,22 @@ export const TransactionProvider = ({ children }) => {
 
       await DataService.updateLentRecord(id, updates, userId);
       setLentRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+
+      if (remaining > 0) {
+        try {
+          const cat = categories.find(c => c.name.toLowerCase().includes('returned') || c.name.toLowerCase().includes('lent') || c.type === 'income');
+          await addTransaction({
+            amount: remaining,
+            type: 'income',
+            date: new Date().toISOString().split('T')[0],
+            categoryId: cat?.id || (categories.find(c => c.type === 'income')?.id || 'cat_income'),
+            note: `Settled & returned by ${current.borrowerName}`
+          });
+        } catch (syncErr) {
+          console.error("Failed to auto-sync settlement transaction:", syncErr);
+        }
+      }
+
       return updates;
     } catch (err) {
       setError('Failed to settle loan');
@@ -317,6 +378,21 @@ export const TransactionProvider = ({ children }) => {
 
       const saved = await DataService.addBorrowedRecord(payload, userId);
       setBorrowedRecords(prev => [saved, ...prev]);
+
+      // Directly reflect in main Transactions list on dateBorrowed (Income Inflow)
+      try {
+        const cat = categories.find(c => c.name.toLowerCase().includes('borrow') || c.type === 'income');
+        await addTransaction({
+          amount: initialAmount,
+          type: 'income',
+          date: record.dateBorrowed || new Date().toISOString().split('T')[0],
+          categoryId: cat?.id || (categories.find(c => c.type === 'income')?.id || 'cat_income'),
+          note: `Borrowed from ${record.lenderName}${record.note ? ' - ' + record.note : ''}`
+        });
+      } catch (syncErr) {
+        console.error("Failed to auto-sync borrowed transaction:", syncErr);
+      }
+
       return saved;
     } catch (err) {
       setError('Failed to add borrowed record');
@@ -387,6 +463,21 @@ export const TransactionProvider = ({ children }) => {
 
       await DataService.updateBorrowedRecord(id, updates, userId);
       setBorrowedRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+
+      // Directly reflect top-up borrowed entry in main Transactions list on top-up date
+      try {
+        const cat = categories.find(c => c.name.toLowerCase().includes('borrow') || c.type === 'income');
+        await addTransaction({
+          amount: addAmount,
+          type: 'income',
+          date: borrowDetails.date || new Date().toISOString().split('T')[0],
+          categoryId: cat?.id || (categories.find(c => c.type === 'income')?.id || 'cat_income'),
+          note: `Borrowed top-up from ${current.lenderName}${borrowDetails.note ? ' - ' + borrowDetails.note : ''}`
+        });
+      } catch (syncErr) {
+        console.error("Failed to auto-sync top-up borrow transaction:", syncErr);
+      }
+
       return updates;
     } catch (err) {
       setError('Failed to borrow more money');
@@ -419,6 +510,21 @@ export const TransactionProvider = ({ children }) => {
 
       await DataService.updateBorrowedRecord(id, updates, userId);
       setBorrowedRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+
+      // Directly reflect debt repayment in main Transactions list on repayment date (Expense outflow)
+      try {
+        const cat = categories.find(c => c.name.toLowerCase().includes('debt') || c.type === 'expense');
+        await addTransaction({
+          amount: repayAmount,
+          type: 'expense',
+          date: repayment.date || new Date().toISOString().split('T')[0],
+          categoryId: cat?.id || (categories.find(c => c.type === 'expense')?.id || 'cat_expense'),
+          note: `Repaid debt to ${current.lenderName}${repayment.note ? ' - ' + repayment.note : ''}`
+        });
+      } catch (syncErr) {
+        console.error("Failed to auto-sync debt repayment transaction:", syncErr);
+      }
+
       return updates;
     } catch (err) {
       setError('Failed to record repayment');
@@ -453,6 +559,22 @@ export const TransactionProvider = ({ children }) => {
 
       await DataService.updateBorrowedRecord(id, updates, userId);
       setBorrowedRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+
+      if (remaining > 0) {
+        try {
+          const cat = categories.find(c => c.name.toLowerCase().includes('debt') || c.type === 'expense');
+          await addTransaction({
+            amount: remaining,
+            type: 'expense',
+            date: new Date().toISOString().split('T')[0],
+            categoryId: cat?.id || (categories.find(c => c.type === 'expense')?.id || 'cat_expense'),
+            note: `Settled & repaid debt to ${current.lenderName}`
+          });
+        } catch (syncErr) {
+          console.error("Failed to auto-sync settlement transaction:", syncErr);
+        }
+      }
+
       return updates;
     } catch (err) {
       setError('Failed to settle borrowed money');

@@ -38,8 +38,12 @@ const DEFAULT_CATEGORIES = [
   { name: 'Travel', color: '#eab308', icon: 'fa-plane', type: 'expense' },
   { name: 'Entertainment', color: '#8b5cf6', icon: 'fa-film', type: 'expense' },
   { name: 'Medical', color: '#ec4899', icon: 'fa-notes-medical', type: 'expense' },
+  { name: 'Lent Money', color: '#f59e0b', icon: 'fa-hand-holding-dollar', type: 'expense' },
+  { name: 'Debt Repayment', color: '#6366f1', icon: 'fa-handshake', type: 'expense' },
   { name: 'From Dad', color: '#22c55e', icon: 'fa-money-bill', type: 'income' },
-  { name: 'Trading', color: '#10b981', icon: 'fa-chart-line', type: 'income' }
+  { name: 'Trading', color: '#10b981', icon: 'fa-chart-line', type: 'income' },
+  { name: 'Borrowed Money', color: '#06b6d4', icon: 'fa-hand-holding', type: 'income' },
+  { name: 'Lent Returned', color: '#10b981', icon: 'fa-circle-check', type: 'income' }
 ];
 
 export const DataService = {

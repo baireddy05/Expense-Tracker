@@ -58,6 +58,7 @@ const BorrowedMoney = () => {
 
   const [expandedHistories, setExpandedHistories] = useState({});
   const [cardActivityTabs, setCardActivityTabs] = useState({}); // recordId -> 'all' | 'borrows' | 'repayments'
+  const [isSettledSectionOpen, setIsSettledSectionOpen] = useState(true);
 
   const toggleHistory = (id) => {
     setExpandedHistories(prev => ({ ...prev, [id]: !prev[id] }));
@@ -193,6 +194,14 @@ const BorrowedMoney = () => {
         return 0;
       });
   }, [borrowedRecords, search, statusFilter, sortBy]);
+
+  const activeRecords = useMemo(() => {
+    return filteredRecords.filter(r => getRecordStatus(r) !== 'settled');
+  }, [filteredRecords]);
+
+  const settledRecords = useMemo(() => {
+    return filteredRecords.filter(r => getRecordStatus(r) === 'settled');
+  }, [filteredRecords]);
 
   const handleEdit = (record) => {
     setEditingRecord(record);
@@ -348,6 +357,431 @@ const BorrowedMoney = () => {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
     return colors[Math.abs(hash) % colors.length];
+  };
+
+  const renderRecordCard = (record) => {
+    const total = parseFloat(record.amount) || 0;
+    const returned = parseFloat(record.returnedAmount) || 0;
+    const remaining = Math.max(0, total - returned);
+    const percentRepaid = total > 0 ? Math.min((returned / total) * 100, 100) : 0;
+    const status = getRecordStatus(record);
+    const borrows = getRecordBorrows(record);
+    const repayments = record.repayments || [];
+    const isExpanded = !!expandedHistories[record.id];
+    const currentTab = cardActivityTabs[record.id] || 'all';
+
+    // Combined chronological ledger events
+    const combinedTimeline = [
+      ...borrows.map((b, idx) => ({
+        ...b,
+        eventType: 'borrow',
+        eventTitle: idx === 0 ? 'Initial Borrow' : `Top-up #${idx + 1}`,
+        sortDate: new Date(b.date || record.dateBorrowed || 0)
+      })),
+      ...repayments.map((rep, idx) => ({
+        ...rep,
+        eventType: 'repayment',
+        eventTitle: `Repayment #${idx + 1}`,
+        sortDate: new Date(rep.date || 0)
+      }))
+    ].sort((a, b) => b.sortDate - a.sortDate);
+
+    return (
+      <div 
+        key={record.id}
+        className={`glass rounded-2xl p-4 sm:p-5 transition-all border ${
+          status === 'overdue' 
+            ? 'border-rose-300 dark:border-rose-900/50 bg-rose-50/20 dark:bg-rose-950/10'
+            : status === 'settled'
+            ? 'border-zinc-200 dark:border-zinc-800/80 opacity-90'
+            : 'border-zinc-200 dark:border-zinc-800'
+        }`}
+      >
+        {/* Card Header */}
+        <div className="flex items-start justify-between gap-3 pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            {/* Lender Avatar */}
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-2xs shrink-0 ${getAvatarColor(record.lenderName)}`}>
+              {(record.lenderName || 'L').charAt(0).toUpperCase()}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h3 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-white truncate">
+                  {record.lenderName}
+                </h3>
+
+                {/* Status Badge */}
+                {status === 'settled' && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                    <FontAwesomeIcon icon={faCheckCircle} className="text-[9px]" /> Settled
+                  </span>
+                )}
+                {status === 'overdue' && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/15 text-rose-700 dark:text-rose-400 flex items-center gap-1 animate-pulse">
+                    <FontAwesomeIcon icon={faExclamationTriangle} className="text-[9px]" /> Overdue
+                  </span>
+                )}
+                {status === 'partial' && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/15 text-blue-700 dark:text-blue-400">
+                    {percentRepaid.toFixed(0)}% Repaid
+                  </span>
+                )}
+                {status === 'pending' && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                    Pending
+                  </span>
+                )}
+              </div>
+
+              {/* Metadata Subtitle */}
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1 text-[11px] text-zinc-400">
+                {borrows.length > 1 && (
+                  <span className="px-1.5 py-0.5 rounded-md text-[10px] font-medium liquid-glass-subtle text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
+                    <FontAwesomeIcon icon={faCoins} className="text-[9px]" />
+                    <span>{borrows.length} Borrows</span>
+                  </span>
+                )}
+                <span className="flex items-center gap-1">
+                  <FontAwesomeIcon icon={faCalendarAlt} className="text-[9px]" />
+                  {new Date(record.dateBorrowed || (borrows[0] && borrows[0].date) || 0).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                </span>
+                {record.dueDate && (
+                  <>
+                    <span>&bull;</span>
+                    <span className={status === 'overdue' ? 'text-rose-500 font-semibold' : ''}>
+                      Due: {new Date(record.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                    </span>
+                  </>
+                )}
+                {record.phone && (
+                  <>
+                    <span>&bull;</span>
+                    <span className="flex items-center gap-1 truncate">
+                      <FontAwesomeIcon icon={faPhone} className="text-[9px]" />
+                      {record.phone}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Amounts Breakdown */}
+          <div className="text-right shrink-0">
+            <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">
+              {remaining > 0 ? 'Pending' : 'Status'}
+            </p>
+            <p className={`text-sm sm:text-lg font-bold leading-tight ${
+              remaining > 0 
+                ? (status === 'overdue' ? 'text-rose-500' : 'text-cyan-600 dark:text-cyan-400')
+                : 'text-emerald-600 dark:text-emerald-400'
+            }`}>
+              {remaining > 0 ? formatCurrency(remaining) : 'Paid in Full'}
+            </p>
+            <p className="text-[10px] text-zinc-400 mt-0.5">
+              of {formatCurrency(total)}
+            </p>
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mt-3">
+          <div className="flex justify-between items-center text-xs mb-1">
+            <span className="text-zinc-500 dark:text-zinc-400 text-[11px]">
+              Repaid: <strong className="text-emerald-600 dark:text-emerald-400">{formatCurrency(returned)}</strong>
+            </span>
+            <span className="font-semibold text-zinc-700 dark:text-zinc-300 text-[11px]">
+              {percentRepaid.toFixed(0)}%
+            </span>
+          </div>
+          <div className="h-1.5 sm:h-2 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
+            <div 
+              className={`h-full transition-all duration-500 ${
+                percentRepaid >= 100 
+                  ? 'bg-emerald-500' 
+                  : status === 'overdue'
+                  ? 'bg-gradient-to-r from-rose-500 to-cyan-500'
+                  : 'bg-gradient-to-r from-cyan-500 to-emerald-500'
+              }`}
+              style={{ width: `${percentRepaid}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Note if present */}
+        {record.note && (
+          <div className="mt-2.5 text-xs liquid-glass-subtle p-2 sm:p-2.5 rounded-xl text-zinc-600 dark:text-zinc-300 flex items-start gap-2">
+            <span className="font-semibold text-zinc-400 shrink-0 text-[11px]">Note:</span>
+            <span className="italic text-[11px] truncate">{record.note}</span>
+          </div>
+        )}
+
+        {/* Comprehensive Activity & Debt Logs Accordion */}
+        <div className="mt-3 pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
+          <button
+            onClick={() => toggleHistory(record.id)}
+            className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white flex items-center justify-between w-full py-1 cursor-pointer transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <FontAwesomeIcon icon={faHistory} className="text-cyan-500 text-xs" />
+              <span className="text-[11px] sm:text-xs">
+                Activity Logs ({borrows.length} borrow{borrows.length === 1 ? '' : 's'}, {repayments.length} repayment{repayments.length === 1 ? '' : 's'})
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 text-zinc-400">
+              <span className="text-[10px] sm:text-[11px]">{isExpanded ? 'Hide' : 'View Logs'}</span>
+              <FontAwesomeIcon icon={isExpanded ? faChevronUp : faChevronDown} className="text-[9px]" />
+            </div>
+          </button>
+
+          {isExpanded && (
+            <div className="mt-2.5 pt-2 border-t border-dashed border-zinc-200 dark:border-zinc-800 animate-page-enter gpu-accelerated space-y-3">
+              {/* Filter tabs inside history */}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-1 liquid-glass-subtle p-1 rounded-xl text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setCardTab(record.id, 'all')}
+                    className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer text-[11px] ${
+                      currentTab === 'all'
+                        ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-xs font-semibold'
+                        : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                    }`}
+                  >
+                    All ({combinedTimeline.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCardTab(record.id, 'borrows')}
+                    className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer text-[11px] ${
+                      currentTab === 'borrows'
+                        ? 'bg-cyan-600 text-white shadow-xs font-semibold'
+                        : 'text-zinc-500 hover:text-cyan-600 dark:hover:text-cyan-400'
+                    }`}
+                  >
+                    Borrows ({borrows.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCardTab(record.id, 'repayments')}
+                    className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer text-[11px] ${
+                      currentTab === 'repayments'
+                        ? 'bg-emerald-600 text-white shadow-xs font-semibold'
+                        : 'text-zinc-500 hover:text-emerald-600 dark:hover:text-emerald-400'
+                    }`}
+                  >
+                    Repayments ({repayments.length})
+                  </button>
+                </div>
+
+                {/* Quick Borrow More trigger from inside logs */}
+                <button
+                  type="button"
+                  onClick={() => setBorrowMoreTarget(record)}
+                  className="text-[11px] text-cyan-600 dark:text-cyan-400 font-semibold hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <FontAwesomeIcon icon={faPlus} className="text-[9px]" />
+                  <span>Borrow More</span>
+                </button>
+              </div>
+
+              {/* Timeline List */}
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                {/* All logs or filtered */}
+                {currentTab === 'all' && (
+                  combinedTimeline.map((item, idx) => (
+                    <div 
+                      key={item.id || idx} 
+                      className={`flex items-center justify-between p-2.5 rounded-xl border text-xs ${
+                        item.eventType === 'borrow'
+                          ? 'bg-cyan-500/5 dark:bg-cyan-950/20 border-cyan-200/60 dark:border-cyan-900/40'
+                          : 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                          item.eventType === 'borrow'
+                            ? 'bg-cyan-100 dark:bg-cyan-900/40 text-cyan-600 dark:text-cyan-400'
+                            : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
+                        }`}>
+                          <FontAwesomeIcon icon={item.eventType === 'borrow' ? faHandHolding : faCheckCircle} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-zinc-900 dark:text-white truncate">
+                              {item.eventTitle}
+                            </span>
+                            <span className="text-[10px] text-zinc-400 shrink-0">
+                              &bull; {new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                            </span>
+                          </div>
+                          {item.note && (
+                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400 italic truncate mt-0.5">
+                              "{item.note}"
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <span className={`font-bold text-xs sm:text-sm shrink-0 ml-2 ${
+                        item.eventType === 'borrow'
+                          ? 'text-cyan-600 dark:text-cyan-400'
+                          : 'text-emerald-600 dark:text-emerald-400'
+                      }`}>
+                        {item.eventType === 'borrow' ? '+' : '-'} {formatCurrency(item.amount)}
+                      </span>
+                    </div>
+                  ))
+                )}
+
+                {/* Only borrows */}
+                {currentTab === 'borrows' && (
+                  borrows.map((b, idx) => (
+                    <div 
+                      key={b.id || idx} 
+                      className="flex items-center justify-between p-2.5 rounded-xl border bg-cyan-500/5 dark:bg-cyan-950/20 border-cyan-200/60 dark:border-cyan-900/40 text-xs"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-cyan-100 dark:bg-cyan-900/40 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">
+                          <FontAwesomeIcon icon={faHandHolding} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-zinc-900 dark:text-white truncate">
+                              {idx === 0 ? 'Initial Borrow' : `Top-up #${idx + 1}`}
+                            </span>
+                            <span className="text-[10px] text-zinc-400 shrink-0">
+                              &bull; {new Date(b.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                            </span>
+                          </div>
+                          {b.note && (
+                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400 italic truncate mt-0.5">
+                              "{b.note}"
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <span className="font-bold text-xs sm:text-sm text-cyan-600 dark:text-cyan-400 shrink-0 ml-2">
+                        Borrowed: {formatCurrency(b.amount)}
+                      </span>
+                    </div>
+                  ))
+                )}
+
+                {/* Only repayments */}
+                {currentTab === 'repayments' && (
+                  repayments.length > 0 ? (
+                    repayments.map((rep, idx) => (
+                      <div 
+                        key={rep.id || idx} 
+                        className="flex items-center justify-between p-2.5 rounded-xl border bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40 text-xs"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0">
+                            <FontAwesomeIcon icon={faCheckCircle} />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-zinc-900 dark:text-white truncate">
+                                Repayment #{idx + 1}
+                              </span>
+                              <span className="text-[10px] text-zinc-400 shrink-0">
+                                &bull; {new Date(rep.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                              </span>
+                            </div>
+                            {rep.note && (
+                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 italic truncate mt-0.5">
+                                "{rep.note}"
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <span className="font-bold text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 shrink-0 ml-2">
+                          - {formatCurrency(rep.amount)}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-xs text-zinc-400">
+                      No debt repayments logged yet to this lender.
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="mt-3.5 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap flex-1 min-w-0">
+            {/* Borrow More Button */}
+            <button
+              type="button"
+              onClick={() => setBorrowMoreTarget(record)}
+              className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer touch-feedback"
+              title="Borrow more money from this same lender"
+            >
+              <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
+              <span>Borrow More</span>
+            </button>
+
+            {/* Repay Button */}
+            {remaining > 0 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setRepayTarget(record)}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer touch-feedback"
+                >
+                  <FontAwesomeIcon icon={faCheckCircle} className="text-[10px]" />
+                  <span>Record Repayment</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSettlePrompt(record)}
+                  className="px-2.5 py-1.5 liquid-glass-subtle text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white rounded-xl text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer touch-feedback"
+                >
+                  <FontAwesomeIcon icon={faCheckCircle} className="text-emerald-500 text-[10px]" />
+                  <span className="hidden xs:inline">Settle</span>
+                </button>
+              </>
+            )}
+
+            {remaining <= 0 && (
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                <FontAwesomeIcon icon={faCheckCircle} />
+                <span>Settled in Full</span>
+              </span>
+            )}
+          </div>
+
+          {/* Edit & Delete Action Cluster */}
+          <div className="flex items-center gap-1 shrink-0 ml-auto">
+            <button
+              type="button"
+              onClick={() => handleEdit(record)}
+              className="w-8 h-8 rounded-xl liquid-glass-subtle text-zinc-400 hover:text-zinc-900 dark:hover:text-white flex items-center justify-center transition-colors touch-feedback cursor-pointer"
+              title="Edit record"
+            >
+              <FontAwesomeIcon icon={faEdit} className="text-xs" />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDeletePrompt(record)}
+              className="w-8 h-8 rounded-xl liquid-glass-subtle text-zinc-400 hover:text-rose-500 flex items-center justify-center transition-colors touch-feedback cursor-pointer"
+              title="Delete record"
+            >
+              <FontAwesomeIcon icon={faTrash} className="text-xs" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -563,440 +997,72 @@ const BorrowedMoney = () => {
         </div>
       </div>
 
-      {/* Borrowed Records List */}
-      <div className="space-y-4">
-        {filteredRecords.map(record => {
-          const total = parseFloat(record.amount) || 0;
-          const returned = parseFloat(record.returnedAmount) || 0;
-          const remaining = Math.max(0, total - returned);
-          const percentRepaid = total > 0 ? Math.min((returned / total) * 100, 100) : 0;
-          const status = getRecordStatus(record);
-          const borrows = getRecordBorrows(record);
-          const repayments = record.repayments || [];
-          const isExpanded = !!expandedHistories[record.id];
-          const currentTab = cardActivityTabs[record.id] || 'all';
+      {/* Borrowed Records List with Separate Settled Sub-Section */}
+      <div className="space-y-6">
+        {/* Active Debts Section */}
+        {statusFilter !== 'settled' && (
+          <div className="space-y-4">
+            {statusFilter === 'all' && settledRecords.length > 0 && (
+              <div className="flex items-center justify-between px-1">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
+                  <span>Active Debts & Owed Money</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">
+                    {activeRecords.length}
+                  </span>
+                </h2>
+              </div>
+            )}
 
-          // Combined chronological ledger events
-          const combinedTimeline = [
-            ...borrows.map((b, idx) => ({
-              ...b,
-              eventType: 'borrow',
-              eventTitle: idx === 0 ? 'Initial Borrow' : `Top-up #${idx + 1}`,
-              sortDate: new Date(b.date || record.dateBorrowed || 0)
-            })),
-            ...repayments.map((rep, idx) => ({
-              ...rep,
-              eventType: 'repayment',
-              eventTitle: `Repayment #${idx + 1}`,
-              sortDate: new Date(rep.date || 0)
-            }))
-          ].sort((a, b) => b.sortDate - a.sortDate);
+            {activeRecords.map(record => renderRecordCard(record))}
 
-          return (
+            {activeRecords.length === 0 && statusFilter === 'all' && settledRecords.length > 0 && (
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                  🎉 All borrowed money & debts have been fully cleared!
+                </p>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  Check the Settled Debts Archive below to view closed history.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Settled Records Archive Sub-Section */}
+        {(statusFilter === 'all' || statusFilter === 'settled') && settledRecords.length > 0 && (
+          <div className="space-y-3 pt-2">
             <div 
-              key={record.id}
-              className={`glass rounded-2xl p-4 sm:p-5 transition-all border ${
-                status === 'overdue' 
-                  ? 'border-rose-300 dark:border-rose-900/50 bg-rose-50/20 dark:bg-rose-950/10'
-                  : status === 'settled'
-                  ? 'border-zinc-200 dark:border-zinc-800/80 opacity-90'
-                  : 'border-zinc-200 dark:border-zinc-800'
-              }`}
+              onClick={() => setIsSettledSectionOpen(prev => !prev)}
+              className="p-3.5 sm:p-4 rounded-2xl glass flex items-center justify-between cursor-pointer select-none border border-emerald-500/20 hover:bg-emerald-500/5 transition-colors"
             >
-              {/* Card Header */}
-              <div className="flex items-start justify-between gap-3 pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
-                <div className="flex items-start gap-3 min-w-0 flex-1">
-                  {/* Lender Avatar */}
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-2xs shrink-0 ${getAvatarColor(record.lenderName)}`}>
-                    {(record.lenderName || 'L').charAt(0).toUpperCase()}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <h3 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-white truncate">
-                        {record.lenderName}
-                      </h3>
-
-                      {/* Status Badge */}
-                      {status === 'settled' && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                          <FontAwesomeIcon icon={faCheckCircle} className="text-[9px]" /> Paid Back
-                        </span>
-                      )}
-                      {status === 'overdue' && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/15 text-rose-700 dark:text-rose-400 flex items-center gap-1 animate-pulse">
-                          <FontAwesomeIcon icon={faExclamationTriangle} className="text-[9px]" /> Overdue
-                        </span>
-                      )}
-                      {status === 'partial' && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/15 text-blue-700 dark:text-blue-400">
-                          {percentRepaid.toFixed(0)}% Repaid
-                        </span>
-                      )}
-                      {status === 'pending' && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/15 text-indigo-700 dark:text-indigo-400">
-                          Pending Repayment
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Metadata Subtitle */}
-                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1 text-[11px] text-zinc-400">
-                      {borrows.length > 1 && (
-                        <span className="px-1.5 py-0.5 rounded-md text-[10px] font-medium liquid-glass-subtle text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
-                          <FontAwesomeIcon icon={faCoins} className="text-[9px]" />
-                          <span>{borrows.length} Borrows</span>
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1">
-                        <FontAwesomeIcon icon={faCalendarAlt} className="text-[9px]" />
-                        {new Date(record.dateBorrowed || (borrows[0] && borrows[0].date) || 0).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-                      </span>
-                      {record.dueDate && (
-                        <>
-                          <span>&bull;</span>
-                          <span className={status === 'overdue' ? 'text-rose-500 font-semibold' : ''}>
-                            Due: {new Date(record.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-                          </span>
-                        </>
-                      )}
-                      {record.phone && (
-                        <>
-                          <span>&bull;</span>
-                          <span className="flex items-center gap-1 truncate">
-                            <FontAwesomeIcon icon={faPhone} className="text-[9px]" />
-                            {record.phone}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">
+                  <FontAwesomeIcon icon={faCheckCircle} />
                 </div>
-
-                {/* Amounts Breakdown */}
-                <div className="text-right shrink-0">
-                  <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">
-                    {remaining > 0 ? 'Debt Owed' : 'Status'}
-                  </p>
-                  <p className={`text-sm sm:text-lg font-bold leading-tight ${
-                    remaining > 0 
-                      ? (status === 'overdue' ? 'text-rose-500' : 'text-indigo-600 dark:text-indigo-400')
-                      : 'text-emerald-600 dark:text-emerald-400'
-                  }`}>
-                    {remaining > 0 ? formatCurrency(remaining) : 'Paid in Full'}
-                  </p>
-                  <p className="text-[10px] text-zinc-400 mt-0.5">
-                    of {formatCurrency(total)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="mt-3">
-                <div className="flex justify-between items-center text-xs mb-1">
-                  <span className="text-zinc-500 dark:text-zinc-400 text-[11px]">
-                    Repaid: <strong className="text-emerald-600 dark:text-emerald-400">{formatCurrency(returned)}</strong>
-                  </span>
-                  <span className="font-semibold text-zinc-700 dark:text-zinc-300 text-[11px]">
-                    {percentRepaid.toFixed(0)}%
-                  </span>
-                </div>
-                <div className="h-1.5 sm:h-2 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full transition-all duration-500 ${
-                      percentRepaid >= 100 
-                        ? 'bg-emerald-500' 
-                        : status === 'overdue'
-                        ? 'bg-gradient-to-r from-rose-500 to-amber-500'
-                        : 'bg-gradient-to-r from-indigo-500 to-emerald-500'
-                    }`}
-                    style={{ width: `${percentRepaid}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Note if present */}
-              {record.note && (
-                <div className="mt-2.5 text-xs liquid-glass-subtle p-2 sm:p-2.5 rounded-xl text-zinc-600 dark:text-zinc-300 flex items-start gap-2">
-                  <span className="font-semibold text-zinc-400 shrink-0 text-[11px]">Reason:</span>
-                  <span className="italic text-[11px] truncate">{record.note}</span>
-                </div>
-              )}
-
-              {/* Comprehensive Activity & Borrow Logs Accordion */}
-              <div className="mt-3 pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
-                <button
-                  onClick={() => toggleHistory(record.id)}
-                  className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white flex items-center justify-between w-full py-1 cursor-pointer transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <FontAwesomeIcon icon={faHistory} className="text-indigo-500 text-xs" />
-                    <span className="text-[11px] sm:text-xs">
-                      Activity Logs ({borrows.length} borrow{borrows.length === 1 ? '' : 's'}, {repayments.length} repayment{repayments.length === 1 ? '' : 's'})
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                    <span>Settled Debts Archive</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                      {settledRecords.length} settled
                     </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-zinc-400">
-                    <span className="text-[10px] sm:text-[11px]">{isExpanded ? 'Hide' : 'View Logs'}</span>
-                    <FontAwesomeIcon icon={isExpanded ? faChevronUp : faChevronDown} className="text-[9px]" />
-                  </div>
-                </button>
-
-                {isExpanded && (
-                  <div className="mt-2.5 pt-2 border-t border-dashed border-zinc-200 dark:border-zinc-800 animate-page-enter gpu-accelerated space-y-3">
-                    {/* Filter tabs inside history */}
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-1 liquid-glass-subtle p-1 rounded-xl text-xs">
-                        <button
-                          type="button"
-                          onClick={() => setCardTab(record.id, 'all')}
-                          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer text-[11px] ${
-                            currentTab === 'all'
-                              ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-xs font-semibold'
-                              : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
-                          }`}
-                        >
-                          All ({combinedTimeline.length})
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCardTab(record.id, 'borrows')}
-                          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer text-[11px] ${
-                            currentTab === 'borrows'
-                              ? 'bg-indigo-600 text-white shadow-xs font-semibold'
-                              : 'text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400'
-                          }`}
-                        >
-                          Borrows ({borrows.length})
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCardTab(record.id, 'repayments')}
-                          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer text-[11px] ${
-                            currentTab === 'repayments'
-                              ? 'bg-emerald-600 text-white shadow-xs font-semibold'
-                              : 'text-zinc-500 hover:text-emerald-600 dark:hover:text-emerald-400'
-                          }`}
-                        >
-                          Repaid ({repayments.length})
-                        </button>
-                      </div>
-
-                      {/* Quick Borrow More trigger from inside logs */}
-                      <button
-                        type="button"
-                        onClick={() => setBorrowMoreTarget(record)}
-                        className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1 cursor-pointer"
-                      >
-                        <FontAwesomeIcon icon={faPlus} className="text-[9px]" />
-                        <span>Add Borrow Log</span>
-                      </button>
-                    </div>
-
-                    {/* Timeline List */}
-                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                      {/* All logs or filtered */}
-                      {currentTab === 'all' && (
-                        combinedTimeline.map((item, idx) => (
-                          <div 
-                            key={item.id || idx} 
-                            className={`flex items-center justify-between p-2.5 rounded-xl border text-xs ${
-                              item.eventType === 'borrow'
-                                ? 'bg-indigo-500/5 dark:bg-indigo-950/20 border-indigo-200/60 dark:border-indigo-900/40'
-                                : 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
-                                item.eventType === 'borrow'
-                                  ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
-                                  : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
-                              }`}>
-                                <FontAwesomeIcon icon={item.eventType === 'borrow' ? faHandHolding : faCheckCircle} />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-semibold text-zinc-900 dark:text-white truncate">
-                                    {item.eventTitle}
-                                  </span>
-                                  <span className="text-[10px] text-zinc-400 shrink-0">
-                                    &bull; {new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-                                  </span>
-                                </div>
-                                {item.note && (
-                                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 italic truncate mt-0.5">
-                                    "{item.note}"
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-
-                            <span className={`font-bold text-xs sm:text-sm shrink-0 ml-2 ${
-                              item.eventType === 'borrow'
-                                ? 'text-indigo-600 dark:text-indigo-400'
-                                : 'text-emerald-600 dark:text-emerald-400'
-                            }`}>
-                              {item.eventType === 'borrow' ? '+' : '-'} {formatCurrency(item.amount)}
-                            </span>
-                          </div>
-                        ))
-                      )}
-
-                      {/* Only borrows */}
-                      {currentTab === 'borrows' && (
-                        borrows.map((b, idx) => (
-                          <div 
-                            key={b.id || idx} 
-                            className="flex items-center justify-between p-2.5 rounded-xl border bg-indigo-500/5 dark:bg-indigo-950/20 border-indigo-200/60 dark:border-indigo-900/40 text-xs"
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0">
-                                <FontAwesomeIcon icon={faHandHolding} />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-semibold text-zinc-900 dark:text-white truncate">
-                                    {idx === 0 ? 'Initial Borrow' : `Disbursement #${idx + 1}`}
-                                  </span>
-                                  <span className="text-[10px] text-zinc-400 shrink-0">
-                                    &bull; {new Date(b.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-                                  </span>
-                                </div>
-                                {b.note && (
-                                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 italic truncate mt-0.5">
-                                    "{b.note}"
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-
-                            <span className="font-bold text-xs sm:text-sm text-indigo-600 dark:text-indigo-400 shrink-0 ml-2">
-                              Borrowed: {formatCurrency(b.amount)}
-                            </span>
-                          </div>
-                        ))
-                      )}
-
-                      {/* Only repayments */}
-                      {currentTab === 'repayments' && (
-                        repayments.length > 0 ? (
-                          repayments.map((rep, idx) => (
-                            <div 
-                              key={rep.id || idx} 
-                              className="flex items-center justify-between p-2.5 rounded-xl border bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40 text-xs"
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0">
-                                  <FontAwesomeIcon icon={faCheckCircle} />
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="font-semibold text-zinc-900 dark:text-white truncate">
-                                      Repayment #{idx + 1}
-                                    </span>
-                                    <span className="text-[10px] text-zinc-400 shrink-0">
-                                      &bull; {new Date(rep.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-                                    </span>
-                                  </div>
-                                  {rep.note && (
-                                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 italic truncate mt-0.5">
-                                      "{rep.note}"
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-
-                              <span className="font-bold text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 shrink-0 ml-2">
-                                Repaid: {formatCurrency(rep.amount)}
-                              </span>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="p-4 text-center text-xs text-zinc-400">
-                            No repayments logged yet for this debt.
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </div>
-                )}
+                  </h3>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                    Fully cleared borrowings & repaid debts
+                  </p>
+                </div>
               </div>
-
-              {/* Action Buttons */}
-              <div className="mt-3.5 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap flex-1 min-w-0">
-                  {/* Borrow More Button */}
-                  <button
-                    type="button"
-                    onClick={() => setBorrowMoreTarget(record)}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer touch-feedback"
-                    title="Borrow more money from this friend"
-                  >
-                    <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
-                    <span>Borrow More</span>
-                  </button>
-
-                  {/* Return / Repay Button */}
-                  {remaining > 0 && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setRepayTarget(record)}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer touch-feedback"
-                      >
-                        <FontAwesomeIcon icon={faArrowRotateLeft} className="text-[10px]" />
-                        <span>Record Repayment</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleSettlePrompt(record)}
-                        className="px-2.5 py-1.5 liquid-glass-subtle text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white rounded-xl text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer touch-feedback"
-                      >
-                        <FontAwesomeIcon icon={faCheckCircle} className="text-emerald-500 text-[10px]" />
-                        <span className="hidden xs:inline">Settle</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setReminderTarget(record)}
-                        className="px-2.5 py-1.5 liquid-glass-subtle text-indigo-600 dark:text-indigo-400 rounded-xl text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer touch-feedback"
-                      >
-                        <FontAwesomeIcon icon={faComments} className="text-[10px]" />
-                        <span>Message</span>
-                      </button>
-                    </>
-                  )}
-
-                  {remaining <= 0 && (
-                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                      <FontAwesomeIcon icon={faCheckCircle} /> Debt Fully Paid Back
-                    </span>
-                  )}
-                </div>
-
-                {/* Edit & Delete Action Cluster */}
-                <div className="flex items-center gap-1 shrink-0 ml-auto">
-                  <button
-                    type="button"
-                    onClick={() => handleEdit(record)}
-                    className="w-8 h-8 rounded-xl liquid-glass-subtle text-zinc-400 hover:text-zinc-900 dark:hover:text-white flex items-center justify-center transition-colors touch-feedback cursor-pointer"
-                    title="Edit record"
-                  >
-                    <FontAwesomeIcon icon={faEdit} className="text-xs" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeletePrompt(record)}
-                    className="w-8 h-8 rounded-xl liquid-glass-subtle text-zinc-400 hover:text-rose-500 flex items-center justify-center transition-colors touch-feedback cursor-pointer"
-                    title="Delete record"
-                  >
-                    <FontAwesomeIcon icon={faTrash} className="text-xs" />
-                  </button>
-                </div>
+              <div className="w-7 h-7 rounded-xl flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">
+                <FontAwesomeIcon icon={isSettledSectionOpen ? faChevronUp : faChevronDown} className="text-xs" />
               </div>
             </div>
-          );
-        })}
+
+            {isSettledSectionOpen && (
+              <div className="space-y-4 pt-1">
+                {settledRecords.map(record => renderRecordCard(record))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Empty State */}
         {filteredRecords.length === 0 && !loading && (
