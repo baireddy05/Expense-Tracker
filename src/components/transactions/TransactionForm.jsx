@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTransactions } from '../../context/TransactionContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faCommentDots } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 
 const TransactionForm = ({ 
@@ -12,7 +12,43 @@ const TransactionForm = ({
   defaultType = 'expense',
   defaultDate = null 
 }) => {
-  const { categories, addTransaction, updateTransaction, addCategory } = useTransactions();
+  const { transactions = [], categories, addTransaction, updateTransaction, addCategory } = useTransactions();
+
+  // Extract unique non-empty notes from previous transactions sorted by frequency/recency
+  const previousNoteSuggestions = useMemo(() => {
+    if (!transactions || transactions.length === 0) return [];
+    const counts = new Map();
+    const order = [];
+    
+    for (let i = 0; i < transactions.length; i++) {
+      const t = transactions[i];
+      const trimmedNote = t.note ? t.note.trim() : '';
+      if (trimmedNote.length > 0) {
+        if (!counts.has(trimmedNote)) {
+          counts.set(trimmedNote, 1);
+          order.push(trimmedNote);
+        } else {
+          counts.set(trimmedNote, counts.get(trimmedNote) + 1);
+        }
+      }
+    }
+
+    return order.sort((a, b) => {
+      const freqDiff = counts.get(b) - counts.get(a);
+      if (freqDiff !== 0) return freqDiff;
+      return 0;
+    }).slice(0, 20);
+  }, [transactions]);
+
+  // Filter suggestions based on current note input
+  const filteredNoteSuggestions = useMemo(() => {
+    if (!previousNoteSuggestions.length) return [];
+    const q = (note || '').trim().toLowerCase();
+    if (!q) return previousNoteSuggestions.slice(0, 8);
+    return previousNoteSuggestions
+      .filter(s => s.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [previousNoteSuggestions, note]);
   
   const getLocalToday = () => {
     const d = new Date();
@@ -353,18 +389,56 @@ const TransactionForm = ({
             </div>
           </div>
 
-          {/* Note Input */}
+          {/* Note Input with Quick Suggestions */}
           <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1">
-              Note (Optional)
-            </label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+                Note / Comment (Optional)
+              </label>
+              {previousNoteSuggestions.length > 0 && (
+                <span className="text-[10px] text-zinc-400 font-medium">
+                  {filteredNoteSuggestions.length > 0 ? 'Recent Comments' : ''}
+                </span>
+              )}
+            </div>
+
+            {/* Interactive Note Chips Row */}
+            {filteredNoteSuggestions.length > 0 && (
+              <div className="flex items-center gap-1 mb-1.5 overflow-x-auto no-scrollbar py-0.5">
+                {filteredNoteSuggestions.map((suggestion) => {
+                  const isSelected = note.trim().toLowerCase() === suggestion.toLowerCase();
+                  return (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      onClick={() => setNote(suggestion)}
+                      className={`px-2 py-0.5 text-[11px] font-semibold rounded-md transition-all touch-feedback cursor-pointer shrink-0 flex items-center gap-1 ${
+                        isSelected
+                          ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs'
+                          : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700'
+                      }`}
+                    >
+                      <FontAwesomeIcon icon={faCommentDots} className="text-[9px] opacity-70" />
+                      <span>{suggestion}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             <input 
               type="text" 
+              list="tx-note-suggestions-list"
               value={note}
               onChange={e => setNote(e.target.value)}
               className="w-full px-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400"
               placeholder="e.g. Dinner, Coffee, Groceries"
             />
+            <datalist id="tx-note-suggestions-list">
+              {previousNoteSuggestions.map(s => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
           </div>
 
           {/* Submit Button */}
