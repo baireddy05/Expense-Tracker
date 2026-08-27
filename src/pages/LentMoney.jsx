@@ -58,7 +58,7 @@ const LentMoney = () => {
 
   const [expandedHistories, setExpandedHistories] = useState({});
   const [cardActivityTabs, setCardActivityTabs] = useState({}); // recordId -> 'all' | 'loans' | 'repayments'
-  const [isSettledSectionOpen, setIsSettledSectionOpen] = useState(true);
+  const [isSettledSectionOpen, setIsSettledSectionOpen] = useState(false);
 
   const toggleHistory = (id) => {
     setExpandedHistories(prev => ({ ...prev, [id]: !prev[id] }));
@@ -1061,11 +1061,11 @@ const LentMoney = () => {
                 </div>
               </div>
               <div className="w-7 h-7 rounded-xl flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">
-                <FontAwesomeIcon icon={isSettledSectionOpen ? faChevronUp : faChevronDown} className="text-xs" />
+                <FontAwesomeIcon icon={(isSettledSectionOpen || statusFilter === 'settled') ? faChevronUp : faChevronDown} className="text-xs" />
               </div>
             </div>
 
-            {isSettledSectionOpen && (
+            {(isSettledSectionOpen || statusFilter === 'settled') && (
               <div className="space-y-4 pt-1">
                 {settledRecords.map(record => renderRecordCard(record))}
               </div>
