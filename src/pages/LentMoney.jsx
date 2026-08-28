@@ -781,7 +781,7 @@ const LentMoney = () => {
             </button>
             <button
               type="button"
-              onClick={() => handleDeletePrompt(record)}
+              onClick={() => handleDelete(record.id, record.borrowerName)}
               className="w-8 h-8 rounded-xl liquid-glass-subtle text-zinc-400 hover:text-rose-500 flex items-center justify-center transition-colors touch-feedback cursor-pointer"
               title="Delete record"
             >
