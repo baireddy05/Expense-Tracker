@@ -9,6 +9,7 @@ import {
   faPlus, 
   faArrowTrendUp
 } from '@fortawesome/free-solid-svg-icons';
+import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import toast from 'react-hot-toast';
 
 const LendMoreModal = ({ isOpen, onClose, record }) => {
@@ -36,15 +37,7 @@ const LendMoreModal = ({ isOpen, onClose, record }) => {
   const newTotalLent = currentTotalLent + parsedNewAmount;
   const newRemaining = Math.max(0, newTotalLent - currentReturned);
 
-  useEffect(() => {
-    if (isOpen) {
-      const orig = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = orig;
-      };
-    }
-  }, [isOpen]);
+  useBodyScrollLock(isOpen);
 
   useEffect(() => {
     if (record) {

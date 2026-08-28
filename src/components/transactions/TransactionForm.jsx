@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTransactions } from '../../context/TransactionContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faCommentDots } from '@fortawesome/free-solid-svg-icons';
+import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import toast from 'react-hot-toast';
 
 const TransactionForm = ({ 
@@ -12,7 +13,7 @@ const TransactionForm = ({
   defaultType = 'expense',
   defaultDate = null 
 }) => {
-  const { transactions = [], categories, addTransaction, updateTransaction, addCategory } = useTransactions();
+  const { transactions = [], categories, accounts = [], addTransaction, updateTransaction, addCategory } = useTransactions();
 
   const getLocalToday = () => {
     const d = new Date();
@@ -68,6 +69,7 @@ const TransactionForm = ({
   const [categoryId, setCategoryId] = useState('');
   const [date, setDate] = useState(getLocalToday());
   const [note, setNote] = useState('');
+  const [accountId, setAccountId] = useState('');
   const [loading, setLoading] = useState(false);
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -121,21 +123,14 @@ const TransactionForm = ({
   }, [previousNoteSuggestions, note]);
 
   // Lock body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      const orig = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = orig;
-      };
-    }
-  }, [isOpen]);
+  useBodyScrollLock(isOpen);
 
   useEffect(() => {
     if (initialData && initialData.id) {
       setType(initialData.type || 'expense');
       setAmount(initialData.amount || '');
       setCategoryId(initialData.categoryId || '');
+      setAccountId(initialData.accountId || accounts.find(a => a.isDefault)?.id || accounts[0]?.id || '');
       setDate(initialData.date ? initialData.date.split('T')[0] : getLocalToday());
       setNote(initialData.note || '');
       setIsCreatingCategory(false);
@@ -144,12 +139,13 @@ const TransactionForm = ({
       setType(initialData?.type || defaultType || 'expense');
       setAmount(initialData?.amount || '');
       setCategoryId(initialData?.categoryId || '');
+      setAccountId(initialData?.accountId || accounts.find(a => a.isDefault)?.id || accounts[0]?.id || '');
       setDate(initialData?.date ? initialData.date.split('T')[0] : (defaultDate || getLocalToday()));
       setNote(initialData?.note || '');
       setIsCreatingCategory(false);
       setNewCategoryName('');
     }
-  }, [initialData, isOpen, defaultType, defaultDate]);
+  }, [initialData, isOpen, defaultType, defaultDate, accounts]);
 
   if (!isOpen) return null;
 
@@ -159,7 +155,14 @@ const TransactionForm = ({
     
     setLoading(true);
     try {
-      const txData = { type, amount: parseFloat(amount), categoryId, date, note };
+      const txData = { 
+        type, 
+        amount: parseFloat(amount), 
+        categoryId, 
+        accountId: accountId || accounts.find(a => a.isDefault)?.id || accounts[0]?.id, 
+        date, 
+        note 
+      };
       if (initialData && initialData.id) {
         await updateTransaction(initialData.id, txData);
         toast.success('Transaction updated');
@@ -388,6 +391,26 @@ const TransactionForm = ({
               />
             </div>
           </div>
+
+          {/* Account / Payment Mode Selector */}
+          {accounts.length > 0 && (
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1">
+                Account / Wallet
+              </label>
+              <select
+                value={accountId}
+                onChange={e => setAccountId(e.target.value)}
+                className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white font-medium cursor-pointer"
+              >
+                {accounts.map(acc => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name} ({acc.balance !== undefined ? `₹${parseFloat(acc.balance).toLocaleString('en-IN')}` : ''})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Note Input with Quick Suggestions */}
           <div>

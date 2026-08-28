@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTransactions } from '../../context/TransactionContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faUser, faPhone, faFileAlt, faHandHolding, faCommentDots } from '@fortawesome/free-solid-svg-icons';
+import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import toast from 'react-hot-toast';
 
 const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
@@ -46,15 +47,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      const orig = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = orig;
-      };
-    }
-  }, [isOpen]);
+  useBodyScrollLock(isOpen);
 
   useEffect(() => {
     if (initialData) {

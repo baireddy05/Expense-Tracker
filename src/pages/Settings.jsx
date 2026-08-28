@@ -23,6 +23,7 @@ import {
   faLock,
   faBroom
 } from '@fortawesome/free-solid-svg-icons';
+import { getCategoryIcon } from '../utils/categoryIcons';
 import toast from 'react-hot-toast';
 
 const Settings = () => {
@@ -33,6 +34,7 @@ const Settings = () => {
     borrowedRecords = [], 
     settings, 
     updateSettings, 
+    updateCategory,
     addTransaction, 
     addLentRecord, 
     addBorrowedRecord,
@@ -59,6 +61,11 @@ const Settings = () => {
 
   const fileInputRef = useRef(null);
 
+  // Category Budgets State
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [categoryBudgetInput, setCategoryBudgetInput] = useState('');
+  const [isSavingCategoryBudget, setIsSavingCategoryBudget] = useState(false);
+
   useEffect(() => {
     if (settings) {
       setBudgetInput(settings.monthlyBudget || '');
@@ -81,6 +88,20 @@ const Settings = () => {
       toast.error('Failed to save budget');
     } finally {
       setIsSavingBudget(false);
+    }
+  };
+
+  const handleSaveCategoryBudget = async (categoryId) => {
+    setIsSavingCategoryBudget(true);
+    try {
+      await updateCategory(categoryId, { budgetLimit: parseFloat(categoryBudgetInput) || 0 });
+      toast.success('Category budget updated');
+      setEditingCategory(null);
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to update category budget');
+    } finally {
+      setIsSavingCategoryBudget(false);
     }
   };
 
@@ -358,13 +379,13 @@ const Settings = () => {
         <div className="glass-card p-5 sm:p-6">
           <h2 className="text-sm font-bold mb-4 text-zinc-900 dark:text-white flex items-center gap-2">
             <FontAwesomeIcon icon={faPiggyBank} className="text-zinc-500 text-xs" />
-            <span>Monthly Target Budget</span>
+            <span>Target Budgets</span>
           </h2>
           
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
               <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1.5">
-                Spending Limit Target
+                Global Monthly Limit
               </label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
@@ -385,9 +406,64 @@ const Settings = () => {
                   {isSavingBudget ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Save'}
                 </button>
               </div>
-              <p className="text-[11px] text-zinc-400 mt-2">
-                ExTrack uses your monthly budget to render spending velocity indicators on your dashboard.
-              </p>
+            </div>
+
+            <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800/80">
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-3">
+                Category Limits (Envelope Budgets)
+              </label>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                {categories.filter(c => c.type === 'expense').map(cat => (
+                  <div key={cat.id} className="flex items-center justify-between p-2.5 rounded-xl liquid-glass-subtle">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-sm shrink-0">
+                        <FontAwesomeIcon icon={getCategoryIcon(cat.icon)} />
+                      </div>
+                      <div className="truncate">
+                        <p className="text-xs font-semibold text-zinc-900 dark:text-white truncate">{cat.name}</p>
+                        <p className="text-[10px] text-zinc-500">
+                          {cat.budgetLimit ? `Limit: ₹${parseFloat(cat.budgetLimit).toLocaleString('en-IN')}` : 'No limit set'}
+                        </p>
+                      </div>
+                    </div>
+                    {editingCategory === cat.id ? (
+                      <div className="flex items-center gap-1">
+                        <input 
+                          type="number" 
+                          value={categoryBudgetInput}
+                          onChange={e => setCategoryBudgetInput(e.target.value)}
+                          className="w-20 px-2 py-1 liquid-glass-input rounded text-xs text-right focus:outline-none"
+                          placeholder="Amount"
+                          autoFocus
+                        />
+                        <button 
+                          onClick={() => handleSaveCategoryBudget(cat.id)}
+                          disabled={isSavingCategoryBudget}
+                          className="px-2 py-1 bg-emerald-500 text-white rounded text-[10px] font-bold"
+                        >
+                          ✔
+                        </button>
+                        <button 
+                          onClick={() => setEditingCategory(null)}
+                          className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded text-[10px] font-bold"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setEditingCategory(cat.id);
+                          setCategoryBudgetInput(cat.budgetLimit || '');
+                        }}
+                        className="text-[11px] font-semibold text-zinc-500 hover:text-zinc-900 dark:hover:text-white px-2 py-1 rounded bg-black/5 dark:bg-white/5 transition-colors"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

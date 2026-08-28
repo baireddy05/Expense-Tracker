@@ -14,7 +14,10 @@ import {
   faArrowRight, 
   faCoins, 
   faReceipt,
-  faShieldAlt
+  faShieldAlt,
+  faBuildingColumns,
+  faRightLeft,
+  faBullseye
 } from '@fortawesome/free-solid-svg-icons';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
@@ -25,7 +28,7 @@ import { getCategoryIcon, resolveCategory } from '../utils/categoryIcons';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler);
 
 const Dashboard = () => {
-  const { transactions, categories, lentRecords = [], borrowedRecords = [], loading, settings } = useTransactions();
+  const { transactions, categories, accounts = [], savingsGoals = [], lentRecords = [], borrowedRecords = [], loading, settings } = useTransactions();
   const { isPrivacyMode } = useUI();
   const { currentUser, openAuthModal } = useAuth();
   const navigate = useNavigate();
@@ -401,6 +404,107 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Quick Accounts & Wallets Glance */}
+      {accounts.length > 0 && (
+        <div className="glass-card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+              <FontAwesomeIcon icon={faBuildingColumns} className="text-zinc-400" />
+              <span>Accounts & Wallets</span>
+            </h3>
+            <Link 
+              to="/accounts" 
+              className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+            >
+              <span>Manage & Transfer</span>
+              <FontAwesomeIcon icon={faArrowRight} className="text-[9px]" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+            {accounts.map(acc => (
+              <div key={acc.id} className="p-2.5 rounded-xl liquid-glass-subtle flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div 
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs shrink-0"
+                    style={{ backgroundColor: acc.color || '#3b82f6' }}
+                  >
+                    <FontAwesomeIcon icon={faBuildingColumns} className="text-[10px]" />
+                  </div>
+                  <div className="truncate">
+                    <p className="text-[11px] font-bold text-zinc-900 dark:text-white truncate leading-tight">
+                      {acc.name}
+                    </p>
+                    <p className="text-[9px] text-zinc-400 uppercase tracking-wider">
+                      {acc.type}
+                    </p>
+                  </div>
+                </div>
+                <p className={`text-xs font-bold shrink-0 ${acc.balance < 0 ? 'text-rose-500' : 'text-zinc-900 dark:text-white'}`}>
+                  {formatCurrency(acc.balance || 0)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quick Savings Goals Glance */}
+      {savingsGoals.length > 0 && (
+        <div className="glass-card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+              <FontAwesomeIcon icon={faBullseye} className="text-emerald-500" />
+              <span>Savings Goals & Milestones</span>
+            </h3>
+            <Link 
+              to="/goals" 
+              className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+            >
+              <span>View All Goals</span>
+              <FontAwesomeIcon icon={faArrowRight} className="text-[9px]" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {savingsGoals.slice(0, 3).map(goal => {
+              const target = parseFloat(goal.targetAmount) || 0;
+              const saved = parseFloat(goal.savedAmount) || 0;
+              const percent = target > 0 ? Math.min((saved / target) * 100, 100) : 0;
+              const isDone = saved >= target && target > 0;
+
+              return (
+                <div key={goal.id} className="p-3 rounded-xl liquid-glass-subtle space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-zinc-900 dark:text-white truncate">
+                      {goal.name}
+                    </span>
+                    <span className="text-[10px] font-bold text-zinc-500">
+                      {percent.toFixed(0)}%
+                    </span>
+                  </div>
+
+                  <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full rounded-full transition-all duration-700" 
+                      style={{ 
+                        width: `${percent}%`,
+                        backgroundColor: goal.color || '#10b981'
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex justify-between items-center text-[10px] text-zinc-400">
+                    <span>{formatCurrency(saved)}</span>
+                    <span>Target: {formatCurrency(target)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Due Date & Action Alerts (If any) */}
       {dueAlerts.length > 0 && (
         <div className="glass-card p-4.5 border-amber-200/80 dark:border-amber-900/40 bg-amber-50/20 dark:bg-amber-950/10">
@@ -454,11 +558,11 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Spending Velocity / Budget */}
+      {/* Spending Velocity & Category Budgets */}
       <div className="glass-card p-5">
         <div className="flex justify-between items-center mb-3">
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
-            {hasBudget ? 'Monthly Budget Progress' : 'Monthly Spending Velocity'}
+            {hasBudget ? 'Global Monthly Budget' : 'Monthly Spending Velocity'}
           </h3>
           {hasBudget && (
             <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
@@ -476,14 +580,56 @@ const Dashboard = () => {
             style={{ width: `${hasBudget ? budgetPercentage : velocityMeter}%` }}
           />
         </div>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-2 mb-4">
           {hasBudget 
             ? (budgetPercentage >= 100 
-                ? "You have reached your monthly budget limit." 
+                ? "You have reached your global budget limit." 
                 : `${budgetPercentage.toFixed(1)}% of your monthly budget used.`)
             : `You have spent ${velocityMeter.toFixed(1)}% of your monthly income so far.`
           }
         </p>
+
+        {/* Category Budget Bars */}
+        {categories.filter(c => c.budgetLimit > 0).length > 0 && (
+          <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800/80 space-y-4">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-2">
+              Category Budgets
+            </h3>
+            {categories.filter(c => c.budgetLimit > 0).map(cat => {
+              const spent = expenseByCategory.find(e => e.name === cat.name)?.amount || 0;
+              const limit = parseFloat(cat.budgetLimit);
+              const percent = Math.min((spent / limit) * 100, 100);
+              const isOver = spent > limit;
+              
+              return (
+                <div key={cat.id}>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                      <span className="w-4 flex justify-center">
+                        <FontAwesomeIcon icon={getCategoryIcon(cat.icon)} />
+                      </span>
+                      <span>{cat.name}</span>
+                    </span>
+                    <span className="text-[10px] font-medium text-zinc-500">
+                      {formatCurrency(spent)} / {formatCurrency(limit)}
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-700 ease-out rounded-full ${
+                        percent < 75 ? 'bg-emerald-500' : percent < 90 ? 'bg-amber-500' : 'bg-rose-500'
+                      }`}
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                  {isOver && (
+                    <p className="text-[9px] text-rose-500 mt-1">Over budget by {formatCurrency(spent - limit)}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Trend Line Chart */}

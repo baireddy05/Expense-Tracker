@@ -9,6 +9,7 @@ import {
   faPlus, 
   faArrowTrendUp
 } from '@fortawesome/free-solid-svg-icons';
+import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import toast from 'react-hot-toast';
 
 const BorrowMoreModal = ({ isOpen, onClose, record }) => {
@@ -36,15 +37,7 @@ const BorrowMoreModal = ({ isOpen, onClose, record }) => {
   const newTotalBorrowed = currentTotalBorrowed + parsedNewAmount;
   const newRemainingDebt = Math.max(0, newTotalBorrowed - currentReturned);
 
-  useEffect(() => {
-    if (isOpen) {
-      const orig = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = orig;
-      };
-    }
-  }, [isOpen]);
+  useBodyScrollLock(isOpen);
 
   useEffect(() => {
     if (record) {

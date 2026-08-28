@@ -15,6 +15,9 @@ const LentMoney = lazy(() => import('./pages/LentMoney'));
 const BorrowedMoney = lazy(() => import('./pages/BorrowedMoney'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const Settings = lazy(() => import('./pages/Settings'));
+const Subscriptions = lazy(() => import('./pages/Subscriptions'));
+const Accounts = lazy(() => import('./pages/Accounts'));
+const SavingsGoals = lazy(() => import('./pages/SavingsGoals'));
 
 const PageLoader = () => (
   <div className="flex w-full items-center justify-center p-12 animate-pulse">
@@ -61,6 +64,21 @@ function App() {
                     <Route path="settings" element={
                       <Suspense fallback={<PageLoader />}>
                         <Settings />
+                      </Suspense>
+                    } />
+                    <Route path="subscriptions" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <Subscriptions />
+                      </Suspense>
+                    } />
+                    <Route path="accounts" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <Accounts />
+                      </Suspense>
+                    } />
+                    <Route path="goals" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <SavingsGoals />
                       </Suspense>
                     } />
                   </Route>

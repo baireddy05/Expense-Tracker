@@ -13,6 +13,7 @@ import {
   faExclamationCircle,
   faWallet
 } from '@fortawesome/free-solid-svg-icons';
+import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 
 const AuthModal = () => {
   const { 
@@ -35,15 +36,7 @@ const AuthModal = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
-  useEffect(() => {
-    if (authModalOpen) {
-      const orig = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = orig;
-      };
-    }
-  }, [authModalOpen]);
+  useBodyScrollLock(authModalOpen);
 
   useEffect(() => {
     if (authModalTab) {

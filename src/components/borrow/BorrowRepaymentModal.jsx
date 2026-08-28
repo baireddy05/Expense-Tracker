@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTransactions } from '../../context/TransactionContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faCheckCircle, faCalendarAlt, faFileAlt, faArrowRotateLeft } from '@fortawesome/free-solid-svg-icons';
+import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import toast from 'react-hot-toast';
 
 const BorrowRepaymentModal = ({ isOpen, onClose, record }) => {
@@ -25,15 +26,7 @@ const BorrowRepaymentModal = ({ isOpen, onClose, record }) => {
   const returnedAmount = record ? parseFloat(record.returnedAmount) || 0 : 0;
   const remainingAmount = Math.max(0, totalAmount - returnedAmount);
 
-  useEffect(() => {
-    if (isOpen) {
-      const orig = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = orig;
-      };
-    }
-  }, [isOpen]);
+  useBodyScrollLock(isOpen);
 
   useEffect(() => {
     if (record) {

@@ -11,7 +11,10 @@ import {
   faWallet, 
   faHandHoldingDollar, 
   faHandHolding,
-  faShieldAlt
+  faShieldAlt,
+  faSyncAlt,
+  faBuildingColumns,
+  faBullseye
 } from '@fortawesome/free-solid-svg-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -23,6 +26,9 @@ const Sidebar = () => {
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: faHome },
     { name: 'Transactions', path: '/transactions', icon: faList },
+    { name: 'Accounts', path: '/accounts', icon: faBuildingColumns },
+    { name: 'Savings Goals', path: '/goals', icon: faBullseye },
+    { name: 'Subscriptions', path: '/subscriptions', icon: faSyncAlt },
     { name: 'Lent to Friends', path: '/lent', icon: faHandHoldingDollar },
     { name: 'Borrowed Money', path: '/borrowed', icon: faHandHolding },
     { name: 'Analytics', path: '/analytics', icon: faChartPie },

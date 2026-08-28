@@ -12,6 +12,7 @@ import {
   orderBy
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { getLocalDateString } from "../utils/dateUtils";
 
 // Immediate top-level sanitization: wipe all unencrypted device storage
 export const sanitizeLocalStorage = () => {
@@ -44,6 +45,12 @@ const DEFAULT_CATEGORIES = [
   { name: 'Trading', color: '#10b981', icon: 'fa-chart-line', type: 'income' },
   { name: 'Borrowed Money', color: '#06b6d4', icon: 'fa-hand-holding', type: 'income' },
   { name: 'Lent Returned', color: '#10b981', icon: 'fa-circle-check', type: 'income' }
+];
+
+export const DEFAULT_ACCOUNTS = [
+  { name: 'Primary Bank', type: 'bank', initialBalance: 0, color: '#3b82f6', icon: 'fa-building-columns', isDefault: true },
+  { name: 'Cash Wallet', type: 'cash', initialBalance: 0, color: '#10b981', icon: 'fa-money-bill-wave', isDefault: false },
+  { name: 'Credit Card', type: 'credit', initialBalance: 0, color: '#8b5cf6', icon: 'fa-credit-card', isDefault: false }
 ];
 
 export const DataService = {
@@ -194,6 +201,16 @@ export const DataService = {
     return { id: docRef.id, ...category };
   },
 
+  async updateCategory(id, updates, userId) {
+    if (!userId || !db || !id) {
+      return updates;
+    }
+
+    const docRef = doc(db, "users", userId, "categories", id);
+    await setDoc(docRef, updates, { merge: true });
+    return updates;
+  },
+
   // ----------------------------------------------------
   // User Settings & Monthly Budget (users/{userId}/settings/config)
   // ----------------------------------------------------
@@ -226,8 +243,144 @@ export const DataService = {
   },
 
   // ----------------------------------------------------
-  // Lent Records (users/{userId}/lent_records)
+  // Subscriptions / Recurring Transactions (users/{userId}/subscriptions)
   // ----------------------------------------------------
+  async getSubscriptions(userId) {
+    if (!userId || !db) return [];
+    try {
+      const colRef = collection(db, "users", userId, "subscriptions");
+      const snapshot = await getDocs(colRef);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+      console.warn("Firestore fetch subscriptions error:", e);
+      return [];
+    }
+  },
+
+  async addSubscription(subscription, userId) {
+    if (!userId || !db) return { id: 'transient_sub_' + Date.now(), ...subscription };
+    const colRef = collection(db, "users", userId, "subscriptions");
+    const docRef = await addDoc(colRef, subscription);
+    return { id: docRef.id, ...subscription };
+  },
+
+  async updateSubscription(id, updates, userId) {
+    if (!userId || !db || !id) return updates;
+    const docRef = doc(db, "users", userId, "subscriptions", id);
+    await setDoc(docRef, updates, { merge: true });
+    return updates;
+  },
+
+  async deleteSubscription(id, userId) {
+    if (!userId || !db || !id) return false;
+    const docRef = doc(db, "users", userId, "subscriptions", id);
+    await deleteDoc(docRef);
+    return true;
+  },
+
+  // ----------------------------------------------------
+  // Accounts & Wallets (users/{userId}/accounts)
+  // ----------------------------------------------------
+  async getAccounts(userId) {
+    if (!userId || !db) {
+      return DEFAULT_ACCOUNTS.map((a, i) => ({ id: `default_acc_${i}`, ...a }));
+    }
+
+    try {
+      const colRef = collection(db, "users", userId, "accounts");
+      const snapshot = await getDocs(colRef);
+      
+      if (snapshot.empty) {
+        // Seed default accounts
+        const seeded = [];
+        const batch = writeBatch(db);
+        for (const acc of DEFAULT_ACCOUNTS) {
+          const newDocRef = doc(colRef);
+          batch.set(newDocRef, acc);
+          seeded.push({ id: newDocRef.id, ...acc });
+        }
+        await batch.commit();
+        return seeded;
+      }
+
+      return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      console.warn("Firestore fetch accounts error:", e);
+      return DEFAULT_ACCOUNTS.map((a, i) => ({ id: `default_acc_${i}`, ...a }));
+    }
+  },
+
+  async addAccount(account, userId) {
+    if (!userId || !db) {
+      return { id: 'transient_acc_' + Date.now(), ...account };
+    }
+
+    const colRef = collection(db, "users", userId, "accounts");
+    const docRef = await addDoc(colRef, account);
+    return { id: docRef.id, ...account };
+  },
+
+  async updateAccount(id, updates, userId) {
+    if (!userId || !db || !id || id.startsWith('default_acc_') || id.startsWith('transient_')) {
+      return { id, ...updates };
+    }
+
+    const docRef = doc(db, "users", userId, "accounts", id);
+    await setDoc(docRef, updates, { merge: true });
+    return { id, ...updates };
+  },
+
+  async deleteAccount(id, userId) {
+    if (!userId || !db || !id || id.startsWith('default_acc_') || id.startsWith('transient_')) {
+      return true;
+    }
+
+    const docRef = doc(db, "users", userId, "accounts", id);
+    await deleteDoc(docRef);
+    return true;
+  },
+
+  // ----------------------------------------------------
+  // Savings Goals (users/{userId}/savings_goals)
+  // ----------------------------------------------------
+  async getSavingsGoals(userId) {
+    if (!userId || !db) return [];
+    try {
+      const colRef = collection(db, "users", userId, "savings_goals");
+      const snapshot = await getDocs(colRef);
+      return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      console.warn("Firestore fetch savings goals error:", e);
+      return [];
+    }
+  },
+
+  async addSavingsGoal(goal, userId) {
+    if (!userId || !db) {
+      return { id: 'transient_goal_' + Date.now(), ...goal };
+    }
+    const colRef = collection(db, "users", userId, "savings_goals");
+    const docRef = await addDoc(colRef, goal);
+    return { id: docRef.id, ...goal };
+  },
+
+  async updateSavingsGoal(id, updates, userId) {
+    if (!userId || !db || !id || id.startsWith('transient_')) {
+      return { id, ...updates };
+    }
+    const docRef = doc(db, "users", userId, "savings_goals", id);
+    await setDoc(docRef, updates, { merge: true });
+    return { id, ...updates };
+  },
+
+  async deleteSavingsGoal(id, userId) {
+    if (!userId || !db || !id || id.startsWith('transient_')) return true;
+    const docRef = doc(db, "users", userId, "savings_goals", id);
+    await deleteDoc(docRef);
+    return true;
+  },
+
+
   async getLentRecords(userId) {
     // If not authenticated, NEVER return or read unencrypted local data
     if (!userId || !db) {
@@ -281,7 +434,7 @@ export const DataService = {
           {
             id: 'loan_' + Date.now(),
             amount: amountVal,
-            date: record.dateLent || new Date().toISOString().split('T')[0],
+            date: record.dateLent || getLocalDateString(),
             note: record.note ? record.note.trim() : 'Initial loan'
           }
         ];
@@ -380,7 +533,7 @@ export const DataService = {
           {
             id: 'borrow_' + Date.now(),
             amount: amountVal,
-            date: record.dateBorrowed || new Date().toISOString().split('T')[0],
+            date: record.dateBorrowed || getLocalDateString(),
             note: record.note ? record.note.trim() : 'Initial borrowed money'
           }
         ];

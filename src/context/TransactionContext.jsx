@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { DataService } from '../services/db';
 import { useAuth } from './AuthContext';
+import { getLocalDateString, calculateNextDueDate, formatDisplayDate } from '../utils/dateUtils';
 import toast from 'react-hot-toast';
 
 const TransactionContext = createContext();
@@ -10,6 +11,9 @@ export const TransactionProvider = ({ children }) => {
 
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [accounts, setAccounts] = useState([]);
+  const [savingsGoals, setSavingsGoals] = useState([]);
   const [lentRecords, setLentRecords] = useState([]);
   const [borrowedRecords, setBorrowedRecords] = useState([]);
   const [settings, setSettings] = useState({ monthlyBudget: 0 });
@@ -21,15 +25,60 @@ export const TransactionProvider = ({ children }) => {
     if (authLoading) return;
     try {
       setLoading(true);
-      const [txData, catData, settingsData, lentData, borrowData] = await Promise.all([
+      const [txData, catData, settingsData, lentData, borrowData, subData, accData, goalData] = await Promise.all([
         DataService.getTransactions(userId),
         DataService.getCategories(userId),
         DataService.getSettings(userId),
         DataService.getLentRecords(userId),
-        DataService.getBorrowedRecords(userId)
+        DataService.getBorrowedRecords(userId),
+        DataService.getSubscriptions(userId),
+        DataService.getAccounts(userId),
+        DataService.getSavingsGoals(userId)
       ]);
-      setTransactions(txData || []);
+      
+      let currentTx = txData || [];
+      let currentSubs = subData || [];
+      let currentAccs = accData || [];
+      const currentGoals = goalData || [];
+
+      // Auto-process due subscriptions using local timezone
+      const todayStr = getLocalDateString();
+      const dueSubs = currentSubs.filter(s => s.active && s.nextDueDate && s.nextDueDate <= todayStr);
+      
+      if (dueSubs.length > 0) {
+        let postedCount = 0;
+        for (const sub of dueSubs) {
+          try {
+            // Post transaction
+            const newTx = await DataService.addTransaction({
+              amount: parseFloat(sub.amount),
+              categoryId: sub.categoryId,
+              date: sub.nextDueDate,
+              note: `Auto-posted: ${sub.name}`,
+              type: sub.type || 'expense'
+            }, userId);
+            currentTx = [newTx, ...currentTx];
+            
+            // Advance nextDueDate cleanly without UTC day-shift
+            const nextDueStr = calculateNextDueDate(sub.nextDueDate, sub.frequency);
+            
+            await DataService.updateSubscription(sub.id, { nextDueDate: nextDueStr }, userId);
+            sub.nextDueDate = nextDueStr;
+            postedCount++;
+          } catch (e) {
+            console.error("Failed to process subscription:", sub.name, e);
+          }
+        }
+        if (postedCount > 0) {
+          setTimeout(() => toast.success(`Auto-posted ${postedCount} due subscription(s)!`), 1000);
+        }
+      }
+
+      setTransactions(currentTx);
       setCategories(catData || []);
+      setSubscriptions(currentSubs);
+      setAccounts(currentAccs);
+      setSavingsGoals(currentGoals);
       setSettings(settingsData || { monthlyBudget: 0 });
       setLentRecords(lentData || []);
       setBorrowedRecords(borrowData || []);
@@ -125,6 +174,256 @@ export const TransactionProvider = ({ children }) => {
     }
   };
 
+  const updateCategory = async (id, updates) => {
+    try {
+      await DataService.updateCategory(id, updates, userId);
+      setCategories(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+      return { id, ...updates };
+    } catch (err) {
+      setError('Failed to update category');
+      throw err;
+    }
+  };
+
+  // Subscriptions Actions
+  const addSubscription = async (subscription) => {
+    try {
+      const todayStr = getLocalDateString();
+      let subToSave = { ...subscription };
+
+      if (subToSave.active && subToSave.nextDueDate && subToSave.nextDueDate <= todayStr) {
+        try {
+          const newTx = await DataService.addTransaction({
+            amount: parseFloat(subToSave.amount),
+            categoryId: subToSave.categoryId,
+            date: subToSave.nextDueDate,
+            note: `Auto-posted: ${subToSave.name}`,
+            type: subToSave.type || 'expense'
+          }, userId);
+          setTransactions(prev => [newTx, ...prev]);
+
+          const nextDueStr = calculateNextDueDate(subToSave.nextDueDate, subToSave.frequency);
+          subToSave.nextDueDate = nextDueStr;
+          toast.success(`Subscription added! Logged payment for ${formatDisplayDate(subscription.nextDueDate)}. Next due: ${formatDisplayDate(nextDueStr)}`);
+        } catch (e) {
+          console.error("Failed to auto-post initial transaction:", e);
+        }
+      }
+
+      const newSub = await DataService.addSubscription(subToSave, userId);
+      setSubscriptions(prev => [...prev, newSub]);
+      return newSub;
+    } catch (err) {
+      setError('Failed to add subscription');
+      throw err;
+    }
+  };
+
+  const updateSubscription = async (id, updates) => {
+    try {
+      const todayStr = getLocalDateString();
+      let finalUpdates = { ...updates };
+      
+      const existingSub = subscriptions.find(s => s.id === id);
+      const mergedSub = { ...existingSub, ...updates };
+
+      if (mergedSub.active && mergedSub.nextDueDate && mergedSub.nextDueDate <= todayStr) {
+        try {
+          const newTx = await DataService.addTransaction({
+            amount: parseFloat(mergedSub.amount),
+            categoryId: mergedSub.categoryId,
+            date: mergedSub.nextDueDate,
+            note: `Auto-posted: ${mergedSub.name}`,
+            type: mergedSub.type || 'expense'
+          }, userId);
+          setTransactions(prev => [newTx, ...prev]);
+
+          const nextDueStr = calculateNextDueDate(mergedSub.nextDueDate, mergedSub.frequency);
+          finalUpdates.nextDueDate = nextDueStr;
+          toast.success(`Due subscription processed! Next due: ${formatDisplayDate(nextDueStr)}`);
+        } catch (e) {
+          console.error("Failed to auto-post updated subscription:", e);
+        }
+      }
+
+      await DataService.updateSubscription(id, finalUpdates, userId);
+      setSubscriptions(prev => prev.map(s => s.id === id ? { ...s, ...finalUpdates } : s));
+      return { id, ...finalUpdates };
+    } catch (err) {
+      setError('Failed to update subscription');
+      throw err;
+    }
+  };
+
+  const deleteSubscription = async (id) => {
+    try {
+      await DataService.deleteSubscription(id, userId);
+      setSubscriptions(prev => prev.filter(s => s.id !== id));
+    } catch (err) {
+      setError('Failed to delete subscription');
+      throw err;
+    }
+  };
+
+  // Savings Goals Actions
+  const addSavingsGoal = async (goal) => {
+    try {
+      const newGoal = await DataService.addSavingsGoal(goal, userId);
+      setSavingsGoals(prev => [...prev, newGoal]);
+      return newGoal;
+    } catch (err) {
+      setError('Failed to add savings goal');
+      throw err;
+    }
+  };
+
+  const updateSavingsGoal = async (id, updates) => {
+    try {
+      await DataService.updateSavingsGoal(id, updates, userId);
+      setSavingsGoals(prev => prev.map(g => g.id === id ? { ...g, ...updates } : g));
+      return { id, ...updates };
+    } catch (err) {
+      setError('Failed to update savings goal');
+      throw err;
+    }
+  };
+
+  const deleteSavingsGoal = async (id) => {
+    try {
+      await DataService.deleteSavingsGoal(id, userId);
+      setSavingsGoals(prev => prev.filter(g => g.id !== id));
+    } catch (err) {
+      setError('Failed to delete savings goal');
+      throw err;
+    }
+  };
+
+  const contributeToGoal = async (goalId, amount, note = '') => {
+    try {
+      const goal = savingsGoals.find(g => g.id === goalId);
+      if (!goal) throw new Error('Goal not found');
+      const parsedAmount = parseFloat(amount);
+      if (!parsedAmount || parsedAmount <= 0) throw new Error('Enter a valid contribution amount');
+
+      const newSaved = (parseFloat(goal.savedAmount) || 0) + parsedAmount;
+      const contribution = {
+        id: 'contrib_' + Date.now(),
+        amount: parsedAmount,
+        date: getLocalDateString(),
+        note: note.trim() || 'Contribution'
+      };
+      const updates = {
+        savedAmount: newSaved,
+        contributions: [...(goal.contributions || []), contribution],
+        status: newSaved >= parseFloat(goal.targetAmount) ? 'completed' : 'active'
+      };
+
+      await DataService.updateSavingsGoal(goalId, updates, userId);
+      setSavingsGoals(prev => prev.map(g => g.id === goalId ? { ...g, ...updates } : g));
+
+      if (updates.status === 'completed') {
+        setTimeout(() => toast.success(`🎉 Goal "${goal.name}" is fully funded!`), 300);
+      } else {
+        toast.success(`Saved ₹${parsedAmount.toLocaleString('en-IN')} towards "${goal.name}"!`);
+      }
+      return updates;
+    } catch (err) {
+      toast.error(err.message || 'Contribution failed');
+      throw err;
+    }
+  };
+
+  // Accounts Actions
+  const addAccount = async (account) => {
+    try {
+      const newAcc = await DataService.addAccount(account, userId);
+      setAccounts(prev => [...prev, newAcc]);
+      return newAcc;
+    } catch (err) {
+      setError('Failed to add account');
+      throw err;
+    }
+  };
+
+  const updateAccount = async (id, updates) => {
+    try {
+      await DataService.updateAccount(id, updates, userId);
+      setAccounts(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+      return { id, ...updates };
+    } catch (err) {
+      setError('Failed to update account');
+      throw err;
+    }
+  };
+
+  const deleteAccount = async (id) => {
+    try {
+      await DataService.deleteAccount(id, userId);
+      setAccounts(prev => prev.filter(a => a.id !== id));
+    } catch (err) {
+      setError('Failed to delete account');
+      throw err;
+    }
+  };
+
+  const transferFunds = async ({ fromAccountId, toAccountId, amount, date = getLocalDateString(), note = '' }) => {
+    try {
+      const parsedAmount = parseFloat(amount);
+      if (!parsedAmount || parsedAmount <= 0) throw new Error('Please enter a valid transfer amount');
+      if (fromAccountId === toAccountId) throw new Error('Source and destination accounts must be different');
+
+      const fromAcc = accounts.find(a => a.id === fromAccountId);
+      const toAcc = accounts.find(a => a.id === toAccountId);
+      const fromName = fromAcc?.name || 'Account';
+      const toName = toAcc?.name || 'Account';
+
+      const transferTx = await addTransaction({
+        amount: parsedAmount,
+        type: 'transfer',
+        fromAccountId,
+        toAccountId,
+        accountId: fromAccountId,
+        date,
+        note: note ? note.trim() : `Transfer from ${fromName} to ${toName}`
+      });
+
+      toast.success(`Transferred ₹${parsedAmount.toLocaleString('en-IN')} from ${fromName} to ${toName}!`);
+      return transferTx;
+    } catch (err) {
+      toast.error(err.message || 'Transfer failed');
+      throw err;
+    }
+  };
+
+  // Dynamically compute live balances for each account based on ledger transactions
+  const accountsWithBalances = React.useMemo(() => {
+    const defaultAcc = accounts.find(a => a.isDefault) || accounts[0];
+    const defaultId = defaultAcc?.id;
+
+    return accounts.map(acc => {
+      let balance = parseFloat(acc.initialBalance) || 0;
+
+      transactions.forEach(t => {
+        const amt = parseFloat(t.amount) || 0;
+        const txAccId = t.accountId || defaultId;
+
+        if (t.type === 'transfer') {
+          if (t.fromAccountId === acc.id) balance -= amt;
+          if (t.toAccountId === acc.id) balance += amt;
+        } else if (t.type === 'income') {
+          if (txAccId === acc.id) balance += amt;
+        } else if (t.type === 'expense') {
+          if (txAccId === acc.id) balance -= amt;
+        }
+      });
+
+      return {
+        ...acc,
+        balance
+      };
+    });
+  }, [accounts, transactions]);
+
   // Lent Money Actions
   const addLentRecord = async (record) => {
     try {
@@ -135,7 +434,7 @@ export const TransactionProvider = ({ children }) => {
             {
               id: 'loan_' + Date.now(),
               amount: initialAmount,
-              date: record.dateLent || new Date().toISOString().split('T')[0],
+              date: record.dateLent || getLocalDateString(),
               note: record.note ? record.note.trim() : 'Initial loan'
             }
           ];
@@ -158,7 +457,7 @@ export const TransactionProvider = ({ children }) => {
         await addTransaction({
           amount: initialAmount,
           type: 'expense',
-          date: record.dateLent || new Date().toISOString().split('T')[0],
+          date: record.dateLent || getLocalDateString(),
           categoryId: cat?.id || (categories.find(c => c.type === 'expense')?.id || 'cat_expense'),
           note: `Lent to ${record.borrowerName}${record.note ? ' - ' + record.note : ''}`
         });
@@ -206,7 +505,7 @@ export const TransactionProvider = ({ children }) => {
         {
           id: 'rep_' + Date.now(),
           amount: repayAmount,
-          date: repayment.date || new Date().toISOString().split('T')[0],
+          date: repayment.date || getLocalDateString(),
           note: repayment.note || ''
         }
       ];
@@ -229,7 +528,7 @@ export const TransactionProvider = ({ children }) => {
         await addTransaction({
           amount: repayAmount,
           type: 'income',
-          date: repayment.date || new Date().toISOString().split('T')[0],
+          date: repayment.date || getLocalDateString(),
           categoryId: cat?.id || (categories.find(c => c.type === 'income')?.id || 'cat_income'),
           note: `Returned by ${current.borrowerName}${repayment.note ? ' - ' + repayment.note : ''}`
         });
@@ -255,7 +554,7 @@ export const TransactionProvider = ({ children }) => {
       const initialLoan = {
         id: 'loan_init_' + (current.createdAt ? new Date(current.createdAt).getTime() : Date.now()),
         amount: parseFloat(current.amount) || 0,
-        date: current.dateLent || (current.createdAt ? current.createdAt.split('T')[0] : new Date().toISOString().split('T')[0]),
+        date: current.dateLent || (current.createdAt ? current.createdAt.split('T')[0] : getLocalDateString()),
         note: current.note || 'Initial loan'
       };
 
@@ -266,7 +565,7 @@ export const TransactionProvider = ({ children }) => {
       const newLoanEntry = {
         id: 'loan_' + Date.now(),
         amount: addAmount,
-        date: loanDetails.date || new Date().toISOString().split('T')[0],
+        date: loanDetails.date || getLocalDateString(),
         note: loanDetails.note ? loanDetails.note.trim() : 'Additional loan'
       };
 
@@ -296,7 +595,7 @@ export const TransactionProvider = ({ children }) => {
         await addTransaction({
           amount: addAmount,
           type: 'expense',
-          date: loanDetails.date || new Date().toISOString().split('T')[0],
+          date: loanDetails.date || getLocalDateString(),
           categoryId: cat?.id || (categories.find(c => c.type === 'expense')?.id || 'cat_expense'),
           note: `Lent top-up to ${current.borrowerName}${loanDetails.note ? ' - ' + loanDetails.note : ''}`
         });
@@ -325,7 +624,7 @@ export const TransactionProvider = ({ children }) => {
         {
           id: 'rep_' + Date.now(),
           amount: remaining,
-          date: new Date().toISOString().split('T')[0],
+          date: getLocalDateString(),
           note: 'Marked fully settled'
         }
       ] : (current.repayments || []);
@@ -348,7 +647,7 @@ export const TransactionProvider = ({ children }) => {
           await addTransaction({
             amount: remaining,
             type: 'income',
-            date: new Date().toISOString().split('T')[0],
+            date: getLocalDateString(),
             categoryId: cat?.id || (categories.find(c => c.type === 'income')?.id || 'cat_income'),
             note: `Settled & returned by ${current.borrowerName}`
           });
@@ -376,7 +675,7 @@ export const TransactionProvider = ({ children }) => {
             {
               id: 'borrow_' + Date.now(),
               amount: initialAmount,
-              date: record.dateBorrowed || new Date().toISOString().split('T')[0],
+              date: record.dateBorrowed || getLocalDateString(),
               note: record.note ? record.note.trim() : 'Initial borrowed money'
             }
           ];
@@ -398,7 +697,7 @@ export const TransactionProvider = ({ children }) => {
         await addTransaction({
           amount: initialAmount,
           type: 'income',
-          date: record.dateBorrowed || new Date().toISOString().split('T')[0],
+          date: record.dateBorrowed || getLocalDateString(),
           categoryId: cat?.id || (categories.find(c => c.type === 'income')?.id || 'cat_income'),
           note: `Borrowed from ${record.lenderName}${record.note ? ' - ' + record.note : ''}`
         });
@@ -445,7 +744,7 @@ export const TransactionProvider = ({ children }) => {
       const initialBorrow = {
         id: 'borrow_init_' + (current.createdAt ? new Date(current.createdAt).getTime() : Date.now()),
         amount: parseFloat(current.amount) || 0,
-        date: current.dateBorrowed || (current.createdAt ? current.createdAt.split('T')[0] : new Date().toISOString().split('T')[0]),
+        date: current.dateBorrowed || (current.createdAt ? current.createdAt.split('T')[0] : getLocalDateString()),
         note: current.note || 'Initial borrowed money'
       };
 
@@ -456,7 +755,7 @@ export const TransactionProvider = ({ children }) => {
       const newBorrowEntry = {
         id: 'borrow_' + Date.now(),
         amount: addAmount,
-        date: borrowDetails.date || new Date().toISOString().split('T')[0],
+        date: borrowDetails.date || getLocalDateString(),
         note: borrowDetails.note ? borrowDetails.note.trim() : 'Additional borrowed money'
       };
 
@@ -485,7 +784,7 @@ export const TransactionProvider = ({ children }) => {
         await addTransaction({
           amount: addAmount,
           type: 'income',
-          date: borrowDetails.date || new Date().toISOString().split('T')[0],
+          date: borrowDetails.date || getLocalDateString(),
           categoryId: cat?.id || (categories.find(c => c.type === 'income')?.id || 'cat_income'),
           note: `Borrowed top-up from ${current.lenderName}${borrowDetails.note ? ' - ' + borrowDetails.note : ''}`
         });
@@ -512,7 +811,7 @@ export const TransactionProvider = ({ children }) => {
         {
           id: 'rep_' + Date.now(),
           amount: repayAmount,
-          date: repayment.date || new Date().toISOString().split('T')[0],
+          date: repayment.date || getLocalDateString(),
           note: repayment.note || ''
         }
       ];
@@ -534,7 +833,7 @@ export const TransactionProvider = ({ children }) => {
         await addTransaction({
           amount: repayAmount,
           type: 'expense',
-          date: repayment.date || new Date().toISOString().split('T')[0],
+          date: repayment.date || getLocalDateString(),
           categoryId: cat?.id || (categories.find(c => c.type === 'expense')?.id || 'cat_expense'),
           note: `Repaid debt to ${current.lenderName}${repayment.note ? ' - ' + repayment.note : ''}`
         });
@@ -563,7 +862,7 @@ export const TransactionProvider = ({ children }) => {
         {
           id: 'rep_' + Date.now(),
           amount: remaining,
-          date: new Date().toISOString().split('T')[0],
+          date: getLocalDateString(),
           note: 'Marked fully paid back'
         }
       ] : (current.repayments || []);
@@ -609,6 +908,10 @@ export const TransactionProvider = ({ children }) => {
   const contextValue = React.useMemo(() => ({
     transactions,
     categories,
+    subscriptions,
+    accounts: accountsWithBalances,
+    rawAccounts: accounts,
+    savingsGoals,
     lentRecords,
     borrowedRecords,
     settings,
@@ -622,6 +925,18 @@ export const TransactionProvider = ({ children }) => {
     updateTransaction,
     deleteTransaction,
     addCategory,
+    updateCategory,
+    addSubscription,
+    updateSubscription,
+    deleteSubscription,
+    addSavingsGoal,
+    updateSavingsGoal,
+    deleteSavingsGoal,
+    contributeToGoal,
+    addAccount,
+    updateAccount,
+    deleteAccount,
+    transferFunds,
     addLentRecord,
     updateLentRecord,
     deleteLentRecord,
@@ -638,6 +953,10 @@ export const TransactionProvider = ({ children }) => {
   }), [
     transactions,
     categories,
+    subscriptions,
+    accountsWithBalances,
+    accounts,
+    savingsGoals,
     lentRecords,
     borrowedRecords,
     settings,

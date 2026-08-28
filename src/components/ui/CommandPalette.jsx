@@ -22,6 +22,7 @@ import {
   faArrowRight
 } from '@fortawesome/free-solid-svg-icons';
 import { resolveCategory } from '../../utils/categoryIcons';
+import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 
 const CommandPalette = () => {
   const { isCommandPaletteOpen, closeCommandPalette, togglePrivacyMode, isPrivacyMode } = useUI();
@@ -33,16 +34,13 @@ const CommandPalette = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef(null);
 
+  useBodyScrollLock(isCommandPaletteOpen);
+
   useEffect(() => {
     if (isCommandPaletteOpen) {
-      const orig = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
       setQuery('');
       setSelectedIndex(0);
       setTimeout(() => inputRef.current?.focus(), 50);
-      return () => {
-        document.body.style.overflow = orig;
-      };
     }
   }, [isCommandPaletteOpen]);
 
