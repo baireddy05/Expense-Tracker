@@ -14,6 +14,7 @@ export const TransactionProvider = ({ children }) => {
   const [subscriptions, setSubscriptions] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [savingsGoals, setSavingsGoals] = useState([]);
+  const [events, setEvents] = useState([]);
   const [lentRecords, setLentRecords] = useState([]);
   const [borrowedRecords, setBorrowedRecords] = useState([]);
   const [settings, setSettings] = useState({ monthlyBudget: 0 });
@@ -25,7 +26,7 @@ export const TransactionProvider = ({ children }) => {
     if (authLoading) return;
     try {
       setLoading(true);
-      const [txData, catData, settingsData, lentData, borrowData, subData, accData, goalData] = await Promise.all([
+      const [txData, catData, settingsData, lentData, borrowData, subData, accData, goalData, eventData] = await Promise.all([
         DataService.getTransactions(userId),
         DataService.getCategories(userId),
         DataService.getSettings(userId),
@@ -33,13 +34,15 @@ export const TransactionProvider = ({ children }) => {
         DataService.getBorrowedRecords(userId),
         DataService.getSubscriptions(userId),
         DataService.getAccounts(userId),
-        DataService.getSavingsGoals(userId)
+        DataService.getSavingsGoals(userId),
+        DataService.getEvents(userId)
       ]);
       
       let currentTx = txData || [];
       let currentSubs = subData || [];
       let currentAccs = accData || [];
       const currentGoals = goalData || [];
+      const currentEvents = eventData || [];
 
       // Auto-process due subscriptions using local timezone
       const todayStr = getLocalDateString();
@@ -79,6 +82,7 @@ export const TransactionProvider = ({ children }) => {
       setSubscriptions(currentSubs);
       setAccounts(currentAccs);
       setSavingsGoals(currentGoals);
+      setEvents(currentEvents);
       setSettings(settingsData || { monthlyBudget: 0 });
       setLentRecords(lentData || []);
       setBorrowedRecords(borrowData || []);
@@ -333,6 +337,45 @@ export const TransactionProvider = ({ children }) => {
     }
   };
 
+  // Events / Trips Actions
+  const addEvent = async (event) => {
+    try {
+      const cleanTag = (event.tag || event.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const payload = {
+        ...event,
+        tag: cleanTag || 'trip_' + Date.now(),
+        budget: parseFloat(event.budget) || 0
+      };
+      const newEvent = await DataService.addEvent(payload, userId);
+      setEvents(prev => [...prev, newEvent]);
+      return newEvent;
+    } catch (err) {
+      setError('Failed to add trip/event');
+      throw err;
+    }
+  };
+
+  const updateEvent = async (id, updates) => {
+    try {
+      await DataService.updateEvent(id, updates, userId);
+      setEvents(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+      return { id, ...updates };
+    } catch (err) {
+      setError('Failed to update trip/event');
+      throw err;
+    }
+  };
+
+  const deleteEvent = async (id) => {
+    try {
+      await DataService.deleteEvent(id, userId);
+      setEvents(prev => prev.filter(e => e.id !== id));
+    } catch (err) {
+      setError('Failed to delete trip/event');
+      throw err;
+    }
+  };
+
   // Accounts Actions
   const addAccount = async (account) => {
     try {
@@ -423,6 +466,42 @@ export const TransactionProvider = ({ children }) => {
       };
     });
   }, [accounts, transactions]);
+
+  // Dynamically compute live spending and stats for each trip/event
+  const eventsWithStats = React.useMemo(() => {
+    return events.map(event => {
+      const budget = parseFloat(event.budget) || 0;
+      const tagClean = (event.tag || '').toLowerCase();
+      let totalSpent = 0;
+      let matchingTxCount = 0;
+
+      transactions.forEach(t => {
+        if (t.type !== 'expense') return;
+        const note = (t.note || '').toLowerCase();
+        const tTag = (t.eventTag || t.tag || '').toLowerCase();
+        const hasTag = (tagClean && (tTag === tagClean || note.includes('#' + tagClean) || (t.tags && t.tags.some(tag => tag.toLowerCase() === tagClean))));
+        const matchesEventId = t.eventId === event.id;
+
+        if (hasTag || matchesEventId) {
+          totalSpent += parseFloat(t.amount) || 0;
+          matchingTxCount++;
+        }
+      });
+
+      const remainingBudget = Math.max(0, budget - totalSpent);
+      const percentage = budget > 0 ? (totalSpent / budget) * 100 : 0;
+      const isOverBudget = totalSpent > budget && budget > 0;
+
+      return {
+        ...event,
+        spent: totalSpent,
+        remainingBudget,
+        percentage,
+        isOverBudget,
+        txCount: matchingTxCount
+      };
+    });
+  }, [events, transactions]);
 
   // Lent Money Actions
   const addLentRecord = async (record) => {
@@ -912,6 +991,8 @@ export const TransactionProvider = ({ children }) => {
     accounts: accountsWithBalances,
     rawAccounts: accounts,
     savingsGoals,
+    events: eventsWithStats,
+    rawEvents: events,
     lentRecords,
     borrowedRecords,
     settings,
@@ -933,6 +1014,9 @@ export const TransactionProvider = ({ children }) => {
     updateSavingsGoal,
     deleteSavingsGoal,
     contributeToGoal,
+    addEvent,
+    updateEvent,
+    deleteEvent,
     addAccount,
     updateAccount,
     deleteAccount,
@@ -957,6 +1041,8 @@ export const TransactionProvider = ({ children }) => {
     accountsWithBalances,
     accounts,
     savingsGoals,
+    eventsWithStats,
+    events,
     lentRecords,
     borrowedRecords,
     settings,

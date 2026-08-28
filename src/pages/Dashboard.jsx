@@ -17,7 +17,8 @@ import {
   faShieldAlt,
   faBuildingColumns,
   faRightLeft,
-  faBullseye
+  faBullseye,
+  faSuitcase
 } from '@fortawesome/free-solid-svg-icons';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
@@ -28,7 +29,7 @@ import { getCategoryIcon, resolveCategory } from '../utils/categoryIcons';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler);
 
 const Dashboard = () => {
-  const { transactions, categories, accounts = [], savingsGoals = [], lentRecords = [], borrowedRecords = [], loading, settings } = useTransactions();
+  const { transactions, categories, accounts = [], savingsGoals = [], events = [], lentRecords = [], borrowedRecords = [], loading, settings } = useTransactions();
   const { isPrivacyMode } = useUI();
   const { currentUser, openAuthModal } = useAuth();
   const navigate = useNavigate();
@@ -497,6 +498,73 @@ const Dashboard = () => {
                   <div className="flex justify-between items-center text-[10px] text-zinc-400">
                     <span>{formatCurrency(saved)}</span>
                     <span>Target: {formatCurrency(target)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Quick Active Trips & Events Glance */}
+      {events.length > 0 && (
+        <div className="glass-card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+              <FontAwesomeIcon icon={faSuitcase} className="text-indigo-500" />
+              <span>Active Trips & Event Budgets</span>
+            </h3>
+            <Link 
+              to="/events" 
+              className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+            >
+              <span>View All Events</span>
+              <FontAwesomeIcon icon={faArrowRight} className="text-[9px]" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {events.slice(0, 3).map(event => {
+              const budget = parseFloat(event.budget) || 0;
+              const spent = parseFloat(event.spent) || 0;
+              const percent = budget > 0 ? (spent / budget) * 100 : 0;
+              const isOver = spent > budget && budget > 0;
+
+              return (
+                <div key={event.id} className="p-3 rounded-xl liquid-glass-subtle space-y-2">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <span className="text-xs font-bold text-zinc-900 dark:text-white truncate">
+                        {event.name}
+                      </span>
+                      <span className="text-[9px] px-1 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-mono">
+                        #{event.tag}
+                      </span>
+                    </div>
+                    {isOver ? (
+                      <span className="text-[9px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded">
+                        Over
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-semibold text-zinc-400">
+                        {percent.toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-700 ${isOver ? 'bg-rose-500' : 'bg-indigo-500'}`}
+                      style={{ 
+                        width: `${Math.min(percent, 100)}%`,
+                        backgroundColor: isOver ? '#ef4444' : (event.color || '#6366f1')
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex justify-between items-center text-[10px] text-zinc-400">
+                    <span>Spent: {formatCurrency(spent)}</span>
+                    <span>Budget: {budget > 0 ? formatCurrency(budget) : 'No limit'}</span>
                   </div>
                 </div>
               );

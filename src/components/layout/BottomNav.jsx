@@ -14,7 +14,8 @@ import {
   faCog,
   faTimes,
   faShieldAlt,
-  faWallet
+  faWallet,
+  faSuitcase
 } from '@fortawesome/free-solid-svg-icons';
 import { useTransactions } from '../../context/TransactionContext';
 import { useAuth } from '../../context/AuthContext';
@@ -24,7 +25,7 @@ const BottomNav = () => {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { subscriptions = [], lentRecords = [], borrowedRecords = [], accounts = [], savingsGoals = [] } = useTransactions();
+  const { subscriptions = [], lentRecords = [], borrowedRecords = [], accounts = [], savingsGoals = [], events = [] } = useTransactions();
   const { currentUser } = useAuth();
 
   useBodyScrollLock(isMoreOpen);
@@ -37,6 +38,13 @@ const BottomNav = () => {
   ];
 
   const moreNavItems = [
+    { 
+      name: 'Trips & Events', 
+      path: '/events', 
+      icon: faSuitcase, 
+      color: 'bg-amber-500/10 text-amber-500',
+      subtitle: `${events.length} active events & trips` 
+    },
     { 
       name: 'Subscriptions', 
       path: '/subscriptions', 

@@ -380,6 +380,48 @@ export const DataService = {
     return true;
   },
 
+  // ----------------------------------------------------
+  // Trips & Events Tracking (users/{userId}/events)
+  // ----------------------------------------------------
+  async getEvents(userId) {
+    if (!userId || !db) return [];
+    try {
+      const colRef = collection(db, "users", userId, "events");
+      const snapshot = await getDocs(colRef);
+      return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      console.warn("Firestore fetch events error:", e);
+      return [];
+    }
+  },
+
+  async addEvent(event, userId) {
+    if (!userId || !db) {
+      return { id: 'transient_event_' + Date.now(), ...event };
+    }
+    const colRef = collection(db, "users", userId, "events");
+    const docRef = await addDoc(colRef, event);
+    return { id: docRef.id, ...event };
+  },
+
+  async updateEvent(id, updates, userId) {
+    if (!userId || !db || !id || id.startsWith('transient_')) {
+      return { id, ...updates };
+    }
+    const docRef = doc(db, "users", userId, "events", id);
+    await setDoc(docRef, updates, { merge: true });
+    return { id, ...updates };
+  },
+
+  async deleteEvent(id, userId) {
+    if (!userId || !db || !id || id.startsWith('transient_')) return true;
+    const docRef = doc(db, "users", userId, "events", id);
+    await deleteDoc(docRef);
+    return true;
+  },
+
+
+
 
   async getLentRecords(userId) {
     // If not authenticated, NEVER return or read unencrypted local data

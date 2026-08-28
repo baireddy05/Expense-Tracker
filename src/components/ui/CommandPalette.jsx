@@ -22,7 +22,8 @@ import {
   faArrowRight,
   faBuildingColumns,
   faBullseye,
-  faSyncAlt
+  faSyncAlt,
+  faSuitcase
 } from '@fortawesome/free-solid-svg-icons';
 import { resolveCategory } from '../../utils/categoryIcons';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
@@ -35,6 +36,7 @@ const CommandPalette = () => {
     accounts = [], 
     savingsGoals = [], 
     subscriptions = [], 
+    events = [],
     lentRecords = [], 
     borrowedRecords = [], 
     categories = [] 
@@ -65,6 +67,7 @@ const CommandPalette = () => {
       { id: 'page_tx', category: 'Navigation', title: 'Transactions', subtitle: 'Income & Expenses Ledger', icon: faList, action: () => navigate('/transactions') },
       { id: 'page_accounts', category: 'Navigation', title: 'Accounts & Wallets', subtitle: 'Bank, cash, credit balances', icon: faBuildingColumns, action: () => navigate('/accounts') },
       { id: 'page_goals', category: 'Navigation', title: 'Savings Goals', subtitle: 'Target milestones & progress', icon: faBullseye, action: () => navigate('/goals') },
+      { id: 'page_events', category: 'Navigation', title: 'Trips & Event Budgets', subtitle: 'Vacations, weddings & event budgets', icon: faSuitcase, action: () => navigate('/events') },
       { id: 'page_subs', category: 'Navigation', title: 'Subscriptions', subtitle: 'Recurring payments & renewals', icon: faSyncAlt, action: () => navigate('/subscriptions') },
       { id: 'page_lent', category: 'Navigation', title: 'Lent to Friends', subtitle: 'Money you lent out', icon: faHandHoldingDollar, action: () => navigate('/lent') },
       { id: 'page_borrow', category: 'Navigation', title: 'Borrowed Money', subtitle: 'Debts owed to friends', icon: faHandHolding, action: () => navigate('/borrowed') },
@@ -175,8 +178,22 @@ const CommandPalette = () => {
       }
     });
 
+    // Trips & Events
+    events.forEach(ev => {
+      if (!q || ev.name?.toLowerCase().includes(q) || ev.tag?.toLowerCase().includes(q)) {
+        list.push({
+          id: `event_${ev.id}`,
+          category: 'Trips & Events',
+          title: ev.name,
+          subtitle: `#${ev.tag} • Spent: ₹${(parseFloat(ev.spent) || 0).toLocaleString('en-IN')}${ev.budget ? ` of ₹${parseFloat(ev.budget).toLocaleString('en-IN')}` : ''}`,
+          icon: faSuitcase,
+          action: () => navigate('/events')
+        });
+      }
+    });
+
     return list;
-  }, [query, theme, isPrivacyMode, accounts, savingsGoals, subscriptions, lentRecords, borrowedRecords, transactions, categories, navigate, setTheme, togglePrivacyMode]);
+  }, [query, theme, isPrivacyMode, accounts, savingsGoals, subscriptions, events, lentRecords, borrowedRecords, transactions, categories, navigate, setTheme, togglePrivacyMode]);
 
   const handleSelect = (item) => {
     closeCommandPalette();

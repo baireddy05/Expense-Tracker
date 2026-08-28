@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTransactions } from '../../context/TransactionContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faCommentDots } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faCommentDots, faSuitcase, faTag, faPlus } from '@fortawesome/free-solid-svg-icons';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import toast from 'react-hot-toast';
 
@@ -13,7 +13,7 @@ const TransactionForm = ({
   defaultType = 'expense',
   defaultDate = null 
 }) => {
-  const { transactions = [], categories, accounts = [], addTransaction, updateTransaction, addCategory } = useTransactions();
+  const { transactions = [], categories, accounts = [], events = [], addTransaction, updateTransaction, addCategory } = useTransactions();
 
   const getLocalToday = () => {
     const d = new Date();
@@ -70,6 +70,8 @@ const TransactionForm = ({
   const [date, setDate] = useState(getLocalToday());
   const [note, setNote] = useState('');
   const [accountId, setAccountId] = useState('');
+  const [eventId, setEventId] = useState('');
+  const [tagInput, setTagInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -133,6 +135,8 @@ const TransactionForm = ({
       setAccountId(initialData.accountId || accounts.find(a => a.isDefault)?.id || accounts[0]?.id || '');
       setDate(initialData.date ? initialData.date.split('T')[0] : getLocalToday());
       setNote(initialData.note || '');
+      setEventId(initialData.eventId || '');
+      setTagInput(initialData.tags ? initialData.tags.join(', ') : (initialData.eventTag ? '#' + initialData.eventTag : ''));
       setIsCreatingCategory(false);
       setNewCategoryName('');
     } else {
@@ -142,6 +146,8 @@ const TransactionForm = ({
       setAccountId(initialData?.accountId || accounts.find(a => a.isDefault)?.id || accounts[0]?.id || '');
       setDate(initialData?.date ? initialData.date.split('T')[0] : (defaultDate || getLocalToday()));
       setNote(initialData?.note || '');
+      setEventId(initialData?.eventId || '');
+      setTagInput('');
       setIsCreatingCategory(false);
       setNewCategoryName('');
     }
@@ -155,11 +161,19 @@ const TransactionForm = ({
     
     setLoading(true);
     try {
+      const selectedEvent = events.find(e => e.id === eventId);
+      const parsedTags = tagInput 
+        ? tagInput.split(',').map(s => s.trim().replace(/^#/, '')).filter(Boolean)
+        : (selectedEvent ? [selectedEvent.tag] : []);
+
       const txData = { 
         type, 
         amount: parseFloat(amount), 
         categoryId, 
         accountId: accountId || accounts.find(a => a.isDefault)?.id || accounts[0]?.id, 
+        eventId: eventId || null,
+        eventTag: selectedEvent?.tag || null,
+        tags: parsedTags,
         date, 
         note 
       };
@@ -462,6 +476,43 @@ const TransactionForm = ({
                 <option key={s} value={s} />
               ))}
             </datalist>
+          </div>
+
+          {/* Link to Trip / Event (If any events exist) */}
+          {events.length > 0 && type === 'expense' && (
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1 flex items-center gap-1.5">
+                <FontAwesomeIcon icon={faSuitcase} className="text-indigo-500" />
+                <span>Link to Trip / Event Budget</span>
+              </label>
+              <select
+                value={eventId}
+                onChange={e => setEventId(e.target.value)}
+                className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white font-medium cursor-pointer"
+              >
+                <option value="">None (Personal / General Expense)</option>
+                {events.map(ev => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name} (#{ev.tag}) {ev.budget ? `• Budget: ₹${parseFloat(ev.budget).toLocaleString('en-IN')}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Custom Tags */}
+          <div>
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1 flex items-center gap-1.5">
+              <FontAwesomeIcon icon={faTag} className="text-zinc-400 text-[10px]" />
+              <span>Tags (Optional)</span>
+            </label>
+            <input
+              type="text"
+              value={tagInput}
+              onChange={e => setTagInput(e.target.value)}
+              placeholder="e.g. #GoaTrip, #Diwali, #ClientLunch"
+              className="w-full px-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400"
+            />
           </div>
 
           {/* Submit Button */}

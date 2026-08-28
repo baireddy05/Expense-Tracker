@@ -32,7 +32,8 @@ import {
   faHandHoldingDollar,
   faHandHolding,
   faChartPie,
-  faCog
+  faCog,
+  faSuitcase
 } from '@fortawesome/free-solid-svg-icons';
 import { NavLink } from 'react-router-dom';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
@@ -215,6 +216,7 @@ const AppShell = () => {
                   { name: 'Transactions', path: '/transactions', icon: faList },
                   { name: 'Accounts & Wallets', path: '/accounts', icon: faBuildingColumns },
                   { name: 'Savings Goals', path: '/goals', icon: faBullseye },
+                  { name: 'Trips & Events', path: '/events', icon: faSuitcase },
                   { name: 'Subscriptions', path: '/subscriptions', icon: faSyncAlt },
                   { name: 'Lent to Friends', path: '/lent', icon: faHandHoldingDollar },
                   { name: 'Borrowed Money', path: '/borrowed', icon: faHandHolding },

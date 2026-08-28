@@ -18,6 +18,7 @@ const Settings = lazy(() => import('./pages/Settings'));
 const Subscriptions = lazy(() => import('./pages/Subscriptions'));
 const Accounts = lazy(() => import('./pages/Accounts'));
 const SavingsGoals = lazy(() => import('./pages/SavingsGoals'));
+const Events = lazy(() => import('./pages/Events'));
 
 const PageLoader = () => (
   <div className="flex w-full items-center justify-center p-12 animate-pulse">
@@ -79,6 +80,11 @@ function App() {
                     <Route path="goals" element={
                       <Suspense fallback={<PageLoader />}>
                         <SavingsGoals />
+                      </Suspense>
+                    } />
+                    <Route path="events" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <Events />
                       </Suspense>
                     } />
                   </Route>
