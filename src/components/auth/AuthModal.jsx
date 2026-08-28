@@ -117,7 +117,7 @@ const AuthModal = () => {
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in" onClick={closeAuthModal}>
       <div 
-        className="liquid-glass-dock w-full max-w-md rounded-3xl overflow-hidden border border-white/60 dark:border-white/10 shadow-2xl animate-scale-in my-auto"
+        className="liquid-glass-dock w-full max-w-md rounded-3xl overflow-hidden border border-white/60 dark:border-white/10 shadow-2xl animate-scale-in sm:my-auto mt-auto mb-0 sm:mb-auto sm:mt-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Modal */}
@@ -172,7 +172,7 @@ const AuthModal = () => {
           </div>
         )}
 
-        <div className="p-5 pt-4">
+        <div className="p-5 pt-4 pb-safe sm:pb-5 max-h-[85vh] overflow-y-auto sm:overflow-visible">
           {/* Google Sign-in Button */}
           {activeTab !== 'forgot' && (
             <>

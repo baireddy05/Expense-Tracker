@@ -130,7 +130,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
       onClick={onClose}
     >
       <div 
-        className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border border-zinc-200/80 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-fade-in my-auto"
+        className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border border-zinc-200/80 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-fade-in sm:my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -158,7 +158,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto sm:overflow-visible p-5 space-y-4 pb-8 sm:pb-5">
+        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto sm:overflow-visible p-5 space-y-4 pb-safe sm:pb-5">
           <div>
             <div className="flex justify-between items-center mb-1.5">
               <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">

@@ -206,7 +206,7 @@ const TransactionForm = ({
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-fade-in my-auto"
+        className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-fade-in sm:my-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -238,7 +238,7 @@ const TransactionForm = ({
         </div>
         
         {/* Form Body - Compact and Non-Scrollable on Desktop */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto sm:overflow-visible p-4 sm:p-5 space-y-3 sm:space-y-3.5 pb-8 sm:pb-5">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto sm:overflow-visible p-4 sm:p-5 space-y-3 sm:space-y-3.5 pb-safe sm:pb-5">
           {/* Expense / Income Toggle */}
           <div className="flex rounded-xl bg-zinc-100 dark:bg-zinc-800/80 p-1 shrink-0 border border-zinc-200/60 dark:border-zinc-700/60">
             <button 

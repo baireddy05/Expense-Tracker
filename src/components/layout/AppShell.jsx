@@ -86,7 +86,7 @@ const AppShell = () => {
       <Sidebar />
       
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto pb-24 md:pb-8 relative scroll-smooth flex flex-col z-10">
+      <main className="flex-1 overflow-y-auto pb-32 md:pb-8 relative scroll-smooth flex flex-col z-10">
         {/* Top Floating Liquid Glass Navbar Header */}
         <header className="sticky top-0 z-30 liquid-glass-dock border-b border-white/60 dark:border-white/10 px-4 md:px-8 py-3.5 flex justify-between items-center transition-all">
           {/* Logo on mobile / Search trigger on desktop */}

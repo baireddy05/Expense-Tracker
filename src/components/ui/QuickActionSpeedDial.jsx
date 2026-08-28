@@ -75,7 +75,7 @@ const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) =>
   ];
 
   return (
-    <div className="fixed bottom-20 md:bottom-8 right-5 md:right-8 z-40 flex flex-col items-end">
+    <div className="fixed bottom-28 md:bottom-8 right-5 md:right-8 z-40 flex flex-col items-end">
       {/* Expanded Speed-Dial items */}
       {isOpen && (
         <div className="mb-3 space-y-2.5 flex flex-col items-end animate-fade-in">
