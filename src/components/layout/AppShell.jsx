@@ -21,8 +21,21 @@ import {
   faSun, 
   faEye, 
   faEyeSlash, 
-  faSearch
+  faSearch,
+  faBars,
+  faTimes,
+  faHome,
+  faList,
+  faBuildingColumns,
+  faBullseye,
+  faSyncAlt,
+  faHandHoldingDollar,
+  faHandHolding,
+  faChartPie,
+  faCog
 } from '@fortawesome/free-solid-svg-icons';
+import { NavLink } from 'react-router-dom';
+import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 
 const AppShell = () => {
   const { loading, error } = useTransactions();
@@ -35,6 +48,9 @@ const AppShell = () => {
   const [initialTxType, setInitialTxType] = useState('expense');
   const [isLentModalOpen, setIsLentModalOpen] = useState(false);
   const [isBorrowModalOpen, setIsBorrowModalOpen] = useState(false);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+
+  useBodyScrollLock(isMobileDrawerOpen);
 
   const handleOpenTx = (type = 'expense') => {
     setInitialTxType(type);
@@ -83,10 +99,15 @@ const AppShell = () => {
         <header className="sticky top-0 z-30 liquid-glass-dock border-b border-white/60 dark:border-white/10 px-4 md:px-8 py-3.5 flex justify-between items-center transition-all">
           {/* Logo on mobile / Search trigger on desktop */}
           <div className="flex items-center gap-3">
-            <div className="md:hidden flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center text-xs shadow-xs">
-                <FontAwesomeIcon icon={faWallet} />
-              </div>
+            <div className="md:hidden flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsMobileDrawerOpen(true)}
+                className="w-8 h-8 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center text-xs shadow-xs cursor-pointer touch-feedback"
+                title="Open Navigation Menu"
+              >
+                <FontAwesomeIcon icon={faBars} />
+              </button>
               <span className="text-base font-bold tracking-tight text-zinc-900 dark:text-white">
                 ExTrack
               </span>
@@ -155,6 +176,85 @@ const AppShell = () => {
           <Outlet />
         </div>
       </main>
+
+      {/* Mobile Slide-Out Drawer Menu */}
+      {isMobileDrawerOpen && (
+        <div 
+          className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fade-in flex"
+          onClick={() => setIsMobileDrawerOpen(false)}
+        >
+          <div 
+            className="w-72 max-w-[80vw] h-full bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border-r border-zinc-200/80 dark:border-zinc-800 p-5 flex flex-col justify-between shadow-2xl animate-slide-right overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Drawer Header */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center text-xs shadow-xs">
+                    <FontAwesomeIcon icon={faWallet} />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold tracking-tight text-zinc-900 dark:text-white">ExTrack</h2>
+                    <p className="text-[10px] text-zinc-400">Personal Financial OS</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileDrawerOpen(false)}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                >
+                  <FontAwesomeIcon icon={faTimes} className="text-xs" />
+                </button>
+              </div>
+
+              {/* Navigation Links */}
+              <nav className="space-y-1">
+                {[
+                  { name: 'Dashboard', path: '/dashboard', icon: faHome },
+                  { name: 'Transactions', path: '/transactions', icon: faList },
+                  { name: 'Accounts & Wallets', path: '/accounts', icon: faBuildingColumns },
+                  { name: 'Savings Goals', path: '/goals', icon: faBullseye },
+                  { name: 'Subscriptions', path: '/subscriptions', icon: faSyncAlt },
+                  { name: 'Lent to Friends', path: '/lent', icon: faHandHoldingDollar },
+                  { name: 'Borrowed Money', path: '/borrowed', icon: faHandHolding },
+                  { name: 'Analytics & Insights', path: '/analytics', icon: faChartPie },
+                  { name: 'Settings & Cloud', path: '/settings', icon: faCog }
+                ].map(item => (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all touch-feedback ${
+                        isActive
+                          ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs'
+                          : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 hover:text-zinc-900 dark:hover:text-white'
+                      }`
+                    }
+                  >
+                    <FontAwesomeIcon icon={item.icon} className="text-xs w-4 text-center" />
+                    <span>{item.name}</span>
+                  </NavLink>
+                ))}
+              </nav>
+            </div>
+
+            {/* Drawer Footer */}
+            <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs">
+              <span className="text-[10px] text-zinc-400">100% Synced & Encrypted</span>
+              <button
+                type="button"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[11px] font-semibold flex items-center gap-1.5 cursor-pointer"
+              >
+                <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} className="text-[10px]" />
+                <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating Speed Dial */}
       <QuickActionSpeedDial 

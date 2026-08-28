@@ -19,7 +19,10 @@ import {
   faEyeSlash,
   faTimes,
   faMoneyBillWave,
-  faArrowRight
+  faArrowRight,
+  faBuildingColumns,
+  faBullseye,
+  faSyncAlt
 } from '@fortawesome/free-solid-svg-icons';
 import { resolveCategory } from '../../utils/categoryIcons';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
@@ -27,7 +30,15 @@ import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 const CommandPalette = () => {
   const { isCommandPaletteOpen, closeCommandPalette, togglePrivacyMode, isPrivacyMode } = useUI();
   const { theme, setTheme } = useTheme();
-  const { transactions = [], lentRecords = [], borrowedRecords = [], categories = [] } = useTransactions();
+  const { 
+    transactions = [], 
+    accounts = [], 
+    savingsGoals = [], 
+    subscriptions = [], 
+    lentRecords = [], 
+    borrowedRecords = [], 
+    categories = [] 
+  } = useTransactions();
   const navigate = useNavigate();
 
   const [query, setQuery] = useState('');
@@ -52,6 +63,9 @@ const CommandPalette = () => {
     const pages = [
       { id: 'page_dash', category: 'Navigation', title: 'Dashboard', subtitle: 'Overview & Cash Flow', icon: faHome, action: () => navigate('/dashboard') },
       { id: 'page_tx', category: 'Navigation', title: 'Transactions', subtitle: 'Income & Expenses Ledger', icon: faList, action: () => navigate('/transactions') },
+      { id: 'page_accounts', category: 'Navigation', title: 'Accounts & Wallets', subtitle: 'Bank, cash, credit balances', icon: faBuildingColumns, action: () => navigate('/accounts') },
+      { id: 'page_goals', category: 'Navigation', title: 'Savings Goals', subtitle: 'Target milestones & progress', icon: faBullseye, action: () => navigate('/goals') },
+      { id: 'page_subs', category: 'Navigation', title: 'Subscriptions', subtitle: 'Recurring payments & renewals', icon: faSyncAlt, action: () => navigate('/subscriptions') },
       { id: 'page_lent', category: 'Navigation', title: 'Lent to Friends', subtitle: 'Money you lent out', icon: faHandHoldingDollar, action: () => navigate('/lent') },
       { id: 'page_borrow', category: 'Navigation', title: 'Borrowed Money', subtitle: 'Debts owed to friends', icon: faHandHolding, action: () => navigate('/borrowed') },
       { id: 'page_analytics', category: 'Navigation', title: 'Analytics', subtitle: 'Visual charts & insights', icon: faChartPie, action: () => navigate('/analytics') },
@@ -119,8 +133,50 @@ const CommandPalette = () => {
       });
     }
 
+    // User Accounts
+    accounts.forEach(acc => {
+      if (!q || acc.name?.toLowerCase().includes(q) || acc.type?.toLowerCase().includes(q)) {
+        list.push({
+          id: `acc_${acc.id}`,
+          category: 'Accounts',
+          title: acc.name,
+          subtitle: `Balance: ₹${(parseFloat(acc.balance) || 0).toLocaleString('en-IN')} (${acc.type})`,
+          icon: faBuildingColumns,
+          action: () => navigate('/accounts')
+        });
+      }
+    });
+
+    // Savings Goals
+    savingsGoals.forEach(g => {
+      if (!q || g.name?.toLowerCase().includes(q)) {
+        list.push({
+          id: `goal_${g.id}`,
+          category: 'Savings Goals',
+          title: g.name,
+          subtitle: `Saved: ₹${(parseFloat(g.savedAmount) || 0).toLocaleString('en-IN')} of ₹${(parseFloat(g.targetAmount) || 0).toLocaleString('en-IN')}`,
+          icon: faBullseye,
+          action: () => navigate('/goals')
+        });
+      }
+    });
+
+    // Subscriptions
+    subscriptions.forEach(s => {
+      if (!q || s.name?.toLowerCase().includes(q)) {
+        list.push({
+          id: `sub_${s.id}`,
+          category: 'Subscriptions',
+          title: s.name,
+          subtitle: `₹${parseFloat(s.amount).toLocaleString('en-IN')}/${s.frequency} • ${s.active ? 'Active' : 'Paused'}`,
+          icon: faSyncAlt,
+          action: () => navigate('/subscriptions')
+        });
+      }
+    });
+
     return list;
-  }, [query, theme, isPrivacyMode, lentRecords, borrowedRecords, transactions, categories, navigate, setTheme, togglePrivacyMode]);
+  }, [query, theme, isPrivacyMode, accounts, savingsGoals, subscriptions, lentRecords, borrowedRecords, transactions, categories, navigate, setTheme, togglePrivacyMode]);
 
   const handleSelect = (item) => {
     closeCommandPalette();
