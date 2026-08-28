@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 const TransactionContext = createContext();
 
 export const TransactionProvider = ({ children }) => {
-  const { currentUser, userId } = useAuth();
+  const { currentUser, userId, loading: authLoading } = useAuth();
 
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -18,6 +18,7 @@ export const TransactionProvider = ({ children }) => {
   const [isSyncing, setIsSyncing] = useState(false);
 
   const fetchData = useCallback(async () => {
+    if (authLoading) return;
     try {
       setLoading(true);
       const [txData, catData, settingsData, lentData, borrowData] = await Promise.all([
@@ -39,16 +40,14 @@ export const TransactionProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, authLoading]);
 
-  // Refetch data when user auth state changes (login / switch user / logout)
+  // Refetch data when auth finishes loading or user auth state changes (login / switch user / logout)
   useEffect(() => {
-    fetchData();
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [fetchData]);
+    if (!authLoading) {
+      fetchData();
+    }
+  }, [fetchData, authLoading]);
 
   // Auto-purge any legacy/offline unencrypted data from browser storage unconditionally
   useEffect(() => {
@@ -613,7 +612,7 @@ export const TransactionProvider = ({ children }) => {
     lentRecords,
     borrowedRecords,
     settings,
-    loading,
+    loading: authLoading || loading,
     error,
     isSyncing,
     syncLocalData,
@@ -643,6 +642,7 @@ export const TransactionProvider = ({ children }) => {
     borrowedRecords,
     settings,
     loading,
+    authLoading,
     error,
     isSyncing,
     fetchData,

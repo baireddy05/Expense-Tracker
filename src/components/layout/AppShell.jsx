@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
 import { useTransactions } from '../../context/TransactionContext';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useUI } from '../../context/UIContext';
 import CommandPalette from '../ui/CommandPalette';
@@ -12,6 +13,7 @@ import LentFormModal from '../lent/LentFormModal';
 import BorrowFormModal from '../borrow/BorrowFormModal';
 import UserProfileMenu from '../auth/UserProfileMenu';
 import AuthModal from '../auth/AuthModal';
+import SplashScreen from '../ui/SplashScreen';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faWallet, 
@@ -24,6 +26,7 @@ import {
 
 const AppShell = () => {
   const { loading, error } = useTransactions();
+  const { loading: authLoading } = useAuth();
   const { theme, setTheme } = useTheme();
   const { isPrivacyMode, togglePrivacyMode, openCommandPalette } = useUI();
   const location = useLocation();
@@ -38,19 +41,8 @@ const AppShell = () => {
     setIsTxModalOpen(true);
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-[#f6f8fc] dark:bg-[#070709] relative overflow-hidden">
-        {/* Ambient liquid orbs in loading */}
-        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-indigo-500/15 blur-[100px] pointer-events-none" />
-        <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-emerald-500/15 blur-[100px] pointer-events-none" />
-        
-        <div className="liquid-glass-card p-8 flex flex-col items-center gap-4 z-10 animate-scale-in">
-          <div className="w-10 h-10 border-2 border-zinc-300 dark:border-zinc-700 border-t-zinc-900 dark:border-t-white rounded-full animate-spin"></div>
-          <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">ExTrack</p>
-        </div>
-      </div>
-    );
+  if (loading || authLoading) {
+    return <SplashScreen />;
   }
 
   if (error) {

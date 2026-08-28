@@ -256,6 +256,17 @@
   will-change: transform, opacity;
 }
 
+@keyframes indeterminate {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(50%); }
+  100% { transform: translateX(200%); }
+}
+
+.animate-indeterminate {
+  animation: indeterminate 1.4s ease-in-out infinite;
+  will-change: transform;
+}
+
 /* Ambient Liquid Gradient Animation */
 @keyframes ambient-float-1 {
   0%, 100% { transform: translate3d(0px, 0px, 0) scale(1); }
