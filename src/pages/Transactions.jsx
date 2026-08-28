@@ -134,7 +134,9 @@ const Transactions = () => {
         if (searchLower) {
           const noteMatch = t.note?.toLowerCase().includes(searchLower);
           const catMatch = cat?.name?.toLowerCase().includes(searchLower);
-          if (!noteMatch && !catMatch) return false;
+          const tagMatch = t.tags && t.tags.some(tag => tag.toLowerCase().includes(searchLower.replace(/^#/, '')));
+          const eventMatch = t.eventTag && t.eventTag.toLowerCase().includes(searchLower.replace(/^#/, ''));
+          if (!noteMatch && !catMatch && !tagMatch && !eventMatch) return false;
         }
 
         if (filterType !== 'all' && t.type !== filterType) return false;

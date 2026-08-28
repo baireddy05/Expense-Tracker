@@ -32,12 +32,20 @@ const Settings = () => {
     categories, 
     lentRecords = [], 
     borrowedRecords = [], 
+    accounts = [],
+    savingsGoals = [],
+    subscriptions = [],
+    events = [],
     settings, 
     updateSettings, 
     updateCategory,
     addTransaction, 
     addLentRecord, 
     addBorrowedRecord,
+    addAccount,
+    addSavingsGoal,
+    addSubscription,
+    addEvent,
     isSyncing,
     syncLocalData,
     purgeLocalCache
@@ -159,10 +167,14 @@ const Settings = () => {
 
   const handleExportFullJSON = () => {
     const fullBackup = {
-      version: '2.0',
+      version: '3.0',
       exportDate: new Date().toISOString(),
       transactions,
       categories,
+      accounts,
+      savingsGoals,
+      subscriptions,
+      events,
       lentRecords,
       borrowedRecords,
       settings
@@ -171,11 +183,11 @@ const Settings = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullBackup, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `extrack_full_backup_${new Date().toISOString().split('T')[0]}.json`);
+    downloadAnchor.setAttribute("download", `extrack_complete_backup_${new Date().toISOString().split('T')[0]}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
-    toast.success('Full system backup downloaded!');
+    toast.success('Complete system backup downloaded!');
   };
 
   const handleImportJSON = (e) => {
@@ -193,6 +205,46 @@ const Settings = () => {
             const { id, createdAt, ...txData } = tx;
             await addTransaction(txData);
             importedCount++;
+          }
+        }
+
+        if (data.accounts && Array.isArray(data.accounts)) {
+          for (const acc of data.accounts) {
+            if (acc.name) {
+              const { id, ...accData } = acc;
+              await addAccount(accData);
+              importedCount++;
+            }
+          }
+        }
+
+        if (data.savingsGoals && Array.isArray(data.savingsGoals)) {
+          for (const goal of data.savingsGoals) {
+            if (goal.name) {
+              const { id, ...goalData } = goal;
+              await addSavingsGoal(goalData);
+              importedCount++;
+            }
+          }
+        }
+
+        if (data.subscriptions && Array.isArray(data.subscriptions)) {
+          for (const sub of data.subscriptions) {
+            if (sub.name) {
+              const { id, ...subData } = sub;
+              await addSubscription(subData);
+              importedCount++;
+            }
+          }
+        }
+
+        if (data.events && Array.isArray(data.events)) {
+          for (const ev of data.events) {
+            if (ev.name) {
+              const { id, ...evData } = ev;
+              await addEvent(evData);
+              importedCount++;
+            }
           }
         }
 
@@ -214,7 +266,7 @@ const Settings = () => {
           }
         }
 
-        toast.success(`Successfully imported ${importedCount} records from backup!`);
+        toast.success(`Successfully restored ${importedCount} records from backup!`);
       } catch (err) {
         console.error('Import error:', err);
         toast.error('Error parsing JSON backup file.');
