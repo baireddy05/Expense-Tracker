@@ -49,7 +49,8 @@ const Settings = () => {
     addEvent,
     isSyncing,
     syncLocalData,
-    purgeLocalCache
+    purgeLocalCache,
+    refreshData
   } = useTransactions();
   
   const { theme, setTheme } = useTheme();
@@ -189,20 +190,23 @@ const Settings = () => {
       settings
     };
 
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullBackup, null, 2));
+    const jsonBlob = new Blob([JSON.stringify(fullBackup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(jsonBlob);
     const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `extrack_complete_backup_${new Date().toISOString().split('T')[0]}.json`);
+    downloadAnchor.href = url;
+    downloadAnchor.download = `extrack_complete_backup_${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     toast.success('Complete system backup downloaded!');
   };
 
   const handleImportJSON = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
 
+    const loadingToastId = toast.loading('Restoring data from backup...');
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
@@ -277,9 +281,15 @@ const Settings = () => {
           }
         }
 
+        if (refreshData) {
+          await refreshData();
+        }
+
+        toast.dismiss(loadingToastId);
         toast.success(`Successfully restored ${importedCount} records from backup!`);
       } catch (err) {
         console.error('Import error:', err);
+        toast.dismiss(loadingToastId);
         toast.error('Error parsing JSON backup file.');
       }
     };
@@ -701,7 +711,8 @@ const Settings = () => {
               type="file" 
               ref={fileInputRef} 
               onChange={handleImportJSON} 
-              accept=".json" 
+              onClick={(e) => { e.target.value = ''; }}
+              accept=".json,application/json,text/json,text/plain,*/*" 
               className="hidden" 
             />
             <button 
