@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useTransactions } from '../context/TransactionContext';
 import { useUI } from '../context/UIContext';
 import { useAuth } from '../context/AuthContext';
@@ -30,6 +31,7 @@ import { getCategoryIcon, resolveCategory } from '../utils/categoryIcons';
 import toast from 'react-hot-toast';
 
 const Transactions = () => {
+  const location = useLocation();
   const { transactions, categories, deleteTransaction, loading } = useTransactions();
   const { isPrivacyMode } = useUI();
   const { currentUser, openAuthModal } = useAuth();
@@ -39,7 +41,7 @@ const Transactions = () => {
   const [formDefaultDate, setFormDefaultDate] = useState(null);
   const [formDefaultType, setFormDefaultType] = useState('expense');
   
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => location.state?.search || '');
   const getLocalToday = () => {
     const d = new Date();
     const year = d.getFullYear();
@@ -54,6 +56,14 @@ const Transactions = () => {
   const [customDate, setCustomDate] = useState(getLocalToday());
   const [selectedDateGroup, setSelectedDateGroup] = useState('all');
   const [expandedDates, setExpandedDates] = useState({});
+
+  useEffect(() => {
+    if (location.state?.search) {
+      setSearch(location.state.search);
+      setTimeFilter('all');
+      setSelectedDateGroup('all');
+    }
+  }, [location.state]);
   
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null });
   const [pdfConfirmOpen, setPdfConfirmOpen] = useState(false);

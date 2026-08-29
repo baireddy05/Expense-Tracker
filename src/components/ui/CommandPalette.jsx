@@ -23,9 +23,11 @@ import {
   faBuildingColumns,
   faBullseye,
   faSyncAlt,
-  faSuitcase
+  faSuitcase,
+  faCalendarDay
 } from '@fortawesome/free-solid-svg-icons';
-import { resolveCategory } from '../../utils/categoryIcons';
+import { getCategoryIcon, resolveCategory } from '../../utils/categoryIcons';
+import { formatDisplayDate } from '../../utils/dateUtils';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 
 const CommandPalette = () => {
@@ -61,7 +63,129 @@ const CommandPalette = () => {
     const list = [];
     const q = query.toLowerCase().trim();
 
-    // Navigation Pages
+    // 1. If searching, prioritize matching transactions first so specific searches (e.g. "diet coke") immediately display all relevant transaction records!
+    if (q) {
+      // Find all matching transactions
+      const matchingTxs = transactions.filter(t => {
+        const cat = resolveCategory(t.categoryId, categories, t.note);
+        const noteMatch = t.note && t.note.toLowerCase().includes(q);
+        const catMatch = cat && cat.name && cat.name.toLowerCase().includes(q);
+        const amountMatch = String(t.amount || '').includes(q);
+        return noteMatch || catMatch || amountMatch;
+      });
+
+      // Sort matching transactions by date descending (most recent first)
+      matchingTxs.sort((a, b) => {
+        const dateA = new Date(a.date).getTime() || 0;
+        const dateB = new Date(b.date).getTime() || 0;
+        return dateB - dateA;
+      });
+
+      matchingTxs.forEach(t => {
+        const cat = resolveCategory(t.categoryId, categories, t.note);
+        const formattedDate = formatDisplayDate(t.date);
+        const formattedAmount = `${t.type === 'income' ? '+₹' : '-₹'}${(parseFloat(t.amount) || 0).toLocaleString('en-IN')}`;
+
+        list.push({
+          id: `tx_${t.id}`,
+          category: 'Transactions',
+          title: t.note ? t.note : (cat?.name || 'Transaction'),
+          subtitle: `${formattedDate} • ${cat?.name || 'Uncategorized'} • ${formattedAmount}`,
+          date: t.date,
+          amountText: formattedAmount,
+          isIncome: t.type === 'income',
+          categoryColor: cat?.color || '#3b82f6',
+          categoryIcon: cat?.icon,
+          action: () => navigate('/transactions', { state: { search: t.note || cat?.name || q } })
+        });
+      });
+    }
+
+    // 2. Friends from Lent Records
+    lentRecords.forEach(r => {
+      if (!q || r.borrowerName.toLowerCase().includes(q) || (r.note && r.note.toLowerCase().includes(q))) {
+        list.push({
+          id: `lent_${r.id}`,
+          category: 'Lent to Friends',
+          title: r.borrowerName,
+          subtitle: `Total Lent: ₹${(parseFloat(r.amount) || 0).toLocaleString('en-IN')} (Pending: ₹${Math.max(0, (parseFloat(r.amount) || 0) - (parseFloat(r.returnedAmount) || 0)).toLocaleString('en-IN')})`,
+          icon: faHandHoldingDollar,
+          action: () => navigate('/lent')
+        });
+      }
+    });
+
+    // 3. Friends from Borrowed Records
+    borrowedRecords.forEach(r => {
+      if (!q || r.lenderName.toLowerCase().includes(q) || (r.note && r.note.toLowerCase().includes(q))) {
+        list.push({
+          id: `borrow_${r.id}`,
+          category: 'Borrowed Money',
+          title: r.lenderName,
+          subtitle: `Total Debt: ₹${(parseFloat(r.amount) || 0).toLocaleString('en-IN')} (Remaining: ₹${Math.max(0, (parseFloat(r.amount) || 0) - (parseFloat(r.returnedAmount) || 0)).toLocaleString('en-IN')})`,
+          icon: faHandHolding,
+          action: () => navigate('/borrowed')
+        });
+      }
+    });
+
+    // 4. User Accounts & Wallets
+    accounts.forEach(acc => {
+      if (!q || acc.name?.toLowerCase().includes(q) || acc.type?.toLowerCase().includes(q)) {
+        list.push({
+          id: `acc_${acc.id}`,
+          category: 'Accounts',
+          title: acc.name,
+          subtitle: `Balance: ₹${(parseFloat(acc.balance) || 0).toLocaleString('en-IN')} (${acc.type})`,
+          icon: faBuildingColumns,
+          action: () => navigate('/accounts')
+        });
+      }
+    });
+
+    // 5. Savings Goals
+    savingsGoals.forEach(g => {
+      if (!q || g.name?.toLowerCase().includes(q)) {
+        list.push({
+          id: `goal_${g.id}`,
+          category: 'Savings Goals',
+          title: g.name,
+          subtitle: `Saved: ₹${(parseFloat(g.savedAmount) || 0).toLocaleString('en-IN')} of ₹${(parseFloat(g.targetAmount) || 0).toLocaleString('en-IN')}`,
+          icon: faBullseye,
+          action: () => navigate('/goals')
+        });
+      }
+    });
+
+    // 6. Subscriptions
+    subscriptions.forEach(s => {
+      if (!q || s.name?.toLowerCase().includes(q)) {
+        list.push({
+          id: `sub_${s.id}`,
+          category: 'Subscriptions',
+          title: s.name,
+          subtitle: `₹${parseFloat(s.amount).toLocaleString('en-IN')}/${s.frequency} • ${s.active ? 'Active' : 'Paused'}`,
+          icon: faSyncAlt,
+          action: () => navigate('/subscriptions')
+        });
+      }
+    });
+
+    // 7. Trips & Events
+    events.forEach(ev => {
+      if (!q || ev.name?.toLowerCase().includes(q) || ev.tag?.toLowerCase().includes(q)) {
+        list.push({
+          id: `event_${ev.id}`,
+          category: 'Trips & Events',
+          title: ev.name,
+          subtitle: `#${ev.tag} • Spent: ₹${(parseFloat(ev.spent) || 0).toLocaleString('en-IN')}${ev.budget ? ` of ₹${parseFloat(ev.budget).toLocaleString('en-IN')}` : ''}`,
+          icon: faSuitcase,
+          action: () => navigate('/events')
+        });
+      }
+    });
+
+    // 8. Navigation Pages
     const pages = [
       { id: 'page_dash', category: 'Navigation', title: 'Dashboard', subtitle: 'Overview & Cash Flow', icon: faHome, action: () => navigate('/dashboard') },
       { id: 'page_tx', category: 'Navigation', title: 'Transactions', subtitle: 'Income & Expenses Ledger', icon: faList, action: () => navigate('/transactions') },
@@ -80,7 +204,7 @@ const CommandPalette = () => {
       }
     });
 
-    // Quick Actions
+    // 9. Quick Actions
     const actions = [
       { id: 'act_theme', category: 'Quick Actions', title: theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme', subtitle: 'Appearance setting', icon: theme === 'dark' ? faSun : faMoon, action: () => setTheme(theme === 'dark' ? 'light' : 'dark') },
       { id: 'act_privacy', category: 'Quick Actions', title: isPrivacyMode ? 'Disable Privacy Mode (Show Balances)' : 'Enable Privacy Mode (Mask Balances)', subtitle: 'Hide sensitive currency numbers', icon: isPrivacyMode ? faEye : faEyeSlash, action: togglePrivacyMode },
@@ -88,107 +212,6 @@ const CommandPalette = () => {
     actions.forEach(a => {
       if (!q || a.title.toLowerCase().includes(q) || a.subtitle.toLowerCase().includes(q)) {
         list.push(a);
-      }
-    });
-
-    // Friends from Lent Records
-    lentRecords.forEach(r => {
-      if (!q || r.borrowerName.toLowerCase().includes(q) || (r.note && r.note.toLowerCase().includes(q))) {
-        list.push({
-          id: `lent_${r.id}`,
-          category: 'Lent to Friends',
-          title: r.borrowerName,
-          subtitle: `Total Lent: ₹${(parseFloat(r.amount) || 0).toLocaleString('en-IN')} (Pending: ₹${Math.max(0, (parseFloat(r.amount) || 0) - (parseFloat(r.returnedAmount) || 0)).toLocaleString('en-IN')})`,
-          icon: faHandHoldingDollar,
-          action: () => navigate('/lent')
-        });
-      }
-    });
-
-    // Friends from Borrowed Records
-    borrowedRecords.forEach(r => {
-      if (!q || r.lenderName.toLowerCase().includes(q) || (r.note && r.note.toLowerCase().includes(q))) {
-        list.push({
-          id: `borrow_${r.id}`,
-          category: 'Borrowed Money',
-          title: r.lenderName,
-          subtitle: `Total Debt: ₹${(parseFloat(r.amount) || 0).toLocaleString('en-IN')} (Remaining: ₹${Math.max(0, (parseFloat(r.amount) || 0) - (parseFloat(r.returnedAmount) || 0)).toLocaleString('en-IN')})`,
-          icon: faHandHolding,
-          action: () => navigate('/borrowed')
-        });
-      }
-    });
-
-    // Recent matching transactions
-    if (q) {
-      transactions.slice(0, 8).forEach(t => {
-        const cat = resolveCategory(t.categoryId, categories, t.note);
-        if (t.note?.toLowerCase().includes(q) || cat?.name?.toLowerCase().includes(q)) {
-          list.push({
-            id: `tx_${t.id}`,
-            category: 'Transactions',
-            title: t.note || cat?.name || 'Transaction',
-            subtitle: `${t.type === 'income' ? '+₹' : '-₹'}${parseFloat(t.amount).toLocaleString('en-IN')} on ${new Date(t.date).toLocaleDateString('en-IN')}`,
-            icon: faMoneyBillWave,
-            action: () => navigate('/transactions')
-          });
-        }
-      });
-    }
-
-    // User Accounts
-    accounts.forEach(acc => {
-      if (!q || acc.name?.toLowerCase().includes(q) || acc.type?.toLowerCase().includes(q)) {
-        list.push({
-          id: `acc_${acc.id}`,
-          category: 'Accounts',
-          title: acc.name,
-          subtitle: `Balance: ₹${(parseFloat(acc.balance) || 0).toLocaleString('en-IN')} (${acc.type})`,
-          icon: faBuildingColumns,
-          action: () => navigate('/accounts')
-        });
-      }
-    });
-
-    // Savings Goals
-    savingsGoals.forEach(g => {
-      if (!q || g.name?.toLowerCase().includes(q)) {
-        list.push({
-          id: `goal_${g.id}`,
-          category: 'Savings Goals',
-          title: g.name,
-          subtitle: `Saved: ₹${(parseFloat(g.savedAmount) || 0).toLocaleString('en-IN')} of ₹${(parseFloat(g.targetAmount) || 0).toLocaleString('en-IN')}`,
-          icon: faBullseye,
-          action: () => navigate('/goals')
-        });
-      }
-    });
-
-    // Subscriptions
-    subscriptions.forEach(s => {
-      if (!q || s.name?.toLowerCase().includes(q)) {
-        list.push({
-          id: `sub_${s.id}`,
-          category: 'Subscriptions',
-          title: s.name,
-          subtitle: `₹${parseFloat(s.amount).toLocaleString('en-IN')}/${s.frequency} • ${s.active ? 'Active' : 'Paused'}`,
-          icon: faSyncAlt,
-          action: () => navigate('/subscriptions')
-        });
-      }
-    });
-
-    // Trips & Events
-    events.forEach(ev => {
-      if (!q || ev.name?.toLowerCase().includes(q) || ev.tag?.toLowerCase().includes(q)) {
-        list.push({
-          id: `event_${ev.id}`,
-          category: 'Trips & Events',
-          title: ev.name,
-          subtitle: `#${ev.tag} • Spent: ₹${(parseFloat(ev.spent) || 0).toLocaleString('en-IN')}${ev.budget ? ` of ₹${parseFloat(ev.budget).toLocaleString('en-IN')}` : ''}`,
-          icon: faSuitcase,
-          action: () => navigate('/events')
-        });
       }
     });
 
@@ -236,7 +259,7 @@ const CommandPalette = () => {
               setSelectedIndex(0);
             }}
             onKeyDown={handleKeyDown}
-            placeholder="Type a page, friend, command, or transaction... (ESC to exit)"
+            placeholder="Type a transaction note (e.g. Diet Coke), page, or friend... (ESC to exit)"
             className="w-full py-4 bg-transparent outline-none text-sm font-medium text-zinc-900 dark:text-white placeholder-zinc-400"
           />
           <button
@@ -256,6 +279,8 @@ const CommandPalette = () => {
           ) : (
             items.map((item, idx) => {
               const isSelected = idx === selectedIndex;
+              const isTransaction = item.category === 'Transactions';
+
               return (
                 <div
                   key={item.id}
@@ -268,15 +293,26 @@ const CommandPalette = () => {
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs shrink-0 ${
-                      isSelected 
-                        ? 'bg-white/20 dark:bg-zinc-900/20 text-white dark:text-zinc-900' 
-                        : 'liquid-glass-subtle text-zinc-500 dark:text-zinc-400'
-                    }`}>
-                      <FontAwesomeIcon icon={item.icon} />
+                    <div 
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs shrink-0 ${
+                        isTransaction
+                          ? 'text-white shadow-2xs'
+                          : isSelected 
+                            ? 'bg-white/20 dark:bg-zinc-900/20 text-white dark:text-zinc-900' 
+                            : 'liquid-glass-subtle text-zinc-500 dark:text-zinc-400'
+                      }`}
+                      style={isTransaction && item.categoryColor ? { backgroundColor: item.categoryColor } : {}}
+                    >
+                      <FontAwesomeIcon 
+                        icon={
+                          isTransaction 
+                            ? getCategoryIcon(item.categoryIcon) 
+                            : (item.icon || faMoneyBillWave)
+                        } 
+                      />
                     </div>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className={`font-semibold text-xs truncate ${isSelected ? 'text-white dark:text-zinc-900' : 'text-zinc-900 dark:text-white'}`}>
                           {item.title}
                         </span>
@@ -294,10 +330,21 @@ const CommandPalette = () => {
                     </div>
                   </div>
 
-                  <FontAwesomeIcon 
-                    icon={faArrowRight} 
-                    className={`text-[10px] transition-opacity ${isSelected ? 'opacity-100 text-white dark:text-zinc-900' : 'opacity-0'}`} 
-                  />
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    {isTransaction && item.amountText && (
+                      <span className={`text-xs font-bold ${
+                        isSelected 
+                          ? (item.isIncome ? 'text-emerald-300 dark:text-emerald-600' : 'text-rose-300 dark:text-rose-600') 
+                          : (item.isIncome ? 'text-emerald-500' : 'text-zinc-900 dark:text-white')
+                      }`}>
+                        {item.amountText}
+                      </span>
+                    )}
+                    <FontAwesomeIcon 
+                      icon={faArrowRight} 
+                      className={`text-[10px] transition-opacity ${isSelected ? 'opacity-100 text-white dark:text-zinc-900' : 'opacity-0'}`} 
+                    />
+                  </div>
                 </div>
               );
             })
