@@ -1,30 +1,31 @@
-import { useEffect } from 'react';
+import { useEffect, useId } from 'react';
 
-// Global counter to support multiple/stacked modals without prematurely unlocking scroll
-let activeLockCount = 0;
-let originalOverflow = '';
-let originalTouchAction = '';
+// Use a Set of active modal IDs to guarantee 100% reliable lock tracking
+const activeLocks = new Set();
 
 export const useBodyScrollLock = (isLocked) => {
-  useEffect(() => {
-    if (!isLocked) return;
+  const lockId = useId();
 
-    if (activeLockCount === 0) {
-      originalOverflow = document.body.style.overflow;
-      originalTouchAction = document.body.style.touchAction;
+  useEffect(() => {
+    if (isLocked) {
+      activeLocks.add(lockId);
       document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
+    } else {
+      activeLocks.delete(lockId);
+      if (activeLocks.size === 0) {
+        document.body.style.overflow = '';
+        document.body.style.touchAction = '';
+      }
     }
-    activeLockCount++;
 
     return () => {
-      activeLockCount = Math.max(0, activeLockCount - 1);
-      if (activeLockCount === 0) {
-        document.body.style.overflow = originalOverflow || '';
-        document.body.style.touchAction = originalTouchAction || '';
+      activeLocks.delete(lockId);
+      if (activeLocks.size === 0) {
+        document.body.style.overflow = '';
+        document.body.style.touchAction = '';
       }
     };
-  }, [isLocked]);
+  }, [isLocked, lockId]);
 };
 
 export default useBodyScrollLock;

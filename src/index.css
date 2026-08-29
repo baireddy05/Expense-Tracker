@@ -51,6 +51,7 @@
     font-family: var(--font-sans);
     scroll-behavior: smooth;
     text-rendering: optimizeLegibility;
+    height: 100%;
   }
 
   body {
@@ -59,8 +60,8 @@
     @apply antialiased min-h-screen overflow-x-hidden;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     transition: background-color 0.3s var(--ease-spring), color 0.3s var(--ease-spring);
-    overscroll-behavior-y: none;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
   }
 }
 
