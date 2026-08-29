@@ -23,6 +23,10 @@ import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 
 const BottomNav = () => {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [dragOffsetY, setDragOffsetY] = useState(0);
+  const touchStartYRef = React.useRef(0);
+  const isDraggingRef = React.useRef(false);
+
   const location = useLocation();
   const navigate = useNavigate();
   const { subscriptions = [], lentRecords = [], borrowedRecords = [], accounts = [], savingsGoals = [], events = [] } = useTransactions();
