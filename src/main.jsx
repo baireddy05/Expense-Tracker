@@ -11,7 +11,7 @@ initGlobalHaptics();
 // IMMEDIATE SECURITY PURGE:
 // Wipe all unencrypted financial records, old backups, and legacy keys from client storage on startup
 try {
-  const allowedPreferences = new Set(['theme', 'extrack_privacy_mode', 'extrack_haptics_enabled']);
+  const allowedPreferences = new Set(['theme', 'extrack_privacy_mode', 'extrack_haptics_enabled', 'extrack_haptics_intensity']);
   const allKeys = Object.keys(localStorage);
   allKeys.forEach(k => {
     if (!allowedPreferences.has(k)) {

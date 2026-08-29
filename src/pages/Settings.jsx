@@ -53,7 +53,15 @@ const Settings = () => {
   } = useTransactions();
   
   const { theme, setTheme } = useTheme();
-  const { isPrivacyMode, togglePrivacyMode, isHapticsOn, toggleHaptics } = useUI();
+  const { 
+    isPrivacyMode, 
+    togglePrivacyMode, 
+    isHapticsOn, 
+    toggleHaptics, 
+    hapticIntensity, 
+    updateHapticIntensity, 
+    triggerHaptic 
+  } = useUI();
   const { 
     currentUser, 
     logout, 
@@ -550,26 +558,63 @@ const Settings = () => {
               </button>
             </div>
 
-            {/* Haptic Vibration Toggle */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl liquid-glass-subtle">
-              <div>
-                <p className="font-semibold text-xs text-zinc-900 dark:text-white">Touch Haptics (Vibrations)</p>
-                <p className="text-[11px] text-zinc-400 mt-0.5">
-                  Tactile micro-vibrations on taps, transactions, switches & buttons.
-                </p>
+            {/* Haptic Vibration Toggle & Intensity */}
+            <div className="p-3.5 rounded-xl liquid-glass-subtle space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-xs text-zinc-900 dark:text-white">Touch Haptics (Vibrations)</p>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">
+                    Tactile physical feedback on buttons, inputs & gestures.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleHaptics}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 touch-feedback ${
+                    isHapticsOn
+                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-300/40 dark:border-emerald-900/60'
+                      : 'liquid-glass-subtle text-zinc-700 dark:text-zinc-300 hover:bg-white/60 dark:hover:bg-white/10'
+                  }`}
+                >
+                  <FontAwesomeIcon icon={faMobileAlt} className="text-xs" />
+                  <span>{isHapticsOn ? 'Enabled' : 'Muted'}</span>
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={toggleHaptics}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 touch-feedback ${
-                  isHapticsOn
-                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-300/40 dark:border-emerald-900/60'
-                    : 'liquid-glass-subtle text-zinc-700 dark:text-zinc-300 hover:bg-white/60 dark:hover:bg-white/10'
-                }`}
-              >
-                <FontAwesomeIcon icon={faMobileAlt} className="text-xs" />
-                <span>{isHapticsOn ? 'Enabled' : 'Muted'}</span>
-              </button>
+
+              {isHapticsOn && (
+                <div className="pt-2.5 border-t border-zinc-200/60 dark:border-zinc-800/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">Vibration Strength</span>
+                    <button
+                      type="button"
+                      onClick={() => triggerHaptic('success')}
+                      className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer touch-feedback"
+                    >
+                      ⚡ Test Vibration
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { id: 'subtle', label: 'Subtle' },
+                      { id: 'medium', label: 'Medium' },
+                      { id: 'strong', label: 'Punchy / Strong' }
+                    ].map(lvl => (
+                      <button
+                        key={lvl.id}
+                        type="button"
+                        onClick={() => updateHapticIntensity(lvl.id)}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all touch-feedback cursor-pointer ${
+                          hapticIntensity === lvl.id
+                            ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs'
+                            : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300'
+                        }`}
+                      >
+                        {lvl.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="p-3.5 rounded-xl liquid-glass-subtle text-xs text-zinc-600 dark:text-zinc-400 space-y-2">

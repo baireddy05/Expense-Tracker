@@ -1,5 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { isHapticsEnabled as checkHaptics, setHapticsEnabled, triggerHaptic, haptics } from '../utils/haptics';
+import { 
+  isHapticsEnabled as checkHaptics, 
+  setHapticsEnabled, 
+  getHapticIntensity, 
+  setHapticIntensity, 
+  triggerHaptic, 
+  haptics 
+} from '../utils/haptics';
 
 const UIContext = createContext();
 
@@ -9,6 +16,7 @@ export const UIProvider = ({ children }) => {
   });
 
   const [isHapticsOn, setIsHapticsOn] = useState(() => checkHaptics());
+  const [hapticIntensity, setIntensityState] = useState(() => getHapticIntensity());
 
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
@@ -29,6 +37,12 @@ export const UIProvider = ({ children }) => {
       if (next) triggerHaptic('success');
       return next;
     });
+  }, []);
+
+  const updateHapticIntensity = useCallback((level) => {
+    setIntensityState(level);
+    setHapticIntensity(level);
+    triggerHaptic('heavy');
   }, []);
 
   const openCommandPalette = useCallback(() => {
@@ -87,6 +101,8 @@ export const UIProvider = ({ children }) => {
     togglePrivacyMode,
     isHapticsOn,
     toggleHaptics,
+    hapticIntensity,
+    updateHapticIntensity,
     triggerHaptic,
     haptics,
     maskNumber,
@@ -102,6 +118,8 @@ export const UIProvider = ({ children }) => {
     togglePrivacyMode,
     isHapticsOn,
     toggleHaptics,
+    hapticIntensity,
+    updateHapticIntensity,
     maskNumber,
     isCommandPaletteOpen,
     openCommandPalette,
