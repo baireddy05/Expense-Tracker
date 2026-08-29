@@ -85,7 +85,7 @@ const AppShell = () => {
   }
 
   return (
-    <div className="flex h-screen h-[100dvh] overflow-hidden bg-[#f6f8fc] dark:bg-[#070709] text-zinc-900 dark:text-zinc-100 antialiased relative">
+    <div className="min-h-screen flex bg-[#f6f8fc] dark:bg-[#070709] text-zinc-900 dark:text-zinc-100 antialiased relative">
       {/* Ambient Floating Liquid Light Orbs */}
       <div className="fixed -top-32 -left-32 w-[550px] h-[550px] rounded-full bg-indigo-400/12 dark:bg-indigo-600/12 blur-[130px] pointer-events-none liquid-orb-1 z-0" />
       <div className="fixed top-[25%] -right-32 w-[600px] h-[600px] rounded-full bg-emerald-400/10 dark:bg-emerald-600/10 blur-[140px] pointer-events-none liquid-orb-2 z-0" />
@@ -95,10 +95,7 @@ const AppShell = () => {
       <Sidebar />
       
       {/* Main Content Area */}
-      <main 
-        className="flex-1 min-h-0 overflow-y-auto pb-32 md:pb-8 relative scroll-smooth flex flex-col z-10 overscroll-y-auto touch-pan-y"
-        style={{ WebkitOverflowScrolling: 'touch' }}
-      >
+      <main className="flex-1 min-w-0 pb-32 md:pb-8 relative flex flex-col z-10">
         {/* Top Floating Liquid Glass Navbar Header */}
         <header className="sticky top-0 z-30 liquid-glass-dock border-b border-white/60 dark:border-white/10 px-4 md:px-8 py-3.5 flex justify-between items-center transition-all">
           {/* Logo on mobile / Search trigger on desktop */}
@@ -176,7 +173,7 @@ const AppShell = () => {
         </header>
 
         {/* Page Content with 120Hz Fluid Route Crossfade */}
-        <div key={location.pathname} className="max-w-7xl mx-auto w-full p-4 md:p-8 animate-page-enter flex-1 gpu-accelerated">
+        <div key={location.pathname} className="max-w-7xl mx-auto w-full p-4 md:p-8 animate-page-enter flex-1">
           <Outlet />
         </div>
       </main>

@@ -68,10 +68,8 @@
 @layer utilities {
   /* GPU Compositor Hardware Acceleration */
   .gpu-accelerated {
-    transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
-    perspective: 1000px;
-    will-change: transform, opacity;
+    -webkit-backface-visibility: hidden;
   }
 
   /* Core Liquid Glass Card */
