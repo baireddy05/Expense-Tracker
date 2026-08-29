@@ -475,7 +475,16 @@ const Analytics = () => {
                     data={incomeVsExpenseData}
                     options={{
                       plugins: {
-                        legend: { position: 'bottom', labels: { color: '#a1a1aa', font: { family: 'Plus Jakarta Sans', size: 11 } } }
+                        legend: { position: 'bottom', labels: { color: '#a1a1aa', font: { family: 'Plus Jakarta Sans', size: 11 } } },
+                        tooltip: {
+                          callbacks: {
+                            label: (context) => {
+                              if (isPrivacyMode) return `${context.label || ''}: ₹••••••`;
+                              const val = context.raw || 0;
+                              return `${context.label || ''}: ₹${Number(val).toLocaleString('en-IN')}`;
+                            }
+                          }
+                        }
                       }
                     }}
                   />
@@ -501,7 +510,11 @@ const Analytics = () => {
                         y: {
                           beginAtZero: true,
                           grid: { color: 'rgba(161, 161, 170, 0.08)' },
-                          ticks: { color: '#a1a1aa', font: { size: 10 } }
+                          ticks: { 
+                            color: '#a1a1aa', 
+                            font: { size: 10 },
+                            callback: (value) => isPrivacyMode ? '••••' : `₹${Number(value).toLocaleString('en-IN')}`
+                          }
                         },
                         x: {
                           grid: { display: false },
@@ -509,7 +522,16 @@ const Analytics = () => {
                         }
                       },
                       plugins: {
-                        legend: { display: false }
+                        legend: { display: false },
+                        tooltip: {
+                          callbacks: {
+                            label: (context) => {
+                              if (isPrivacyMode) return `${context.dataset.label || ''}: ₹••••••`;
+                              const val = context.parsed.y || context.raw || 0;
+                              return `${context.dataset.label || ''}: ₹${Number(val).toLocaleString('en-IN')}`;
+                            }
+                          }
+                        }
                       }
                     }}
                   />
@@ -741,7 +763,11 @@ const Analytics = () => {
                       y: {
                         beginAtZero: true,
                         grid: { color: 'rgba(161, 161, 170, 0.08)' },
-                        ticks: { color: '#a1a1aa', font: { size: 10 } }
+                        ticks: { 
+                          color: '#a1a1aa', 
+                          font: { size: 10 },
+                          callback: (value) => isPrivacyMode ? '••••' : `₹${Number(value).toLocaleString('en-IN')}`
+                        }
                       },
                       x: {
                         grid: { display: false },
@@ -749,7 +775,16 @@ const Analytics = () => {
                       }
                     },
                     plugins: {
-                      legend: { position: 'top', labels: { color: '#a1a1aa', font: { size: 11 } } }
+                      legend: { position: 'top', labels: { color: '#a1a1aa', font: { size: 11 } } },
+                      tooltip: {
+                        callbacks: {
+                          label: (context) => {
+                            if (isPrivacyMode) return `${context.dataset.label || ''}: ₹••••••`;
+                            const val = context.parsed.y || context.raw || 0;
+                            return `${context.dataset.label || ''}: ₹${Number(val).toLocaleString('en-IN')}`;
+                          }
+                        }
+                      }
                     }
                   }}
                 />

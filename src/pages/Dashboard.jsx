@@ -65,7 +65,14 @@ const Dashboard = () => {
       }
     });
 
-    const balance = income - expense;
+    let totalAccountsBalance = 0;
+    if (accounts.length > 0) {
+      accounts.forEach(acc => {
+        totalAccountsBalance += (parseFloat(acc.balance) || 0);
+      });
+    } else {
+      totalAccountsBalance = income - expense;
+    }
 
     let totalLentPending = 0;
     lentRecords.forEach(r => {
@@ -81,10 +88,10 @@ const Dashboard = () => {
       totalBorrowedPending += Math.max(0, total - returned);
     });
 
-    const netWorth = balance + totalLentPending - totalBorrowedPending;
+    const netWorth = totalAccountsBalance + totalLentPending - totalBorrowedPending;
 
     return {
-      balance,
+      balance: totalAccountsBalance,
       income,
       expense,
       monthlyIncome,
@@ -93,7 +100,7 @@ const Dashboard = () => {
       totalBorrowedPending,
       netWorth
     };
-  }, [transactions, lentRecords, borrowedRecords]);
+  }, [transactions, accounts, lentRecords, borrowedRecords]);
 
   // Upcoming / Overdue Due Date Alerts
   const dueAlerts = useMemo(() => {
@@ -713,10 +720,26 @@ const Dashboard = () => {
               responsive: true,
               maintainAspectRatio: false,
               plugins: {
-                legend: { position: 'top', labels: { color: '#a1a1aa', font: { family: 'Plus Jakarta Sans', size: 11 } } }
+                legend: { position: 'top', labels: { color: '#a1a1aa', font: { family: 'Plus Jakarta Sans', size: 11 } } },
+                tooltip: {
+                  callbacks: {
+                    label: (context) => {
+                      if (isPrivacyMode) return `${context.dataset.label || ''}: ₹••••••`;
+                      const val = context.parsed.y || context.raw || 0;
+                      return `${context.dataset.label || ''}: ₹${Number(val).toLocaleString('en-IN')}`;
+                    }
+                  }
+                }
               },
               scales: {
-                y: { grid: { color: 'rgba(161, 161, 170, 0.08)' }, ticks: { color: '#a1a1aa', font: { size: 10 } } },
+                y: { 
+                  grid: { color: 'rgba(161, 161, 170, 0.08)' }, 
+                  ticks: { 
+                    color: '#a1a1aa', 
+                    font: { size: 10 },
+                    callback: (value) => isPrivacyMode ? '••••' : `₹${Number(value).toLocaleString('en-IN')}`
+                  } 
+                },
                 x: { grid: { display: false }, ticks: { color: '#a1a1aa', font: { size: 10 } } }
               }
             }}
@@ -735,7 +758,18 @@ const Dashboard = () => {
                 data={donutChartData} 
                 options={{
                   cutout: '72%',
-                  plugins: { legend: { position: 'bottom', labels: { color: '#a1a1aa', font: { family: 'Plus Jakarta Sans', size: 11 } } } }
+                  plugins: { 
+                    legend: { position: 'bottom', labels: { color: '#a1a1aa', font: { family: 'Plus Jakarta Sans', size: 11 } } },
+                    tooltip: {
+                      callbacks: {
+                        label: (context) => {
+                          if (isPrivacyMode) return `${context.label || ''}: ₹••••••`;
+                          const val = context.raw || 0;
+                          return `${context.label || ''}: ₹${Number(val).toLocaleString('en-IN')}`;
+                        }
+                      }
+                    }
+                  }
                 }} 
               />
             ) : (

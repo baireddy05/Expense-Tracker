@@ -42,7 +42,7 @@ const AppShell = () => {
   const { loading, error } = useTransactions();
   const { loading: authLoading } = useAuth();
   const { theme, setTheme } = useTheme();
-  const { isPrivacyMode, togglePrivacyMode, openCommandPalette } = useUI();
+  const { isPrivacyMode, togglePrivacyMode, openCommandPalette, isQuickAddOpen, closeQuickAdd } = useUI();
   const location = useLocation();
 
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
@@ -274,10 +274,13 @@ const AppShell = () => {
       {/* Mobile Bottom Navigation Dock */}
       <BottomNav />
 
-      {/* Quick Modals from Speed Dial */}
+      {/* Quick Modals from Speed Dial & Shortcuts (Cmd+N) */}
       <TransactionForm 
-        isOpen={isTxModalOpen} 
-        onClose={() => setIsTxModalOpen(false)} 
+        isOpen={isTxModalOpen || isQuickAddOpen} 
+        onClose={() => {
+          setIsTxModalOpen(false);
+          closeQuickAdd();
+        }} 
         defaultType={initialTxType}
       />
 

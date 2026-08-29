@@ -40,36 +40,38 @@ export const setHapticIntensity = (intensity) => {
   }
 };
 
-// Intensity multipliers
+// Robust physical motor duration profiles
 const INTENSITY_PROFILES = {
   subtle: {
-    selection: 16,
-    light: 28,
-    medium: 45,
-    heavy: 65,
-    success: [20, 35, 35],
-    warning: [35, 30, 35],
-    error: [45, 35, 45, 35]
+    selection: 30,
+    light: 45,
+    medium: 70,
+    heavy: [80, 50, 80],
+    success: [40, 50, 60],
+    warning: [50, 40, 50],
+    error: [60, 40, 60]
   },
   medium: {
-    selection: 26,
-    light: 42,
-    medium: 68,
-    heavy: [80, 35, 80],
-    success: [30, 40, 55],
-    warning: [50, 40, 50],
-    error: [65, 45, 65, 45]
+    selection: 45,
+    light: 70,
+    medium: 100,
+    heavy: [110, 60, 110],
+    success: [60, 60, 90],
+    warning: [70, 50, 70],
+    error: [90, 50, 90]
   },
   strong: {
-    selection: 36,
-    light: 55,
-    medium: 85,
-    heavy: [110, 45, 110],
-    success: [45, 45, 75],
-    warning: [70, 45, 70],
-    error: [90, 50, 90, 50]
+    selection: 65,
+    light: 95,
+    medium: 140,
+    heavy: [150, 70, 150],
+    success: [80, 70, 130],
+    warning: [100, 60, 100],
+    error: [120, 60, 120]
   }
 };
+
+let lastVibrateTime = 0;
 
 /**
  * Triggers a vibration pattern if supported and enabled.
@@ -78,6 +80,11 @@ const INTENSITY_PROFILES = {
 export const triggerHaptic = (type = 'light') => {
   if (typeof window === 'undefined' || !navigator || !navigator.vibrate) return;
   if (!isHapticsEnabled()) return;
+
+  const now = Date.now();
+  // Don't cancel an ongoing multi-pulse vibration if called in rapid succession (< 70ms)
+  if (now - lastVibrateTime < 70 && type === 'selection') return;
+  lastVibrateTime = now;
 
   try {
     const intensity = getHapticIntensity();
@@ -114,13 +121,7 @@ export const haptics = {
 export const initGlobalHaptics = () => {
   if (typeof window === 'undefined' || !window.addEventListener) return;
 
-  let lastHapticTime = 0;
-
   const handlePointerDown = (e) => {
-    // Debounce micro-vibrations to avoid vibration overlapping
-    const now = Date.now();
-    if (now - lastHapticTime < 60) return;
-
     const target = e.target;
     if (!target || !(target instanceof HTMLElement)) return;
 
@@ -130,18 +131,16 @@ export const initGlobalHaptics = () => {
     );
 
     if (interactive) {
-      lastHapticTime = now;
-      
       // Determine haptic weight based on element attributes
       const customType = interactive.getAttribute('data-haptic');
       if (customType) {
         triggerHaptic(customType);
       } else if (interactive.classList.contains('bg-rose-600') || interactive.getAttribute('data-danger')) {
         triggerHaptic('heavy');
-      } else if (interactive.tagName === 'BUTTON' && (interactive.classList.contains('py-2.5') || interactive.classList.contains('py-3'))) {
-        triggerHaptic('light');
+      } else if (interactive.tagName === 'BUTTON' && (interactive.classList.contains('py-2.5') || interactive.classList.contains('py-3') || interactive.classList.contains('bg-zinc-900'))) {
+        triggerHaptic('medium');
       } else {
-        triggerHaptic('selection');
+        triggerHaptic('light');
       }
     }
   };

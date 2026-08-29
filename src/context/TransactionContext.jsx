@@ -979,6 +979,170 @@ export const TransactionProvider = ({ children }) => {
     }
   };
 
+  const restoreCompleteBackup = async (data, onProgress) => {
+    try {
+      let importedCount = 0;
+      const accountIdMap = {};
+      const categoryIdMap = {};
+      const eventIdMap = {};
+
+      const report = (step, percent, message) => {
+        if (typeof onProgress === 'function') {
+          onProgress({ step, percent, message });
+        }
+      };
+
+      report('categories', 10, 'Restoring custom categories...');
+      // 1. Restore/Map Categories
+      const existingCats = await DataService.getCategories(userId);
+      if (data.categories && Array.isArray(data.categories)) {
+        for (const cat of data.categories) {
+          if (cat.name) {
+            const existing = existingCats.find(c => c.name.toLowerCase() === cat.name.toLowerCase() && c.type === cat.type);
+            if (existing) {
+              if (cat.id) categoryIdMap[cat.id] = existing.id;
+            } else {
+              const { id: oldId, ...catData } = cat;
+              const newCat = await DataService.addCategory(catData, userId);
+              if (oldId) categoryIdMap[oldId] = newCat.id;
+              importedCount++;
+            }
+          }
+        }
+      }
+
+      report('accounts', 25, 'Restoring accounts & wallets...');
+      // 2. Restore/Map Accounts
+      const existingAccs = await DataService.getAccounts(userId);
+      if (data.accounts && Array.isArray(data.accounts)) {
+        for (const acc of data.accounts) {
+          if (acc.name) {
+            const existing = existingAccs.find(a => a.name.toLowerCase() === acc.name.toLowerCase());
+            if (existing) {
+              if (acc.id) accountIdMap[acc.id] = existing.id;
+            } else {
+              const { id: oldId, ...accData } = acc;
+              const newAcc = await DataService.addAccount(accData, userId);
+              if (oldId) accountIdMap[oldId] = newAcc.id;
+              importedCount++;
+            }
+          }
+        }
+      }
+
+      report('events', 40, 'Restoring event and trip budgets...');
+      // 3. Restore/Map Events
+      const existingEvents = await DataService.getEvents(userId);
+      if (data.events && Array.isArray(data.events)) {
+        for (const ev of data.events) {
+          if (ev.name) {
+            const existing = existingEvents.find(e => e.name.toLowerCase() === ev.name.toLowerCase() || (ev.tag && e.tag === ev.tag));
+            if (existing) {
+              if (ev.id) eventIdMap[ev.id] = existing.id;
+            } else {
+              const { id: oldId, ...evData } = ev;
+              const newEv = await DataService.addEvent(evData, userId);
+              if (oldId) eventIdMap[oldId] = newEv.id;
+              importedCount++;
+            }
+          }
+        }
+      }
+
+      report('goals', 50, 'Restoring savings goals & milestone funds...');
+      // 4. Restore Savings Goals
+      if (data.savingsGoals && Array.isArray(data.savingsGoals)) {
+        for (const goal of data.savingsGoals) {
+          if (goal.name) {
+            const { id, ...goalData } = goal;
+            await DataService.addSavingsGoal(goalData, userId);
+            importedCount++;
+          }
+        }
+      }
+
+      report('subscriptions', 60, 'Restoring recurring subscriptions...');
+      // 5. Restore Subscriptions
+      if (data.subscriptions && Array.isArray(data.subscriptions)) {
+        for (const sub of data.subscriptions) {
+          if (sub.name) {
+            const { id, ...subData } = sub;
+            if (subData.categoryId && categoryIdMap[subData.categoryId]) {
+              subData.categoryId = categoryIdMap[subData.categoryId];
+            }
+            if (subData.accountId && accountIdMap[subData.accountId]) {
+              subData.accountId = accountIdMap[subData.accountId];
+            }
+            await DataService.addSubscription(subData, userId);
+            importedCount++;
+          }
+        }
+      }
+
+      report('lent', 70, 'Restoring peer lending records...');
+      // 6. Restore Lent Records (Directly to DataService so NO duplicate transaction is auto-created!)
+      if (data.lentRecords && Array.isArray(data.lentRecords)) {
+        for (const lr of data.lentRecords) {
+          if (lr.borrowerName && lr.amount) {
+            const { id, ...lrData } = lr;
+            await DataService.addLentRecord(lrData, userId);
+            importedCount++;
+          }
+        }
+      }
+
+      report('borrowed', 80, 'Restoring debt liabilities & loans...');
+      // 7. Restore Borrowed Records (Directly to DataService so NO duplicate transaction is auto-created!)
+      if (data.borrowedRecords && Array.isArray(data.borrowedRecords)) {
+        for (const br of data.borrowedRecords) {
+          if (br.lenderName && br.amount) {
+            const { id, ...brData } = br;
+            await DataService.addBorrowedRecord(brData, userId);
+            importedCount++;
+          }
+        }
+      }
+
+      report('transactions', 90, 'Restoring transactions & remapping accounts...');
+      // 8. Restore Transactions with mapped accountId, categoryId, eventId
+      if (data.transactions && Array.isArray(data.transactions)) {
+        for (const tx of data.transactions) {
+          const { id, createdAt, ...txData } = tx;
+          if (txData.categoryId && categoryIdMap[txData.categoryId]) {
+            txData.categoryId = categoryIdMap[txData.categoryId];
+          }
+          if (txData.accountId && accountIdMap[txData.accountId]) {
+            txData.accountId = accountIdMap[txData.accountId];
+          }
+          if (txData.fromAccountId && accountIdMap[txData.fromAccountId]) {
+            txData.fromAccountId = accountIdMap[txData.fromAccountId];
+          }
+          if (txData.toAccountId && accountIdMap[txData.toAccountId]) {
+            txData.toAccountId = accountIdMap[txData.toAccountId];
+          }
+          if (txData.eventId && eventIdMap[txData.eventId]) {
+            txData.eventId = eventIdMap[txData.eventId];
+          }
+          await DataService.addTransaction(txData, userId);
+          importedCount++;
+        }
+      }
+
+      // 9. Restore Settings
+      if (data.settings && typeof data.settings === 'object') {
+        await DataService.updateSettings(data.settings, userId);
+      }
+
+      report('finalizing', 100, 'Synchronizing live balances & refreshing...');
+      // 10. Refresh all state
+      await fetchData();
+      return importedCount;
+    } catch (err) {
+      console.error('restoreCompleteBackup error:', err);
+      throw err;
+    }
+  };
+
   const purgeLocalCache = useCallback(() => {
     DataService.purgeAllLocalData();
     toast.success('Local browser cache purged! Your data is protected in Cloud Firestore.', { icon: '🛡️' });
@@ -1033,6 +1197,7 @@ export const TransactionProvider = ({ children }) => {
     borrowMoreMoney,
     recordBorrowedRepayment,
     settleBorrowedRecord,
+    restoreCompleteBackup,
     refreshData: fetchData
   }), [
     transactions,

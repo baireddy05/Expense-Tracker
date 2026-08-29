@@ -27,26 +27,28 @@ const SwipeableItem = ({ children, onEdit, onDelete, resetToken }) => {
 
   const opacity = useTransform(x, [-actionThreshold, 0, actionThreshold], [1, 0, 1]);
 
-  const handleDragEnd = async (event, info) => {
+  const handleDragEnd = (event, info) => {
     const offset = info.offset.x;
     const velocity = info.velocity.x;
 
+    const isDelete = offset < -75 || (offset < -45 && velocity < -400);
+    const isEdit = offset > 75 || (offset > 45 && velocity > 400);
+
     // Swipe left (delete)
-    if (offset < -actionThreshold || velocity < -500) {
+    if (isDelete) {
       haptics.heavy();
-      await controls.start({ x: -actionThreshold, transition: { type: 'spring', bounce: 0.5 } });
+      controls.start({ x: -100, transition: { duration: 0.2 } });
       onDelete();
     } 
-    // Swipe right (edit)
-    else if (offset > actionThreshold || velocity > 500) {
+    // Swipe right (edit) - Trigger immediately without delay
+    else if (isEdit) {
       haptics.medium();
-      // Don't remove from list on edit, just bounce back and trigger callback
-      await controls.start({ x: 0, transition: { type: 'spring', bounce: 0.5 } });
+      controls.start({ x: 0, transition: { duration: 0.2 } });
       onEdit();
     } 
-    // Snap back
+    // Snap back cleanly when swipe cancelled or halfway
     else {
-      controls.start({ x: 0, transition: { type: 'spring', bounce: 0.5 } });
+      controls.start({ x: 0, transition: { type: 'spring', stiffness: 400, damping: 30 } });
     }
   };
 

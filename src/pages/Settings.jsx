@@ -22,7 +22,9 @@ import {
   faSync,
   faLock,
   faBroom,
-  faMobileAlt
+  faMobileAlt,
+  faSpinner,
+  faCheckCircle
 } from '@fortawesome/free-solid-svg-icons';
 import { getCategoryIcon } from '../utils/categoryIcons';
 import toast from 'react-hot-toast';
@@ -34,22 +36,18 @@ const Settings = () => {
     lentRecords = [], 
     borrowedRecords = [], 
     accounts = [],
+    rawAccounts,
     savingsGoals = [],
     subscriptions = [],
     events = [],
+    rawEvents,
     settings, 
     updateSettings, 
     updateCategory,
-    addTransaction, 
-    addLentRecord, 
-    addBorrowedRecord,
-    addAccount,
-    addSavingsGoal,
-    addSubscription,
-    addEvent,
     isSyncing,
     syncLocalData,
     purgeLocalCache,
+    restoreCompleteBackup,
     refreshData
   } = useTransactions();
   
@@ -181,10 +179,10 @@ const Settings = () => {
       exportDate: new Date().toISOString(),
       transactions,
       categories,
-      accounts,
+      accounts: rawAccounts || accounts,
       savingsGoals,
       subscriptions,
-      events,
+      events: rawEvents || events,
       lentRecords,
       borrowedRecords,
       settings
@@ -202,95 +200,42 @@ const Settings = () => {
     toast.success('Complete system backup downloaded!');
   };
 
+  const [restoreProgress, setRestoreProgress] = useState(null);
+
   const handleImportJSON = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const loadingToastId = toast.loading('Restoring data from backup...');
+    setRestoreProgress({
+      percent: 5,
+      message: 'Reading and parsing backup file...',
+      step: 'init',
+      isDone: false
+    });
+
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
         const data = JSON.parse(event.target.result);
-        let importedCount = 0;
+        const importedCount = await restoreCompleteBackup(data, (progress) => {
+          setRestoreProgress({
+            ...progress,
+            isDone: false
+          });
+        });
 
-        if (data.transactions && Array.isArray(data.transactions)) {
-          for (const tx of data.transactions) {
-            const { id, createdAt, ...txData } = tx;
-            await addTransaction(txData);
-            importedCount++;
-          }
-        }
-
-        if (data.accounts && Array.isArray(data.accounts)) {
-          for (const acc of data.accounts) {
-            if (acc.name) {
-              const { id, ...accData } = acc;
-              await addAccount(accData);
-              importedCount++;
-            }
-          }
-        }
-
-        if (data.savingsGoals && Array.isArray(data.savingsGoals)) {
-          for (const goal of data.savingsGoals) {
-            if (goal.name) {
-              const { id, ...goalData } = goal;
-              await addSavingsGoal(goalData);
-              importedCount++;
-            }
-          }
-        }
-
-        if (data.subscriptions && Array.isArray(data.subscriptions)) {
-          for (const sub of data.subscriptions) {
-            if (sub.name) {
-              const { id, ...subData } = sub;
-              await addSubscription(subData);
-              importedCount++;
-            }
-          }
-        }
-
-        if (data.events && Array.isArray(data.events)) {
-          for (const ev of data.events) {
-            if (ev.name) {
-              const { id, ...evData } = ev;
-              await addEvent(evData);
-              importedCount++;
-            }
-          }
-        }
-
-        if (data.lentRecords && Array.isArray(data.lentRecords)) {
-          for (const lr of data.lentRecords) {
-            if (lr.borrowerName && lr.amount) {
-              const { id, ...lrData } = lr;
-              await addLentRecord(lrData);
-              importedCount++;
-            }
-          }
-        }
-
-        if (data.borrowedRecords && Array.isArray(data.borrowedRecords)) {
-          for (const br of data.borrowedRecords) {
-            if (br.lenderName && br.amount) {
-              const { id, ...brData } = br;
-              await addBorrowedRecord(brData);
-              importedCount++;
-            }
-          }
-        }
-
-        if (refreshData) {
-          await refreshData();
-        }
-
-        toast.dismiss(loadingToastId);
+        setRestoreProgress({
+          percent: 100,
+          message: `Successfully restored ${importedCount} records from backup!`,
+          step: 'complete',
+          isDone: true,
+          count: importedCount
+        });
         toast.success(`Successfully restored ${importedCount} records from backup!`);
       } catch (err) {
         console.error('Import error:', err);
-        toast.dismiss(loadingToastId);
-        toast.error('Error parsing JSON backup file.');
+        setRestoreProgress(null);
+        toast.error('Error parsing or restoring JSON backup file.');
       }
     };
     reader.readAsText(file);
@@ -734,6 +679,53 @@ const Settings = () => {
           </div>
         </div>
       </div>
+
+      {/* Interactive Restore Progress Modal */}
+      {restoreProgress && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+          <div className="liquid-glass-dock max-w-md w-full rounded-3xl p-6 shadow-2xl border border-white/60 dark:border-white/10 space-y-5 animate-scale-in">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-base shrink-0 ${
+                restoreProgress.isDone ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400'
+              }`}>
+                <FontAwesomeIcon icon={restoreProgress.isDone ? faCheckCircle : faSpinner} className={restoreProgress.isDone ? 'text-emerald-500 text-lg' : 'animate-spin text-indigo-500'} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
+                  {restoreProgress.isDone ? 'Restoration Complete' : 'Restoring System Backup'}
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  {restoreProgress.message}
+                </p>
+              </div>
+            </div>
+
+            {/* Progress Meter */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs font-semibold">
+                <span className="text-zinc-500">Progress</span>
+                <span className="text-zinc-900 dark:text-white font-mono">{restoreProgress.percent}%</span>
+              </div>
+              <div className="h-2.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 transition-all duration-300 rounded-full"
+                  style={{ width: `${restoreProgress.percent}%` }}
+                />
+              </div>
+            </div>
+
+            {restoreProgress.isDone && (
+              <button
+                type="button"
+                onClick={() => setRestoreProgress(null)}
+                className="w-full py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold rounded-xl text-xs transition-all cursor-pointer shadow-xs touch-feedback"
+              >
+                Done & View Finances
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

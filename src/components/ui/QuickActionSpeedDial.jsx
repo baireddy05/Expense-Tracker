@@ -95,15 +95,22 @@ const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) =>
       )}
 
       <div className="fixed bottom-28 md:bottom-8 right-5 md:right-8 z-40 flex flex-col items-end">
-        {/* Expanded Speed-Dial items */}
-        {isOpen && (
-          <div className="mb-3 space-y-2.5 flex flex-col items-end">
-            {actions.map((act, index) => (
+        {/* Expanded Speed-Dial items with smooth origin-bottom-right spring expand/collapse */}
+        <div 
+          className={`mb-3 space-y-2.5 flex flex-col items-end origin-bottom-right transition-all duration-300 ease-out ${
+            isOpen 
+              ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' 
+              : 'opacity-0 scale-50 translate-y-8 pointer-events-none'
+          }`}
+        >
+          {actions.map((act, index) => {
+            const delay = isOpen ? (actions.length - 1 - index) * 35 : index * 25;
+            return (
               <div
                 key={act.id}
                 onClick={act.onClick}
-                className="flex items-center gap-3 cursor-pointer group touch-feedback animate-pop-in"
-                style={{ animationDelay: `${index * 30}ms` }}
+                className="flex items-center gap-3 cursor-pointer group touch-feedback transition-all duration-200"
+                style={{ transitionDelay: `${delay}ms` }}
               >
                 <span className="px-3 py-1.5 rounded-xl liquid-glass-dock text-zinc-800 dark:text-zinc-200 text-xs font-semibold shadow-lg transition-all group-hover:scale-105 border border-white/60 dark:border-white/10">
                   {act.label}
@@ -115,9 +122,9 @@ const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) =>
                   <FontAwesomeIcon icon={act.icon} className="text-xs" />
                 </button>
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
 
         {/* Main Trigger Button */}
         <button
