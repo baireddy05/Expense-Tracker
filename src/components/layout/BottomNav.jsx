@@ -82,34 +82,11 @@ const BottomNav = () => {
     },
   ];
 
-  const [dragOffsetY, setDragOffsetY] = useState(0);
-  const touchStartYRef = React.useRef(0);
-  const isDraggingRef = React.useRef(false);
-
-  // Android / Hardware Back Navigation Gesture Support
-  React.useEffect(() => {
-    if (!isMoreOpen) return;
-
-    // Push a temporary history state when opening sheet
-    window.history.pushState({ modal: 'more_sheet' }, '');
-
-    const handlePopState = () => {
-      setIsMoreOpen(false);
-      setDragOffsetY(0);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [isMoreOpen]);
+  const isMoreActive = moreNavItems.some(item => location.pathname === item.path);
 
   const closeMoreSheet = () => {
     setDragOffsetY(0);
     setIsMoreOpen(false);
-    if (window.history.state?.modal === 'more_sheet') {
-      window.history.back();
-    }
   };
 
   const handleTouchStart = (e) => {
@@ -128,18 +105,11 @@ const BottomNav = () => {
   const handleTouchEnd = () => {
     if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
-    if (dragOffsetY > 70) {
+    if (dragOffsetY > 60) {
       closeMoreSheet();
     } else {
       setDragOffsetY(0);
     }
-  };
-
-  const isMoreActive = moreNavItems.some(item => location.pathname === item.path);
-
-  const handleNavigate = (path) => {
-    closeMoreSheet();
-    navigate(path);
   };
 
   return (
@@ -151,18 +121,22 @@ const BottomNav = () => {
           onClick={closeMoreSheet}
         >
           <div 
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
             style={{
               transform: dragOffsetY > 0 ? `translateY(${dragOffsetY}px)` : undefined,
               transition: isDraggingRef.current ? 'none' : 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
             }}
-            className="bg-white dark:bg-zinc-900 rounded-t-3xl border-t border-zinc-200/80 dark:border-zinc-800 p-5 pb-8 shadow-2xl max-h-[85vh] overflow-y-auto space-y-4 origin-bottom-right animate-slide-up touch-pan-y"
+            className="bg-white dark:bg-zinc-900 rounded-t-3xl border-t border-zinc-200/80 dark:border-zinc-800 p-5 pb-8 shadow-2xl max-h-[85vh] overflow-y-auto space-y-4 origin-bottom-right animate-slide-up"
             onClick={e => e.stopPropagation()}
           >
-            {/* Sheet Pull Handle */}
-            <div className="w-12 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-700 mx-auto -mt-1 mb-2 cursor-grab active:cursor-grabbing" />
+            {/* Sheet Pull & Drag Handle Area */}
+            <div 
+              className="w-full py-2 cursor-grab active:cursor-grabbing flex justify-center items-center touch-pan-y"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              <div className="w-12 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+            </div>
 
             {/* Sheet Header */}
             <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
@@ -172,10 +146,11 @@ const BottomNav = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-zinc-900 dark:text-white">All Features</h3>
-                  <p className="text-[10px] text-zinc-400">Swipe down or tap back to dismiss</p>
+                  <p className="text-[10px] text-zinc-400">Quick access to all modules</p>
                 </div>
               </div>
               <button 
+                type="button"
                 onClick={closeMoreSheet}
                 className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
               >
@@ -183,18 +158,19 @@ const BottomNav = () => {
               </button>
             </div>
 
-            {/* Grid of Modules */}
+            {/* Grid of Feature Modules */}
             <div className="grid grid-cols-1 gap-2">
               {moreNavItems.map(item => {
                 const isActive = location.pathname === item.path;
                 return (
-                  <button
+                  <NavLink
                     key={item.path}
-                    onClick={() => handleNavigate(item.path)}
+                    to={item.path}
+                    onClick={closeMoreSheet}
                     className={`w-full flex items-center justify-between p-3 rounded-2xl transition-all text-left cursor-pointer touch-feedback ${
                       isActive 
                         ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm' 
-                        : 'bg-zinc-50 dark:bg-zinc-800/60 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
+                        : 'bg-zinc-50 dark:bg-zinc-800/60 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-900 dark:text-zinc-100 active:scale-[0.98]'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -211,12 +187,12 @@ const BottomNav = () => {
                       </div>
                     </div>
 
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                      isActive ? 'bg-white/20 dark:bg-black/20 text-white dark:text-zinc-900' : 'text-zinc-400'
+                    <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${
+                      isActive ? 'bg-white/20 dark:bg-black/20 text-white dark:text-zinc-900' : 'bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300'
                     }`}>
                       {isActive ? 'Current' : 'Open →'}
                     </span>
-                  </button>
+                  </NavLink>
                 );
               })}
             </div>
