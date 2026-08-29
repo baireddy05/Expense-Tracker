@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { isHapticsEnabled as checkHaptics, setHapticsEnabled, triggerHaptic, haptics } from '../utils/haptics';
 
 const UIContext = createContext();
 
@@ -7,6 +8,8 @@ export const UIProvider = ({ children }) => {
     return localStorage.getItem('extrack_privacy_mode') === 'true';
   });
 
+  const [isHapticsOn, setIsHapticsOn] = useState(() => checkHaptics());
+
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
 
@@ -14,15 +17,38 @@ export const UIProvider = ({ children }) => {
     setIsPrivacyMode(prev => {
       const next = !prev;
       localStorage.setItem('extrack_privacy_mode', String(next));
+      triggerHaptic('medium');
       return next;
     });
   }, []);
 
-  const openCommandPalette = useCallback(() => setIsCommandPaletteOpen(true), []);
-  const closeCommandPalette = useCallback(() => setIsCommandPaletteOpen(false), []);
-  const toggleCommandPalette = useCallback(() => setIsCommandPaletteOpen(prev => !prev), []);
+  const toggleHaptics = useCallback(() => {
+    setIsHapticsOn(prev => {
+      const next = !prev;
+      setHapticsEnabled(next);
+      if (next) triggerHaptic('success');
+      return next;
+    });
+  }, []);
 
-  const openQuickAdd = useCallback(() => setIsQuickAddOpen(true), []);
+  const openCommandPalette = useCallback(() => {
+    setIsCommandPaletteOpen(true);
+    triggerHaptic('light');
+  }, []);
+
+  const closeCommandPalette = useCallback(() => setIsCommandPaletteOpen(false), []);
+  const toggleCommandPalette = useCallback(() => {
+    setIsCommandPaletteOpen(prev => {
+      triggerHaptic('light');
+      return !prev;
+    });
+  }, []);
+
+  const openQuickAdd = useCallback(() => {
+    setIsQuickAddOpen(true);
+    triggerHaptic('light');
+  }, []);
+
   const closeQuickAdd = useCallback(() => setIsQuickAddOpen(false), []);
 
   // Global Keyboard Shortcuts (Cmd+K / Ctrl+K / Ctrl+N)
@@ -59,6 +85,10 @@ export const UIProvider = ({ children }) => {
   const contextValue = React.useMemo(() => ({
     isPrivacyMode,
     togglePrivacyMode,
+    isHapticsOn,
+    toggleHaptics,
+    triggerHaptic,
+    haptics,
     maskNumber,
     isCommandPaletteOpen,
     openCommandPalette,
@@ -70,6 +100,8 @@ export const UIProvider = ({ children }) => {
   }), [
     isPrivacyMode,
     togglePrivacyMode,
+    isHapticsOn,
+    toggleHaptics,
     maskNumber,
     isCommandPaletteOpen,
     openCommandPalette,

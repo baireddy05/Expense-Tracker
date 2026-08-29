@@ -21,7 +21,8 @@ import {
   faKey,
   faSync,
   faLock,
-  faBroom
+  faBroom,
+  faMobileAlt
 } from '@fortawesome/free-solid-svg-icons';
 import { getCategoryIcon } from '../utils/categoryIcons';
 import toast from 'react-hot-toast';
@@ -52,7 +53,7 @@ const Settings = () => {
   } = useTransactions();
   
   const { theme, setTheme } = useTheme();
-  const { isPrivacyMode, togglePrivacyMode } = useUI();
+  const { isPrivacyMode, togglePrivacyMode, isHapticsOn, toggleHaptics } = useUI();
   const { 
     currentUser, 
     logout, 
@@ -546,6 +547,28 @@ const Settings = () => {
               >
                 <FontAwesomeIcon icon={isPrivacyMode ? faEyeSlash : faEye} className="text-xs" />
                 <span>{isPrivacyMode ? 'Masked' : 'Off'}</span>
+              </button>
+            </div>
+
+            {/* Haptic Vibration Toggle */}
+            <div className="flex items-center justify-between p-3.5 rounded-xl liquid-glass-subtle">
+              <div>
+                <p className="font-semibold text-xs text-zinc-900 dark:text-white">Touch Haptics (Vibrations)</p>
+                <p className="text-[11px] text-zinc-400 mt-0.5">
+                  Tactile micro-vibrations on taps, transactions, switches & buttons.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={toggleHaptics}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 touch-feedback ${
+                  isHapticsOn
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-300/40 dark:border-emerald-900/60'
+                    : 'liquid-glass-subtle text-zinc-700 dark:text-zinc-300 hover:bg-white/60 dark:hover:bg-white/10'
+                }`}
+              >
+                <FontAwesomeIcon icon={faMobileAlt} className="text-xs" />
+                <span>{isHapticsOn ? 'Enabled' : 'Muted'}</span>
               </button>
             </div>
 

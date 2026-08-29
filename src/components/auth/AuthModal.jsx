@@ -110,7 +110,7 @@ const AuthModal = () => {
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in" onClick={closeAuthModal}>
       <div 
-        className="liquid-glass-dock w-full max-w-md rounded-3xl overflow-hidden border border-white/60 dark:border-white/10 shadow-2xl animate-scale-in sm:my-auto mt-auto mb-0 sm:mb-auto sm:mt-auto"
+        className="liquid-glass-dock w-full max-w-md rounded-3xl overflow-hidden border border-white/60 dark:border-white/10 shadow-2xl animate-pop-in sm:my-auto mt-auto mb-0 sm:mb-auto sm:mt-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Modal */}

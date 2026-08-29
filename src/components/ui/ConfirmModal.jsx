@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExclamationTriangle, faTimes, faQuestionCircle } from '@fortawesome/free-solid-svg-icons';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
+import { haptics } from '../../utils/haptics';
 
 const ConfirmModal = ({ 
   isOpen, 
@@ -15,15 +16,22 @@ const ConfirmModal = ({
 }) => {
   useBodyScrollLock(isOpen);
 
+  useEffect(() => {
+    if (isOpen) {
+      if (isDanger) haptics.warning();
+      else haptics.medium();
+    }
+  }, [isOpen, isDanger]);
+
   if (!isOpen) return null;
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-md animate-fade-in"
       onClick={onClose}
     >
       <div 
-        className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden z-10 animate-scale-in border border-zinc-200/80 dark:border-zinc-800 relative my-auto"
+        className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden z-10 animate-pop-in border border-zinc-200/80 dark:border-white/10 relative my-auto"
         onClick={e => e.stopPropagation()}
       >
         <button 
@@ -54,6 +62,8 @@ const ConfirmModal = ({
             </button>
             <button
               onClick={() => {
+                if (isDanger) haptics.heavy();
+                else haptics.medium();
                 onConfirm();
                 onClose();
               }}

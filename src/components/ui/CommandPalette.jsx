@@ -221,7 +221,7 @@ const CommandPalette = () => {
       onClick={closeCommandPalette}
     >
       <div 
-        className="liquid-glass-dock w-full max-w-xl rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[80vh] animate-slide-up sm:animate-fade-in"
+        className="liquid-glass-dock w-full max-w-xl rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[80vh] animate-pop-in"
         onClick={e => e.stopPropagation()}
       >
         {/* Search input header */}

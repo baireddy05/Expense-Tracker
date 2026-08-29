@@ -101,10 +101,13 @@ const BottomNav = () => {
             className="bg-white dark:bg-zinc-900 rounded-t-3xl border-t border-zinc-200/80 dark:border-zinc-800 p-5 pb-8 shadow-2xl max-h-[85vh] overflow-y-auto space-y-4 animate-scale-in"
             onClick={e => e.stopPropagation()}
           >
+            {/* Sheet Pull Handle */}
+            <div className="w-10 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700 mx-auto -mt-1 mb-2" />
+
             {/* Sheet Header */}
             <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center text-xs">
+                <div className="w-8 h-8 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center text-xs shadow-xs">
                   <FontAwesomeIcon icon={faWallet} />
                 </div>
                 <div>

@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faUser, faPhone, faFileAlt, faHandHoldingDollar, faCommentDots } from '@fortawesome/free-solid-svg-icons';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import toast from 'react-hot-toast';
+import { haptics } from '../../utils/haptics';
 
 const LentFormModal = ({ isOpen, onClose, initialData = null }) => {
   const { lentRecords = [], addLentRecord, updateLentRecord } = useTransactions();
@@ -89,6 +90,7 @@ const LentFormModal = ({ isOpen, onClose, initialData = null }) => {
 
       if (initialData) {
         await updateLentRecord(initialData.id, recordPayload);
+        haptics.success();
         toast.success('Lent record updated');
       } else {
         const initialAmount = parseFloat(amount);
@@ -106,11 +108,13 @@ const LentFormModal = ({ isOpen, onClose, initialData = null }) => {
             }
           ]
         });
+        haptics.success();
         toast.success(`Recorded ₹${initialAmount.toLocaleString('en-IN')} lent to ${borrowerName.trim()}`);
       }
       onClose();
     } catch (err) {
       console.error(err);
+      haptics.error();
       toast.error('Failed to save lent record');
     } finally {
       setLoading(false);
@@ -119,11 +123,11 @@ const LentFormModal = ({ isOpen, onClose, initialData = null }) => {
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-md animate-fade-in"
       onClick={onClose}
     >
       <div 
-        className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border border-zinc-200/80 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-fade-in sm:my-auto"
+        className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border border-zinc-200/80 dark:border-white/10 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-pop-in sm:my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

@@ -56,21 +56,21 @@ const Sidebar = () => {
       </div>
       
       {/* Navigation Links */}
-      <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 space-y-1.5 overflow-y-auto">
         {navItems.map((item) => (
           <NavLink
             key={item.name}
             to={item.path}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 touch-feedback ${
+              `group flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 touch-feedback ${
                 isActive 
-                  ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-semibold shadow-xs' 
-                  : 'text-zinc-600 dark:text-zinc-400 hover:bg-white/40 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-white font-medium'
+                  ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-semibold shadow-sm' 
+                  : 'text-zinc-600 dark:text-zinc-400 hover:bg-white/50 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-white font-medium'
               }`
             }
           >
-            <FontAwesomeIcon icon={item.icon} className="w-4 h-4" />
-            <span className="text-xs">{item.name}</span>
+            <FontAwesomeIcon icon={item.icon} className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
+            <span className="text-xs transition-transform duration-200 group-hover:translate-x-0.5">{item.name}</span>
           </NavLink>
         ))}
       </nav>

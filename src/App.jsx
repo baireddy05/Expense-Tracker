@@ -21,8 +21,11 @@ const SavingsGoals = lazy(() => import('./pages/SavingsGoals'));
 const Events = lazy(() => import('./pages/Events'));
 
 const PageLoader = () => (
-  <div className="flex w-full items-center justify-center p-12 animate-pulse">
-    <div className="w-10 h-10 border-3 border-primary-500 border-t-transparent rounded-full animate-spin" />
+  <div className="flex w-full items-center justify-center min-h-[50vh] p-12">
+    <div className="relative flex items-center justify-center">
+      <div className="w-12 h-12 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
+      <div className="absolute w-6 h-6 rounded-full bg-indigo-500/10 blur-sm animate-pulse" />
+    </div>
   </div>
 );
 
@@ -90,13 +93,27 @@ function App() {
                   </Route>
                 </Routes>
                 <Toaster 
-                  position="bottom-center"
+                  position="top-center"
+                  containerStyle={{
+                    top: 24,
+                  }}
                   toastOptions={{
-                    className: 'dark:bg-gray-800 dark:text-white',
+                    duration: 3000,
+                    className: 'liquid-glass-dock !border !border-zinc-200/80 dark:!border-white/10 !text-zinc-900 dark:!text-white !font-medium !text-xs !shadow-2xl !py-2.5 !px-4 !rounded-2xl',
                     style: {
-                      borderRadius: '12px',
-                      background: '#333',
-                      color: '#fff',
+                      backdropFilter: 'blur(20px)',
+                    },
+                    success: {
+                      iconTheme: {
+                        primary: '#10b981',
+                        secondary: '#ffffff',
+                      },
+                    },
+                    error: {
+                      iconTheme: {
+                        primary: '#f43f5e',
+                        secondary: '#ffffff',
+                      },
                     }
                   }}
                 />

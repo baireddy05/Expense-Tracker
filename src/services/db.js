@@ -17,7 +17,7 @@ import { getLocalDateString } from "../utils/dateUtils";
 // Immediate top-level sanitization: wipe all unencrypted device storage
 export const sanitizeLocalStorage = () => {
   try {
-    const allowedKeys = new Set(['theme', 'extrack_privacy_mode']);
+    const allowedKeys = new Set(['theme', 'extrack_privacy_mode', 'extrack_haptics_enabled']);
     const keys = Object.keys(localStorage);
     keys.forEach(k => {
       if (!allowedKeys.has(k)) {

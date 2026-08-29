@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faCommentDots, faSuitcase, faTag, faPlus } from '@fortawesome/free-solid-svg-icons';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import toast from 'react-hot-toast';
+import { haptics } from '../../utils/haptics';
 
 const TransactionForm = ({ 
   isOpen, 
@@ -179,14 +180,17 @@ const TransactionForm = ({
       };
       if (initialData && initialData.id) {
         await updateTransaction(initialData.id, txData);
+        haptics.success();
         toast.success('Transaction updated');
       } else {
         await addTransaction(txData);
+        haptics.success();
         toast.success('Transaction logged');
       }
       onClose();
     } catch (error) {
       console.error(error);
+      haptics.error();
       toast.error('Failed to save transaction');
     } finally {
       setLoading(false);
@@ -219,11 +223,11 @@ const TransactionForm = ({
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4 animate-fade-in"
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-md p-0 sm:p-4 animate-fade-in"
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-fade-in sm:my-auto"
+        className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200/80 dark:border-white/10 flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-pop-in sm:my-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

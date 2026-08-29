@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { motion, useAnimation, useMotionValue, useTransform } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faEdit } from '@fortawesome/free-solid-svg-icons';
+import { haptics } from '../../utils/haptics';
 
 const SwipeableItem = ({ children, onEdit, onDelete, resetToken }) => {
   const [exitX, setExitX] = useState(0);
@@ -32,11 +33,13 @@ const SwipeableItem = ({ children, onEdit, onDelete, resetToken }) => {
 
     // Swipe left (delete)
     if (offset < -actionThreshold || velocity < -500) {
+      haptics.heavy();
       await controls.start({ x: -actionThreshold, transition: { type: 'spring', bounce: 0.5 } });
       onDelete();
     } 
     // Swipe right (edit)
     else if (offset > actionThreshold || velocity > 500) {
+      haptics.medium();
       // Don't remove from list on edit, just bounce back and trigger callback
       await controls.start({ x: 0, transition: { type: 'spring', bounce: 0.5 } });
       onEdit();
