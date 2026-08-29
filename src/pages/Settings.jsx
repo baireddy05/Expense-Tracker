@@ -260,7 +260,8 @@ const Settings = () => {
         if (data.lentRecords && Array.isArray(data.lentRecords)) {
           for (const lr of data.lentRecords) {
             if (lr.borrowerName && lr.amount) {
-              await addLentRecord(lr);
+              const { id, ...lrData } = lr;
+              await addLentRecord(lrData);
               importedCount++;
             }
           }
@@ -269,7 +270,8 @@ const Settings = () => {
         if (data.borrowedRecords && Array.isArray(data.borrowedRecords)) {
           for (const br of data.borrowedRecords) {
             if (br.lenderName && br.amount) {
-              await addBorrowedRecord(br);
+              const { id, ...brData } = br;
+              await addBorrowedRecord(brData);
               importedCount++;
             }
           }
