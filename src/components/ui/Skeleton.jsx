@@ -1,9 +1,9 @@
 import React from 'react';
 
-export const Skeleton = ({ className, ...props }) => {
+export const Skeleton = ({ className = '', ...props }) => {
   return (
     <div
-      className={`animate-pulse bg-gray-200 dark:bg-gray-800 rounded-xl ${className}`}
+      className={`animate-pulse bg-zinc-200/80 dark:bg-zinc-800/80 rounded-xl ${className}`}
       {...props}
     />
   );

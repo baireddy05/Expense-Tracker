@@ -88,7 +88,7 @@ const LendMoreModal = ({ isOpen, onClose, record }) => {
       onClick={onClose}
     >
       <div 
-        className="liquid-glass-dock w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-fade-in my-auto bg-white dark:bg-gray-900"
+        className="liquid-glass-dock w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-fade-in my-auto bg-white dark:bg-zinc-900"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -156,7 +156,7 @@ const LendMoreModal = ({ isOpen, onClose, record }) => {
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
                 placeholder="0.00"
-                className="w-full pl-8 pr-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-sm font-semibold dark:text-white bg-gray-50 dark:bg-gray-800"
+                className="w-full pl-8 pr-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-sm font-semibold dark:text-white bg-zinc-50 dark:bg-zinc-800/80"
               />
             </div>
 
@@ -186,7 +186,7 @@ const LendMoreModal = ({ isOpen, onClose, record }) => {
                 required
                 value={date}
                 onChange={e => setDate(e.target.value)}
-                className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white font-medium bg-gray-50 dark:bg-gray-800"
+                className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white font-medium bg-zinc-50 dark:bg-zinc-800/80"
               />
             </div>
 
@@ -198,7 +198,7 @@ const LendMoreModal = ({ isOpen, onClose, record }) => {
                 type="date"
                 value={dueDate}
                 onChange={e => setDueDate(e.target.value)}
-                className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white font-medium bg-gray-50 dark:bg-gray-800"
+                className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white font-medium bg-zinc-50 dark:bg-zinc-800/80"
               />
             </div>
           </div>
@@ -217,7 +217,7 @@ const LendMoreModal = ({ isOpen, onClose, record }) => {
                 value={note}
                 onChange={e => setNote(e.target.value)}
                 placeholder="e.g. Additional college tuition fee, emergency split"
-                className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white resize-none bg-gray-50 dark:bg-gray-800"
+                className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white resize-none bg-zinc-50 dark:bg-zinc-800/80"
               />
             </div>
           </div>

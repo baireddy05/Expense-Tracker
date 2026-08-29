@@ -52,7 +52,7 @@ const ReminderModal = ({ isOpen, onClose, record }) => {
       onClick={onClose}
     >
       <div 
-        className="liquid-glass-dock w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-fade-in my-auto bg-white dark:bg-gray-900"
+        className="liquid-glass-dock w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-fade-in my-auto bg-white dark:bg-zinc-900"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex justify-between items-center px-5 py-4 border-b border-white/50 dark:border-white/10 shrink-0">
@@ -83,7 +83,7 @@ const ReminderModal = ({ isOpen, onClose, record }) => {
             <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-2">
               Message Preview
             </label>
-            <div className="p-3.5 liquid-glass-subtle rounded-2xl text-xs leading-relaxed text-zinc-800 dark:text-zinc-200 select-all border border-white/50 dark:border-white/10 bg-gray-50 dark:bg-gray-800">
+            <div className="p-3.5 liquid-glass-subtle rounded-2xl text-xs leading-relaxed text-zinc-800 dark:text-zinc-200 select-all border border-white/50 dark:border-white/10 bg-zinc-50 dark:bg-zinc-800/80">
               {message}
             </div>
           </div>

@@ -75,7 +75,7 @@ const SwipeableItem = ({ children, onEdit, onDelete, resetToken }) => {
         onDragEnd={handleDragEnd}
         animate={controls}
         style={{ x }}
-        className="relative z-10 w-full bg-white dark:bg-gray-900 shadow-sm rounded-xl touch-pan-y"
+        className="relative z-10 w-full bg-white dark:bg-zinc-900 shadow-sm rounded-xl touch-pan-y"
       >
         {children}
       </motion.div>

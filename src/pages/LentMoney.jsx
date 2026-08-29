@@ -1075,15 +1075,15 @@ const LentMoney = () => {
 
         {/* Empty State */}
         {filteredRecords.length === 0 && !loading && (
-          <div className="glass rounded-3xl p-12 text-center max-w-lg mx-auto space-y-4">
-            <div className="w-16 h-16 rounded-3xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl mx-auto">
+          <div className="glass-card rounded-3xl p-12 text-center max-w-lg mx-auto space-y-4">
+            <div className="w-16 h-16 rounded-3xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl mx-auto shadow-2xs">
               <FontAwesomeIcon icon={faHandHoldingDollar} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
                 {search || statusFilter !== 'all' ? 'No matching lent records' : 'No money lent to friends yet'}
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-xs mx-auto">
+              <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1 max-w-xs mx-auto">
                 {search || statusFilter !== 'all'
                   ? 'Try adjusting your search or clearing the status filter'
                   : 'Whenever you lend money to friends or colleagues, record it here to track returns and top-ups without interfering with daily living expenses.'}
@@ -1096,10 +1096,10 @@ const LentMoney = () => {
                   setEditingRecord(null);
                   setIsFormOpen(true);
                 }}
-                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold rounded-xl shadow-lg shadow-amber-500/25 transition-all inline-flex items-center gap-2 text-sm cursor-pointer"
+                className="px-6 py-2.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold rounded-xl shadow-xs transition-all inline-flex items-center gap-2 text-xs sm:text-sm cursor-pointer touch-feedback"
               >
                 <FontAwesomeIcon icon={faPlus} />
-                <span>Lend Money to a Friend</span>
+                <span>Record Money Lent</span>
               </button>
             )}
           </div>

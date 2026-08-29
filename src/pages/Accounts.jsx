@@ -325,16 +325,34 @@ const Accounts = () => {
           Your Wallets & Accounts ({accounts.length})
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {accounts.map(acc => {
-            const iconObj = ACCOUNT_ICONS[acc.icon] || faBuildingColumns;
-            const balance = acc.balance || 0;
+        {accounts.length === 0 ? (
+          <div className="glass-card p-10 text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto text-zinc-400 text-lg">
+              <FontAwesomeIcon icon={faBuildingColumns} />
+            </div>
+            <h3 className="font-bold text-sm text-zinc-900 dark:text-white">No accounts added yet</h3>
+            <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+              Add your Bank accounts, Cash wallets, or Credit Cards to track real balances and execute internal transfers.
+            </p>
+            <button
+              onClick={() => handleOpenAccountModal()}
+              className="mt-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer touch-feedback shadow-xs"
+            >
+              <FontAwesomeIcon icon={faPlus} className="text-xs" />
+              <span>Add Your First Account</span>
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {accounts.map(acc => {
+              const iconObj = ACCOUNT_ICONS[acc.icon] || faBuildingColumns;
+              const balance = acc.balance || 0;
 
-            return (
-              <div 
-                key={acc.id} 
-                className="glass-card p-5 relative overflow-hidden transition-all hover:border-zinc-300 dark:hover:border-zinc-700 flex flex-col justify-between"
-              >
+              return (
+                <div 
+                  key={acc.id} 
+                  className="glass-card p-5 relative overflow-hidden transition-all hover:border-zinc-300 dark:hover:border-zinc-700 flex flex-col justify-between"
+                >
                 {/* Header Row */}
                 <div>
                   <div className="flex items-start justify-between gap-3">
@@ -408,6 +426,7 @@ const Accounts = () => {
             );
           })}
         </div>
+        )}
       </div>
 
       {/* Recent Internal Transfers */}

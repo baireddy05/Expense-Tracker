@@ -628,9 +628,9 @@ const Transactions = () => {
           {/* Header Bar with Date Counts & Expand/Collapse Controls */}
           {filteredTransactions.length > 0 && (
             <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                <FontAwesomeIcon icon={faLayerGroup} className="text-primary-500" />
-                <span className="font-semibold text-gray-900 dark:text-white">
+              <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
+                <FontAwesomeIcon icon={faLayerGroup} className="text-zinc-500 dark:text-zinc-400" />
+                <span className="font-semibold text-zinc-900 dark:text-white">
                   {selectedDateGroup === 'all' 
                     ? `${dateGroups.length} Date Group${dateGroups.length === 1 ? '' : 's'} (${filteredTransactions.length} transaction${filteredTransactions.length === 1 ? '' : 's'})` 
                     : `Showing Date: ${formatDateHeader(selectedDateGroup)} (${displayedTransactions.length} transaction${displayedTransactions.length === 1 ? '' : 's'})`}
@@ -638,7 +638,7 @@ const Transactions = () => {
                 {selectedDateGroup !== 'all' && (
                   <button 
                     onClick={() => setSelectedDateGroup('all')}
-                    className="ml-2 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline cursor-pointer bg-primary-50 dark:bg-primary-950/60 px-2 py-0.5 rounded-md"
+                    className="ml-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-md"
                   >
                     ← View All Dates
                   </button>
@@ -650,18 +650,18 @@ const Transactions = () => {
                   <>
                     <button
                       onClick={expandAllDates}
-                      className="px-3 py-1.5 text-xs font-medium bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      className="px-3 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                       title="Expand all date dropdowns"
                     >
-                      <FontAwesomeIcon icon={faExpandAlt} className="text-[11px] text-gray-500" />
+                      <FontAwesomeIcon icon={faExpandAlt} className="text-[11px] text-zinc-500" />
                       <span>Expand All</span>
                     </button>
                     <button
                       onClick={collapseAllDates}
-                      className="px-3 py-1.5 text-xs font-medium bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      className="px-3 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                       title="Collapse all date dropdowns"
                     >
-                      <FontAwesomeIcon icon={faCompressAlt} className="text-[11px] text-gray-500" />
+                      <FontAwesomeIcon icon={faCompressAlt} className="text-[11px] text-zinc-500" />
                       <span>Collapse All</span>
                     </button>
                   </>
@@ -679,25 +679,25 @@ const Transactions = () => {
               return (
                 <div 
                   key={g.dateKey} 
-                  className="glass rounded-2xl overflow-hidden border border-gray-200/80 dark:border-gray-800/80 transition-all duration-200 shadow-sm"
+                  className="glass-card rounded-2xl overflow-hidden border border-zinc-200/80 dark:border-zinc-800/80 transition-all duration-200 shadow-sm"
                 >
                   {/* Collapsible Date Header & Quick Action Row */}
                   <div 
                     onClick={() => toggleDateExpand(g.dateKey)}
-                    className="w-full p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 bg-white/70 dark:bg-gray-900/70 hover:bg-gray-50/90 dark:hover:bg-gray-800/60 transition-colors cursor-pointer select-none"
+                    className="w-full p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 bg-white/70 dark:bg-zinc-900/70 hover:bg-zinc-50/90 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer select-none"
                   >
                     {/* Left: Icon, Date Title & Tx Count */}
                     <div className="flex items-center justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 rounded-xl bg-primary-50 dark:bg-primary-950/60 border border-primary-100 dark:border-primary-900/40 text-primary-600 dark:text-primary-400 flex items-center justify-center text-xs sm:text-sm shadow-xs">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 text-zinc-700 dark:text-zinc-300 flex items-center justify-center text-xs sm:text-sm shadow-xs">
                           <FontAwesomeIcon icon={faCalendarDay} />
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-gray-900 dark:text-white text-sm sm:text-base leading-tight">
+                            <span className="font-bold text-zinc-900 dark:text-white text-sm sm:text-base leading-tight">
                               {formatDateHeader(g.dateKey)}
                             </span>
-                            <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
                               {g.items.length} {g.items.length === 1 ? 'item' : 'items'}
                             </span>
                           </div>
@@ -705,18 +705,18 @@ const Transactions = () => {
                       </div>
 
                       {/* Mobile Chevron indicator */}
-                      <div className="sm:hidden flex items-center gap-1 text-gray-400 dark:text-gray-500">
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                      <div className="sm:hidden flex items-center gap-1 text-zinc-400 dark:text-zinc-500">
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
                           <FontAwesomeIcon icon={isExpanded ? faChevronUp : faChevronDown} className="text-xs" />
                         </div>
                       </div>
                     </div>
 
                     {/* Right: Badges, Direct "+ Add" Actions, and Desktop Chevron */}
-                    <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 flex-wrap sm:ml-auto w-full sm:w-auto pt-1 sm:pt-0 border-t border-gray-100/60 dark:border-gray-800/40 sm:border-0">
+                    <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 flex-wrap sm:ml-auto w-full sm:w-auto pt-1 sm:pt-0 border-t border-zinc-100/60 dark:border-zinc-800/40 sm:border-0">
                       <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                         {g.totalIncome > 0 && (
-                          <span className="text-[11px] sm:text-xs font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40 px-1.5 sm:px-2 py-0.5 rounded-md border border-green-200/50 dark:border-green-800/40 whitespace-nowrap">
+                          <span className="text-[11px] sm:text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 sm:px-2 py-0.5 rounded-md border border-emerald-200/50 dark:border-emerald-800/40 whitespace-nowrap">
                             +{formatCurrency(g.totalIncome)}
                           </span>
                         )}
@@ -730,7 +730,7 @@ const Transactions = () => {
                             ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800/60' 
                             : netTotal < 0 
                               ? 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-800/60'
-                              : 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                              : 'text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'
                         }`}>
                           Net: {netTotal > 0 ? '+' : ''}{formatCurrency(netTotal)}
                         </span>
@@ -769,9 +769,9 @@ const Transactions = () => {
                       </div>
 
                       {/* Desktop Chevron & Action Text */}
-                      <div className="hidden sm:flex items-center gap-1.5 pl-1 text-gray-400 dark:text-gray-500">
+                      <div className="hidden sm:flex items-center gap-1.5 pl-1 text-zinc-400 dark:text-zinc-500">
                         <span className="text-xs">{isExpanded ? 'Hide' : 'View'}</span>
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
                           <FontAwesomeIcon icon={isExpanded ? faChevronUp : faChevronDown} className="text-xs" />
                         </div>
                       </div>
@@ -785,19 +785,19 @@ const Transactions = () => {
                       <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
-                            <tr className="border-b border-gray-100 dark:border-gray-800/60 bg-gray-50/60 dark:bg-gray-950/40 text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider">
+                            <tr className="border-b border-zinc-100 dark:border-zinc-800/60 bg-zinc-50/60 dark:bg-zinc-950/40 text-zinc-500 dark:text-zinc-400 text-xs font-medium uppercase tracking-wider">
                               <th className="p-3 pl-4">Category</th>
                               <th className="p-3">Note</th>
                               <th className="p-3 text-right">Amount</th>
                               <th className="p-3 pr-4 text-right">Actions</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-gray-100 dark:divide-gray-800/50">
+                          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
                             {g.items.map(t => {
                               const cat = resolveCategory(t.categoryId, categories, t.note);
                               const categoryColor = cat?.color || '#888888';
                               return (
-                                <tr key={t.id} className="hover:bg-gray-50/70 dark:hover:bg-gray-800/40 transition-colors group">
+                                <tr key={t.id} className="hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 transition-colors group">
                                   <td className="p-3 pl-4">
                                     <div className="flex items-center gap-2.5">
                                       <div 
@@ -818,24 +818,24 @@ const Transactions = () => {
                                       </span>
                                     </div>
                                   </td>
-                                  <td className="p-3 text-gray-700 dark:text-gray-300 font-medium text-sm">
+                                  <td className="p-3 text-zinc-700 dark:text-zinc-300 font-medium text-sm">
                                     {t.note || '-'}
                                   </td>
-                                  <td className={`p-3 text-right font-bold whitespace-nowrap text-sm ${t.type === 'income' ? 'text-green-500' : 'text-gray-900 dark:text-white'}`}>
+                                  <td className={`p-3 text-right font-bold whitespace-nowrap text-sm ${t.type === 'income' ? 'text-emerald-500' : 'text-zinc-900 dark:text-white'}`}>
                                     {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                                   </td>
                                   <td className="p-3 pr-4 text-right">
                                     <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                       <button 
                                         onClick={() => handleEdit(t)} 
-                                        className="p-1.5 text-gray-400 hover:text-primary-500 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+                                        className="p-1.5 text-zinc-400 hover:text-indigo-500 transition-colors rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer touch-feedback"
                                         title="Edit transaction"
                                       >
                                         <FontAwesomeIcon icon={faEdit} />
                                       </button>
                                       <button 
                                         onClick={() => requestDelete(t.id)} 
-                                        className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+                                        className="p-1.5 text-zinc-400 hover:text-rose-500 transition-colors rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer touch-feedback"
                                         title="Delete transaction"
                                       >
                                         <FontAwesomeIcon icon={faTrash} />
@@ -849,7 +849,7 @@ const Transactions = () => {
                         </table>
 
                         {/* Quick Add footer for this date on desktop */}
-                        <div className="p-3 bg-gray-50/40 dark:bg-gray-950/30 border-t border-gray-100 dark:border-gray-800/60 flex items-center justify-between">
+                        <div className="p-3 bg-zinc-50/40 dark:bg-zinc-950/30 border-t border-zinc-100 dark:border-zinc-800/60 flex items-center justify-between">
                           <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
                             Direct add for {formatDateHeader(g.dateKey)}:
                           </span>
@@ -875,7 +875,7 @@ const Transactions = () => {
                       </div>
 
                       {/* Mobile Stacked Items inside Date Group */}
-                      <div className="md:hidden p-3 space-y-2.5 bg-gray-50/40 dark:bg-gray-950/20">
+                      <div className="md:hidden p-3 space-y-2.5 bg-zinc-50/40 dark:bg-zinc-950/20">
                         {g.items.map(t => {
                           const cat = resolveCategory(t.categoryId, categories, t.note);
                           const hasNote = Boolean(t.note && t.note.trim());
@@ -889,7 +889,7 @@ const Transactions = () => {
                               onDelete={() => requestDelete(t.id)}
                               resetToken={swipeResetToken}
                             >
-                              <div className="glass p-3.5 flex items-center gap-3 rounded-xl border border-gray-200/60 dark:border-gray-800/60">
+                              <div className="liquid-glass-card p-3.5 flex items-center gap-3 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60">
                                 {/* Category Icon */}
                                 <div 
                                   className="w-11 h-11 shrink-0 rounded-full flex items-center justify-center text-white shadow-sm" 
@@ -900,7 +900,7 @@ const Transactions = () => {
                                 
                                 {/* Info */}
                                 <div className="flex-1 min-w-0 py-0.5">
-                                  <p className="font-semibold text-gray-900 dark:text-white text-sm leading-snug break-words">
+                                  <p className="font-semibold text-zinc-900 dark:text-white text-sm leading-snug break-words">
                                     {hasNote ? t.note : categoryName}
                                   </p>
                                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs">
@@ -919,7 +919,7 @@ const Transactions = () => {
                                 
                                 {/* Amount */}
                                 <div className="text-right shrink-0 ml-1 self-center">
-                                  <p className={`font-bold text-sm whitespace-nowrap ${t.type === 'income' ? 'text-green-500' : 'text-gray-900 dark:text-white'}`}>
+                                  <p className={`font-bold text-sm whitespace-nowrap ${t.type === 'income' ? 'text-emerald-500' : 'text-zinc-900 dark:text-white'}`}>
                                     {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                                   </p>
                                 </div>
@@ -955,10 +955,10 @@ const Transactions = () => {
             })}
 
             {displayedDateGroups.length === 0 && (
-              <div className="glass rounded-2xl p-10 text-center text-gray-500 space-y-3">
-                <FontAwesomeIcon icon={faSearch} className="text-3xl text-gray-400" />
-                <p className="font-medium text-base">No transactions found.</p>
-                <p className="text-sm text-gray-400 mt-1">Try adjusting your filters or search query, or add a transaction directly.</p>
+              <div className="glass-card rounded-2xl p-10 text-center text-zinc-500 space-y-3">
+                <FontAwesomeIcon icon={faSearch} className="text-3xl text-zinc-400" />
+                <p className="font-medium text-base text-zinc-900 dark:text-white">No transactions found.</p>
+                <p className="text-sm text-zinc-400 mt-1">Try adjusting your filters or search query, or add a transaction directly.</p>
                 <div className="pt-2">
                   <button
                     type="button"
@@ -977,11 +977,11 @@ const Transactions = () => {
         /* STANDARD VIEW: When a specific period (Today, Yesterday, Week, Month, Year, Custom) is active */
         <>
           {/* Desktop Table View */}
-          <div className="hidden md:block glass rounded-2xl overflow-hidden">
+          <div className="hidden md:block glass-card rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 text-sm">
+                  <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 text-zinc-500 dark:text-zinc-400 text-sm">
                     <th className="p-4 font-medium">Date</th>
                     <th className="p-4 font-medium">Category</th>
                     <th className="p-4 font-medium">Note</th>
@@ -989,13 +989,13 @@ const Transactions = () => {
                     <th className="p-4 font-medium text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
                   {filteredTransactions.map(t => {
                     const cat = resolveCategory(t.categoryId, categories, t.note);
                     const categoryColor = cat?.color || '#888888';
                     return (
-                      <tr key={t.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors group">
-                        <td className="p-4 text-gray-900 dark:text-gray-300 whitespace-nowrap">
+                      <tr key={t.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors group">
+                        <td className="p-4 text-zinc-900 dark:text-zinc-300 whitespace-nowrap">
                           {new Date(t.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </td>
                         <td className="p-4">
@@ -1018,16 +1018,16 @@ const Transactions = () => {
                             </span>
                           </div>
                         </td>
-                        <td className="p-4 text-gray-700 dark:text-gray-300 font-medium">{t.note || '-'}</td>
-                        <td className={`p-4 text-right font-semibold whitespace-nowrap ${t.type === 'income' ? 'text-green-500' : 'text-gray-900 dark:text-white'}`}>
+                        <td className="p-4 text-zinc-700 dark:text-zinc-300 font-medium">{t.note || '-'}</td>
+                        <td className={`p-4 text-right font-semibold whitespace-nowrap ${t.type === 'income' ? 'text-emerald-500' : 'text-zinc-900 dark:text-white'}`}>
                           {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                         </td>
                         <td className="p-4 text-right">
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => handleEdit(t)} className="p-2 text-gray-400 hover:text-primary-500 transition-colors cursor-pointer" title="Edit">
+                            <button onClick={() => handleEdit(t)} className="p-2 text-zinc-400 hover:text-indigo-500 transition-colors cursor-pointer touch-feedback" title="Edit">
                               <FontAwesomeIcon icon={faEdit} />
                             </button>
-                            <button onClick={() => requestDelete(t.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors cursor-pointer" title="Delete">
+                            <button onClick={() => requestDelete(t.id)} className="p-2 text-zinc-400 hover:text-rose-500 transition-colors cursor-pointer touch-feedback" title="Delete">
                               <FontAwesomeIcon icon={faTrash} />
                             </button>
                           </div>
@@ -1037,8 +1037,8 @@ const Transactions = () => {
                   })}
                   {filteredTransactions.length === 0 && (
                     <tr>
-                      <td colSpan="5" className="p-8 text-center text-gray-500">
-                        <p className="font-medium">No transactions found for this period.</p>
+                      <td colSpan="5" className="p-8 text-center text-zinc-500">
+                        <p className="font-medium text-zinc-900 dark:text-white">No transactions found for this period.</p>
                         <button
                           type="button"
                           onClick={() => openAddTransaction()}
@@ -1056,7 +1056,7 @@ const Transactions = () => {
             
             {/* Direct Add footer on standard table */}
             {filteredTransactions.length > 0 && (
-              <div className="p-3.5 bg-gray-50/50 dark:bg-gray-900/50 border-t border-gray-200/80 dark:border-gray-800/80 flex items-center justify-between">
+              <div className="p-3.5 bg-zinc-50/50 dark:bg-zinc-900/50 border-t border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between">
                 <span className="text-xs text-zinc-500 dark:text-zinc-400">
                   Quick add to this view:
                 </span>
@@ -1097,7 +1097,7 @@ const Transactions = () => {
                   onDelete={() => requestDelete(t.id)}
                   resetToken={swipeResetToken}
                 >
-                  <div className="glass p-4 flex items-center gap-3.5">
+                  <div className="liquid-glass-card p-4 flex items-center gap-3.5">
                     {/* Category Icon Circle */}
                     <div 
                       className="w-12 h-12 shrink-0 rounded-full flex items-center justify-center text-white shadow-md" 
@@ -1108,16 +1108,16 @@ const Transactions = () => {
                     
                     {/* Info Block */}
                     <div className="flex-1 min-w-0 py-0.5">
-                      <p className="font-semibold text-gray-900 dark:text-white text-base leading-snug break-words">
+                      <p className="font-semibold text-zinc-900 dark:text-white text-base leading-snug break-words">
                         {hasNote ? t.note : categoryName}
                       </p>
                       
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 text-xs">
-                        <span className="text-gray-500 dark:text-gray-400 whitespace-nowrap font-normal">
+                        <span className="text-zinc-500 dark:text-zinc-400 whitespace-nowrap font-normal">
                           {new Date(t.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </span>
                         
-                        <span className="text-gray-300 dark:text-gray-600 select-none">&bull;</span>
+                        <span className="text-zinc-300 dark:text-zinc-600 select-none">&bull;</span>
                         <span 
                           className="inline-flex items-center px-2 py-0.5 rounded-md font-medium text-xs break-words"
                           style={{ 
@@ -1133,7 +1133,7 @@ const Transactions = () => {
                     
                     {/* Amount */}
                     <div className="text-right shrink-0 ml-1 self-center">
-                      <p className={`font-bold text-base whitespace-nowrap ${t.type === 'income' ? 'text-green-500' : 'text-gray-900 dark:text-white'}`}>
+                      <p className={`font-bold text-base whitespace-nowrap ${t.type === 'income' ? 'text-emerald-500' : 'text-zinc-900 dark:text-white'}`}>
                         {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                       </p>
                     </div>
@@ -1164,8 +1164,8 @@ const Transactions = () => {
             )}
 
             {filteredTransactions.length === 0 && (
-              <div className="text-center p-8 text-gray-500 glass rounded-2xl space-y-3">
-                <p>No transactions found for this period.</p>
+              <div className="text-center p-8 text-zinc-500 liquid-glass-card rounded-2xl space-y-3">
+                <p className="font-medium text-zinc-900 dark:text-white">No transactions found for this period.</p>
                 <button
                   type="button"
                   onClick={() => openAddTransaction()}
@@ -1179,15 +1179,6 @@ const Transactions = () => {
           </div>
         </>
       )}
-
-      {/* Mobile Sticky FAB */}
-      <button 
-        onClick={() => openAddTransaction()}
-        className="md:hidden fixed bottom-20 right-6 w-14 h-14 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:opacity-90 rounded-full flex items-center justify-center text-xl shadow-lg shadow-black/20 z-40 transition-transform active:scale-95 cursor-pointer"
-        aria-label="Add Transaction"
-      >
-        <FontAwesomeIcon icon={faPlus} />
-      </button>
 
       {/* Transaction Modal */}
       <TransactionForm 

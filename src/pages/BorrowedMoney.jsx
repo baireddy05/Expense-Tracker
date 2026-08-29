@@ -1066,15 +1066,15 @@ const BorrowedMoney = () => {
 
         {/* Empty State */}
         {filteredRecords.length === 0 && !loading && (
-          <div className="glass rounded-3xl p-12 text-center max-w-lg mx-auto space-y-4">
-            <div className="w-16 h-16 rounded-3xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center text-2xl mx-auto">
+          <div className="glass-card rounded-3xl p-12 text-center max-w-lg mx-auto space-y-4">
+            <div className="w-16 h-16 rounded-3xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center text-2xl mx-auto shadow-2xs">
               <FontAwesomeIcon icon={faHandHolding} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
                 {search || statusFilter !== 'all' ? 'No matching borrowed records' : 'No money borrowed from friends yet'}
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-xs mx-auto">
+              <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1 max-w-xs mx-auto">
                 {search || statusFilter !== 'all'
                   ? 'Try adjusting your search or clearing the status filter'
                   : 'Whenever you borrow money from friends or family, record it here to stay accountable and track your repayments.'}
@@ -1087,7 +1087,7 @@ const BorrowedMoney = () => {
                   setEditingRecord(null);
                   setIsFormOpen(true);
                 }}
-                className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-purple-500/25 transition-all inline-flex items-center gap-2 text-sm cursor-pointer"
+                className="px-6 py-2.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold rounded-xl shadow-xs transition-all inline-flex items-center gap-2 text-xs sm:text-sm cursor-pointer touch-feedback"
               >
                 <FontAwesomeIcon icon={faPlus} />
                 <span>Record Borrowed Money</span>

@@ -48,14 +48,14 @@ const BorrowReminderModal = ({ isOpen, onClose, record }) => {
       onClick={onClose}
     >
       <div 
-        className="liquid-glass-dock w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-fade-in my-auto bg-white dark:bg-gray-900"
+        className="liquid-glass-dock w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-fade-in my-auto bg-white dark:bg-zinc-900"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex justify-between items-center px-5 py-4 border-b border-white/50 dark:border-white/10 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center text-sm shadow-2xs">
-              <FontAwesomeIcon icon={faComments} />
+              <FontAwesomeIcon icon={faPaperPlane} />
             </div>
             <div>
               <h2 className="text-base font-bold text-zinc-900 dark:text-white">
@@ -85,7 +85,7 @@ const BorrowReminderModal = ({ isOpen, onClose, record }) => {
               rows="4"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="w-full p-3.5 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white resize-none bg-gray-50 dark:bg-gray-800"
+              className="w-full p-3.5 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white resize-none bg-zinc-50 dark:bg-zinc-800/80"
             />
           </div>
 
