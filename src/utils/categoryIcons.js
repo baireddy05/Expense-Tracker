@@ -2,17 +2,23 @@ import {
   faUtensils, 
   faShoppingCart, 
   faHandHoldingDollar, 
+  faHandHolding,
+  faHandshake,
+  faCircleCheck,
   faPlane, 
   faFilm, 
   faNotesMedical, 
   faMoneyBillWave, 
+  faMoneyBill,
   faChartLine, 
+  faLaptopCode,
+  faHome,
+  faBolt,
   faTag, 
   faTags, 
   faReceipt, 
   faCar, 
   faHouse, 
-  faBolt, 
   faGift, 
   faGraduationCap,
   faCircle,
@@ -25,18 +31,23 @@ const ICON_MAP = {
   'fa-utensils': faUtensils,
   'fa-shopping-cart': faShoppingCart,
   'fa-hand-holding-dollar': faHandHoldingDollar,
+  'fa-hand-holding': faHandHolding,
+  'fa-handshake': faHandshake,
+  'fa-circle-check': faCircleCheck,
   'fa-plane': faPlane,
   'fa-film': faFilm,
   'fa-notes-medical': faNotesMedical,
-  'fa-money-bill': faMoneyBillWave,
+  'fa-money-bill': faMoneyBill,
   'fa-money-bill-wave': faMoneyBillWave,
   'fa-chart-line': faChartLine,
+  'fa-laptop-code': faLaptopCode,
+  'fa-home': faHome,
+  'fa-house': faHouse,
+  'fa-bolt': faBolt,
   'fa-tag': faTag,
   'fa-tags': faTags,
   'fa-receipt': faReceipt,
   'fa-car': faCar,
-  'fa-house': faHouse,
-  'fa-bolt': faBolt,
   'fa-gift': faGift,
   'fa-graduation-cap': faGraduationCap,
   'fa-circle': faCircle,
@@ -45,10 +56,10 @@ const ICON_MAP = {
   'fa-burger': faBurger
 };
 
-const FOOD_KEYWORDS = /(coke|tea|chai|samosa|food|lunch|dinner|snack|campa|coffee|burger|pizza|duniya|biryani|hotel|restaurant|bakery)/i;
-const LEND_KEYWORDS = /(lent|lend|varshith|surya|borrow|loan|friend|advance)/i;
-const TRAVEL_KEYWORDS = /(uber|ola|auto|petrol|metro|fuel|flight|train|cab|bus|toll)/i;
-const ENTERTAINMENT_KEYWORDS = /(movie|game|netflix|spotify|prime|theatre|cinema|hotstar)/i;
+const FOOD_KEYWORDS = /\b(coke|tea|chai|samosa|food|lunch|dinner|snack|campa|coffee|burger|pizza|duniya|biryani|hotel|restaurant|bakery)\b/i;
+const LEND_KEYWORDS = /\b(lent|lend|borrow|loan|friend|advance|repay|debt)\b/i;
+const TRAVEL_KEYWORDS = /\b(uber|ola|auto|petrol|metro|fuel|flight|train|cab|bus|toll)\b/i;
+const ENTERTAINMENT_KEYWORDS = /\b(movie|game|netflix|spotify|prime|theatre|cinema|hotstar)\b/i;
 
 export const getCategoryIcon = (iconName) => {
   if (!iconName) return faTag;
@@ -93,27 +104,57 @@ export const resolveCategory = (categoryId, categories = [], note = '') => {
   // 1. Check note for system-generated / auto-synced lent & borrow transactions first
   if (note) {
     const lowerNote = String(note).trim().toLowerCase();
-    if (lowerNote.includes('lent to') || lowerNote.includes('lent top-up to')) {
-      const lentCat = categories.find(c => c.name?.toLowerCase().includes('lent money')) ||
-                      categories.find(c => c.name?.toLowerCase().includes('lent')) ||
-                      categories.find(c => c.name?.toLowerCase().includes('lend'));
-      if (lentCat) return lentCat;
+
+    // Repaid debt / friend repayment
+    if (
+      lowerNote.includes('repaid debt') || 
+      lowerNote.includes('repaid to') || 
+      lowerNote.includes('settled & repaid') || 
+      lowerNote.includes('debt repayment') || 
+      lowerNote.includes('paid back') ||
+      (lowerNote.includes('repay') && (lowerNote.includes('friend') || lowerNote.includes('debt') || lowerNote.includes('borrow')))
+    ) {
+      const debtCat = categories.find(c => c.name?.toLowerCase() === 'debt repayment') ||
+                      categories.find(c => c.name?.toLowerCase().includes('debt repayment')) ||
+                      categories.find(c => c.name?.toLowerCase().includes('debt')) ||
+                      categories.find(c => c.name?.toLowerCase().includes('repay')) ||
+                      { id: 'cat_debt_repayment', name: 'Debt Repayment', color: '#6366f1', icon: 'fa-handshake', type: 'expense' };
+      return debtCat;
     }
-    if (lowerNote.includes('returned by') || lowerNote.includes('settled & returned by')) {
-      const retCat = categories.find(c => c.name?.toLowerCase().includes('lent returned')) ||
+
+    // Returned lent money
+    if (
+      lowerNote.includes('returned by') || 
+      lowerNote.includes('settled & returned') || 
+      lowerNote.includes('lent returned') ||
+      lowerNote.includes('return from') ||
+      (lowerNote.includes('returned') && (lowerNote.includes('friend') || lowerNote.includes('lent')))
+    ) {
+      const retCat = categories.find(c => c.name?.toLowerCase() === 'lent returned') ||
+                     categories.find(c => c.name?.toLowerCase().includes('lent returned')) ||
                      categories.find(c => c.name?.toLowerCase().includes('returned')) ||
-                     categories.find(c => c.name?.toLowerCase().includes('lent'));
-      if (retCat) return retCat;
+                     categories.find(c => c.name?.toLowerCase().includes('lent')) ||
+                     { id: 'cat_lent_returned', name: 'Lent Returned', color: '#10b981', icon: 'fa-circle-check', type: 'income' };
+      return retCat;
     }
-    if (lowerNote.includes('borrowed from') || lowerNote.includes('borrowed top-up from')) {
-      const borrowCat = categories.find(c => c.name?.toLowerCase().includes('borrowed money')) ||
-                        categories.find(c => c.name?.toLowerCase().includes('borrow'));
-      if (borrowCat) return borrowCat;
+
+    // Lent to friend
+    if (lowerNote.includes('lent to') || lowerNote.includes('lent top-up to') || lowerNote.includes('lend to')) {
+      const lentCat = categories.find(c => c.name?.toLowerCase() === 'lent money') ||
+                      categories.find(c => c.name?.toLowerCase().includes('lent money')) ||
+                      categories.find(c => c.name?.toLowerCase().includes('lent') && c.type === 'expense') ||
+                      categories.find(c => c.name?.toLowerCase().includes('lend')) ||
+                      { id: 'cat_lent_money', name: 'Lent Money', color: '#f59e0b', icon: 'fa-hand-holding-dollar', type: 'expense' };
+      return lentCat;
     }
-    if (lowerNote.includes('repaid debt to') || lowerNote.includes('settled & repaid debt to')) {
-      const debtCat = categories.find(c => c.name?.toLowerCase().includes('debt repayment')) ||
-                      categories.find(c => c.name?.toLowerCase().includes('debt'));
-      if (debtCat) return debtCat;
+
+    // Borrowed from friend
+    if (lowerNote.includes('borrowed from') || lowerNote.includes('borrowed top-up from') || lowerNote.includes('borrow from')) {
+      const borrowCat = categories.find(c => c.name?.toLowerCase() === 'borrowed money') ||
+                        categories.find(c => c.name?.toLowerCase().includes('borrowed money')) ||
+                        categories.find(c => c.name?.toLowerCase().includes('borrow') && c.type === 'income') ||
+                        { id: 'cat_borrowed_money', name: 'Borrowed Money', color: '#06b6d4', icon: 'fa-hand-holding', type: 'income' };
+      return borrowCat;
     }
   }
 
@@ -134,7 +175,7 @@ export const resolveCategory = (categoryId, categories = [], note = '') => {
     if (LEND_KEYWORDS.test(note)) {
       for (let i = 0; i < categories.length; i++) {
         const n = categories[i].name?.toLowerCase();
-        if (n && (n.includes('lend') || n.includes('lent') || n.includes('borrow'))) return categories[i];
+        if (n && (n.includes('lend') || n.includes('lent') || n.includes('borrow') || n.includes('debt'))) return categories[i];
       }
     }
 

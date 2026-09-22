@@ -102,11 +102,6 @@ export const TransactionProvider = ({ children }) => {
     }
   }, [fetchData, authLoading]);
 
-  // Auto-purge any legacy/offline unencrypted data from browser storage unconditionally
-  useEffect(() => {
-    DataService.purgeAllLocalData();
-  }, [userId]);
-
   const syncLocalData = async () => {
     if (!userId) {
       toast.error('Please sign in to sync data to the cloud.');
@@ -114,6 +109,15 @@ export const TransactionProvider = ({ children }) => {
     }
     setIsSyncing(true);
     try {
+      // First migrate any guest offline records, then refresh from cloud
+      try {
+        const result = await DataService.migrateLocalDataToCloud(userId);
+        if (result && result.count > 0) {
+          toast.success(`Migrated ${result.count} offline record(s) to cloud!`, { icon: '☁️' });
+        }
+      } catch (migErr) {
+        console.warn("Guest migration note:", migErr);
+      }
       await fetchData();
       toast.success('Your cloud data is securely synced with Google Cloud!', { icon: '☁️' });
     } catch (err) {
@@ -503,6 +507,23 @@ export const TransactionProvider = ({ children }) => {
     });
   }, [events, transactions]);
 
+  // Helper to ensure critical lending/debt system categories exist before auto-syncing
+  const getOrCreateCategory = async (type, preferredName, fallbackNameMatch, defaultDef) => {
+    let cat = categories.find(c => c.name?.toLowerCase() === preferredName.toLowerCase()) ||
+              categories.find(c => c.name?.toLowerCase().includes(fallbackNameMatch.toLowerCase()) && c.type === type);
+    if (!cat) {
+      try {
+        cat = await DataService.addCategory(defaultDef, userId);
+        if (cat?.id) {
+          setCategories(prev => [...prev, cat]);
+        }
+      } catch (e) {
+        console.warn(`Could not auto-create ${preferredName} category:`, e);
+      }
+    }
+    return cat;
+  };
+
   // Lent Money Actions
   const addLentRecord = async (record) => {
     try {
@@ -529,15 +550,17 @@ export const TransactionProvider = ({ children }) => {
 
       // Directly reflect in main Transactions list on the record's date
       try {
-        const cat = categories.find(c => c.name.toLowerCase() === 'lent money') ||
-                    categories.find(c => c.name.toLowerCase().includes('lent')) ||
-                    categories.find(c => c.name.toLowerCase().includes('lend')) ||
-                    categories.find(c => c.type === 'expense');
+        const cat = await getOrCreateCategory(
+          'expense',
+          'Lent Money',
+          'lent',
+          { name: 'Lent Money', color: '#f59e0b', icon: 'fa-hand-holding-dollar', type: 'expense' }
+        );
         await addTransaction({
           amount: initialAmount,
           type: 'expense',
           date: record.dateLent || getLocalDateString(),
-          categoryId: cat?.id || (categories.find(c => c.type === 'expense')?.id || 'cat_expense'),
+          categoryId: cat?.id || 'default_lent_money',
           note: `Lent to ${record.borrowerName}${record.note ? ' - ' + record.note : ''}`
         });
       } catch (syncErr) {
@@ -600,15 +623,17 @@ export const TransactionProvider = ({ children }) => {
 
       // Directly reflect return in main Transactions list on repayment date (Income inflow)
       try {
-        const cat = categories.find(c => c.name.toLowerCase() === 'lent returned') ||
-                    categories.find(c => c.name.toLowerCase().includes('returned')) ||
-                    categories.find(c => c.name.toLowerCase().includes('lent')) ||
-                    categories.find(c => c.type === 'income');
+        const cat = await getOrCreateCategory(
+          'income',
+          'Lent Returned',
+          'returned',
+          { name: 'Lent Returned', color: '#10b981', icon: 'fa-circle-check', type: 'income' }
+        );
         await addTransaction({
           amount: repayAmount,
           type: 'income',
           date: repayment.date || getLocalDateString(),
-          categoryId: cat?.id || (categories.find(c => c.type === 'income')?.id || 'cat_income'),
+          categoryId: cat?.id || 'default_lent_returned',
           note: `Returned by ${current.borrowerName}${repayment.note ? ' - ' + repayment.note : ''}`
         });
       } catch (syncErr) {
@@ -667,15 +692,17 @@ export const TransactionProvider = ({ children }) => {
 
       // Directly reflect top-up loan in main Transactions list on top-up date
       try {
-        const cat = categories.find(c => c.name.toLowerCase() === 'lent money') ||
-                    categories.find(c => c.name.toLowerCase().includes('lent')) ||
-                    categories.find(c => c.name.toLowerCase().includes('lend')) ||
-                    categories.find(c => c.type === 'expense');
+        const cat = await getOrCreateCategory(
+          'expense',
+          'Lent Money',
+          'lent',
+          { name: 'Lent Money', color: '#f59e0b', icon: 'fa-hand-holding-dollar', type: 'expense' }
+        );
         await addTransaction({
           amount: addAmount,
           type: 'expense',
           date: loanDetails.date || getLocalDateString(),
-          categoryId: cat?.id || (categories.find(c => c.type === 'expense')?.id || 'cat_expense'),
+          categoryId: cat?.id || 'default_lent_money',
           note: `Lent top-up to ${current.borrowerName}${loanDetails.note ? ' - ' + loanDetails.note : ''}`
         });
       } catch (syncErr) {
@@ -719,15 +746,17 @@ export const TransactionProvider = ({ children }) => {
 
       if (remaining > 0) {
         try {
-          const cat = categories.find(c => c.name.toLowerCase() === 'lent returned') ||
-                      categories.find(c => c.name.toLowerCase().includes('returned')) ||
-                      categories.find(c => c.name.toLowerCase().includes('lent')) ||
-                      categories.find(c => c.type === 'income');
+          const cat = await getOrCreateCategory(
+            'income',
+            'Lent Returned',
+            'returned',
+            { name: 'Lent Returned', color: '#10b981', icon: 'fa-circle-check', type: 'income' }
+          );
           await addTransaction({
             amount: remaining,
             type: 'income',
             date: getLocalDateString(),
-            categoryId: cat?.id || (categories.find(c => c.type === 'income')?.id || 'cat_income'),
+            categoryId: cat?.id || 'default_lent_returned',
             note: `Settled & returned by ${current.borrowerName}`
           });
         } catch (syncErr) {
@@ -770,14 +799,17 @@ export const TransactionProvider = ({ children }) => {
 
       // Directly reflect in main Transactions list on dateBorrowed (Income Inflow)
       try {
-        const cat = categories.find(c => c.name.toLowerCase() === 'borrowed money') ||
-                    categories.find(c => c.name.toLowerCase().includes('borrow')) ||
-                    categories.find(c => c.type === 'income');
+        const cat = await getOrCreateCategory(
+          'income',
+          'Borrowed Money',
+          'borrow',
+          { name: 'Borrowed Money', color: '#06b6d4', icon: 'fa-hand-holding', type: 'income' }
+        );
         await addTransaction({
           amount: initialAmount,
           type: 'income',
           date: record.dateBorrowed || getLocalDateString(),
-          categoryId: cat?.id || (categories.find(c => c.type === 'income')?.id || 'cat_income'),
+          categoryId: cat?.id || 'default_borrowed_money',
           note: `Borrowed from ${record.lenderName}${record.note ? ' - ' + record.note : ''}`
         });
       } catch (syncErr) {
@@ -857,14 +889,17 @@ export const TransactionProvider = ({ children }) => {
 
       // Directly reflect top-up borrowed entry in main Transactions list on top-up date
       try {
-        const cat = categories.find(c => c.name.toLowerCase() === 'borrowed money') ||
-                    categories.find(c => c.name.toLowerCase().includes('borrow')) ||
-                    categories.find(c => c.type === 'income');
+        const cat = await getOrCreateCategory(
+          'income',
+          'Borrowed Money',
+          'borrow',
+          { name: 'Borrowed Money', color: '#06b6d4', icon: 'fa-hand-holding', type: 'income' }
+        );
         await addTransaction({
           amount: addAmount,
           type: 'income',
           date: borrowDetails.date || getLocalDateString(),
-          categoryId: cat?.id || (categories.find(c => c.type === 'income')?.id || 'cat_income'),
+          categoryId: cat?.id || 'default_borrowed_money',
           note: `Borrowed top-up from ${current.lenderName}${borrowDetails.note ? ' - ' + borrowDetails.note : ''}`
         });
       } catch (syncErr) {
@@ -906,14 +941,17 @@ export const TransactionProvider = ({ children }) => {
 
       // Directly reflect debt repayment in main Transactions list on repayment date (Expense outflow)
       try {
-        const cat = categories.find(c => c.name.toLowerCase() === 'debt repayment') ||
-                    categories.find(c => c.name.toLowerCase().includes('debt')) ||
-                    categories.find(c => c.type === 'expense');
+        const cat = await getOrCreateCategory(
+          'expense',
+          'Debt Repayment',
+          'debt',
+          { name: 'Debt Repayment', color: '#6366f1', icon: 'fa-handshake', type: 'expense' }
+        );
         await addTransaction({
           amount: repayAmount,
           type: 'expense',
           date: repayment.date || getLocalDateString(),
-          categoryId: cat?.id || (categories.find(c => c.type === 'expense')?.id || 'cat_expense'),
+          categoryId: cat?.id || 'default_debt_repayment',
           note: `Repaid debt to ${current.lenderName}${repayment.note ? ' - ' + repayment.note : ''}`
         });
       } catch (syncErr) {
@@ -957,14 +995,17 @@ export const TransactionProvider = ({ children }) => {
 
       if (remaining > 0) {
         try {
-          const cat = categories.find(c => c.name.toLowerCase() === 'debt repayment') ||
-                      categories.find(c => c.name.toLowerCase().includes('debt')) ||
-                      categories.find(c => c.type === 'expense');
+          const cat = await getOrCreateCategory(
+            'expense',
+            'Debt Repayment',
+            'debt',
+            { name: 'Debt Repayment', color: '#6366f1', icon: 'fa-handshake', type: 'expense' }
+          );
           await addTransaction({
             amount: remaining,
             type: 'expense',
-            date: new Date().toISOString().split('T')[0],
-            categoryId: cat?.id || (categories.find(c => c.type === 'expense')?.id || 'cat_expense'),
+            date: getLocalDateString(),
+            categoryId: cat?.id || 'default_debt_repayment',
             note: `Settled & repaid debt to ${current.lenderName}`
           });
         } catch (syncErr) {

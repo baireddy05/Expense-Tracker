@@ -202,9 +202,10 @@ const Transactions = () => {
       const amt = parseFloat(t.amount) || 0;
       if (t.type === 'income') {
         groupsMap[key].totalIncome += amt;
-      } else {
+      } else if (t.type === 'expense') {
         groupsMap[key].totalExpense += amt;
       }
+      // 'transfer' is an internal ledger move: excluded from income/expense totals
     });
 
     return Object.values(groupsMap).sort((a, b) => b.dateKey.localeCompare(a.dateKey));
@@ -228,7 +229,8 @@ const Transactions = () => {
     displayedTransactions.forEach(t => {
       const amt = parseFloat(t.amount) || 0;
       if (t.type === 'income') income += amt;
-      else expense += amt;
+      else if (t.type === 'expense') expense += amt;
+      // 'transfer' excluded: internal move, not income/expense
     });
     return {
       income,
@@ -338,7 +340,8 @@ const Transactions = () => {
   };
 
   const formatCurrencyPDF = (amount) => {
-    return 'Rs. ' + amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const num = parseFloat(amount) || 0;
+    return 'Rs. ' + num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   const exportToPDF = () => {
@@ -367,15 +370,18 @@ const Transactions = () => {
 
     displayedTransactions.forEach(t => {
       const cat = resolveCategory(t.categoryId, categories, t.note);
-      if (t.type === 'income') totalIncome += t.amount;
-      else totalExpense += t.amount;
+      const amt = parseFloat(t.amount) || 0;
+      if (t.type === 'income') totalIncome += amt;
+      else if (t.type === 'expense') totalExpense += amt;
 
+      const typeLabel = t.type === 'income' ? 'Income' : t.type === 'transfer' ? 'Transfer' : 'Expense';
+      const sign = t.type === 'income' ? '+' : t.type === 'transfer' ? '' : '-';
       tableRows.push([
-        new Date(t.date).toLocaleDateString('en-IN'),
-        t.type === 'income' ? 'Income' : 'Expense',
-        cat ? cat.name : 'Unknown',
+        t.date ? new Date(t.date).toLocaleDateString('en-IN') : 'N/A',
+        typeLabel,
+        cat ? cat.name : (t.type === 'transfer' ? 'Transfer' : 'Unknown'),
         t.note || '-',
-        (t.type === 'income' ? '+' : '-') + formatCurrencyPDF(t.amount)
+        sign + formatCurrencyPDF(amt)
       ]);
     });
 
@@ -835,20 +841,30 @@ const Transactions = () => {
                                     {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                                   </td>
                                   <td className="p-3 pr-4 text-right">
-                                    <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex items-center justify-end gap-1.5 relative z-10">
                                       <button 
-                                        onClick={() => handleEdit(t)} 
-                                        className="p-1.5 text-zinc-400 hover:text-indigo-500 transition-colors rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer touch-feedback"
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEdit(t);
+                                        }} 
+                                        className="w-8 h-8 rounded-xl liquid-glass-subtle text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 flex items-center justify-center transition-colors cursor-pointer touch-feedback"
                                         title="Edit transaction"
+                                        aria-label="Edit transaction"
                                       >
-                                        <FontAwesomeIcon icon={faEdit} />
+                                        <FontAwesomeIcon icon={faEdit} className="text-xs" />
                                       </button>
                                       <button 
-                                        onClick={() => requestDelete(t.id)} 
-                                        className="p-1.5 text-zinc-400 hover:text-rose-500 transition-colors rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer touch-feedback"
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          requestDelete(t.id);
+                                        }} 
+                                        className="w-8 h-8 rounded-xl liquid-glass-subtle text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center justify-center transition-colors cursor-pointer touch-feedback"
                                         title="Delete transaction"
+                                        aria-label="Delete transaction"
                                       >
-                                        <FontAwesomeIcon icon={faTrash} />
+                                        <FontAwesomeIcon icon={faTrash} className="text-xs" />
                                       </button>
                                     </div>
                                   </td>
@@ -1033,12 +1049,30 @@ const Transactions = () => {
                           {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                         </td>
                         <td className="p-4 text-right">
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => handleEdit(t)} className="p-2 text-zinc-400 hover:text-indigo-500 transition-colors cursor-pointer touch-feedback" title="Edit">
-                              <FontAwesomeIcon icon={faEdit} />
+                          <div className="flex items-center justify-end gap-1.5 relative z-10">
+                            <button 
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(t);
+                              }} 
+                              className="w-8 h-8 rounded-xl liquid-glass-subtle text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 flex items-center justify-center transition-colors cursor-pointer touch-feedback" 
+                              title="Edit transaction"
+                              aria-label="Edit transaction"
+                            >
+                              <FontAwesomeIcon icon={faEdit} className="text-xs" />
                             </button>
-                            <button onClick={() => requestDelete(t.id)} className="p-2 text-zinc-400 hover:text-rose-500 transition-colors cursor-pointer touch-feedback" title="Delete">
-                              <FontAwesomeIcon icon={faTrash} />
+                            <button 
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                requestDelete(t.id);
+                              }} 
+                              className="w-8 h-8 rounded-xl liquid-glass-subtle text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center justify-center transition-colors cursor-pointer touch-feedback" 
+                              title="Delete transaction"
+                              aria-label="Delete transaction"
+                            >
+                              <FontAwesomeIcon icon={faTrash} className="text-xs" />
                             </button>
                           </div>
                         </td>

@@ -90,7 +90,9 @@ function App() {
                         <Events />
                       </Suspense>
                     } />
+                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Route>
+                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
                 <Toaster 
                   position="top-center"

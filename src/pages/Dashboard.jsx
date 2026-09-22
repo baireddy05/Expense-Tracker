@@ -53,8 +53,19 @@ const Dashboard = () => {
 
     transactions.forEach(t => {
       const amount = parseFloat(t.amount) || 0;
-      const tDate = new Date(t.date);
-      const isThisMonth = tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+      // Parse YYYY-MM-DD as local date to avoid UTC day-shift (IST midnight bug)
+      let tYear = NaN, tMonth = NaN;
+      if (typeof t.date === 'string' && /^\d{4}-\d{2}-\d{2}/.test(t.date)) {
+        tYear = parseInt(t.date.slice(0, 4), 10);
+        tMonth = parseInt(t.date.slice(5, 7), 10) - 1;
+      } else {
+        const tDate = new Date(t.date);
+        if (!isNaN(tDate.getTime())) {
+          tYear = tDate.getFullYear();
+          tMonth = tDate.getMonth();
+        }
+      }
+      const isThisMonth = tYear === currentYear && tMonth === currentMonth;
 
       if (t.type === 'income') {
         income += amount;

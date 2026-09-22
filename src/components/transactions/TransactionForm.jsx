@@ -6,6 +6,7 @@ import { faTimes, faCommentDots, faSuitcase, faTag, faPlus } from '@fortawesome/
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import toast from 'react-hot-toast';
 import { haptics } from '../../utils/haptics';
+import { resolveCategory } from '../../utils/categoryIcons';
 
 const TransactionForm = ({ 
   isOpen, 
@@ -130,9 +131,22 @@ const TransactionForm = ({
 
   useEffect(() => {
     if (initialData && initialData.id) {
-      setType(initialData.type || 'expense');
+      const txType = initialData.type || 'expense';
+      setType(txType);
       setAmount(initialData.amount || '');
-      setCategoryId(initialData.categoryId || '');
+
+      // Auto-resolve category if initialData.categoryId is missing or wrong type
+      let catId = initialData.categoryId || '';
+      const catExists = categories.some(c => c.id === catId && c.type === txType);
+      if (!catExists) {
+        const resolved = resolveCategory(catId, categories, initialData.note);
+        if (resolved?.id && categories.some(c => c.id === resolved.id)) {
+          catId = resolved.id;
+        } else {
+          catId = categories.find(c => c.type === txType)?.id || '';
+        }
+      }
+      setCategoryId(catId);
       setAccountId(initialData.accountId || accounts.find(a => a.isDefault)?.id || accounts[0]?.id || '');
       setDate(initialData.date ? initialData.date.split('T')[0] : getLocalToday());
       setNote(initialData.note || '');
@@ -141,9 +155,11 @@ const TransactionForm = ({
       setIsCreatingCategory(false);
       setNewCategoryName('');
     } else {
-      setType(initialData?.type || defaultType || 'expense');
+      const txType = initialData?.type || defaultType || 'expense';
+      setType(txType);
       setAmount(initialData?.amount || '');
-      setCategoryId(initialData?.categoryId || '');
+      const defaultCat = categories.find(c => c.type === txType);
+      setCategoryId(initialData?.categoryId || defaultCat?.id || '');
       setAccountId(initialData?.accountId || accounts.find(a => a.isDefault)?.id || accounts[0]?.id || '');
       setDate(initialData?.date ? initialData.date.split('T')[0] : (defaultDate || getLocalToday()));
       setNote(initialData?.note || '');
@@ -152,13 +168,30 @@ const TransactionForm = ({
       setIsCreatingCategory(false);
       setNewCategoryName('');
     }
-  }, [initialData, isOpen, defaultType, defaultDate, accounts]);
+  }, [initialData, isOpen, defaultType, defaultDate, accounts, categories]);
+
+  const handleTypeToggle = (newType) => {
+    setType(newType);
+    const validInNewType = categories.some(c => c.id === categoryId && c.type === newType);
+    if (!validInNewType) {
+      const fallbackCat = categories.find(c => c.type === newType);
+      setCategoryId(fallbackCat?.id || '');
+    }
+  };
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!amount || !categoryId || !date) return;
+    const parsedAmount = parseFloat(amount);
+    if (!parsedAmount || isNaN(parsedAmount) || parsedAmount <= 0) {
+      toast.error('Please enter a valid amount greater than zero');
+      return;
+    }
+    if (!categoryId || !date) {
+      toast.error('Please select a category and date');
+      return;
+    }
     
     setLoading(true);
     try {
@@ -169,14 +202,14 @@ const TransactionForm = ({
 
       const txData = { 
         type, 
-        amount: parseFloat(amount), 
+        amount: parsedAmount, 
         categoryId, 
         accountId: accountId || accounts.find(a => a.isDefault)?.id || accounts[0]?.id, 
         eventId: eventId || null,
         eventTag: selectedEvent?.tag || null,
         tags: parsedTags,
         date, 
-        note 
+        note: (note || '').trim()
       };
       if (initialData && initialData.id) {
         await updateTransaction(initialData.id, txData);
@@ -264,7 +297,7 @@ const TransactionForm = ({
           <div className="flex rounded-xl bg-zinc-100 dark:bg-zinc-800/80 p-1 shrink-0 border border-zinc-200/60 dark:border-zinc-700/60">
             <button 
               type="button" 
-              onClick={() => setType('expense')}
+              onClick={() => handleTypeToggle('expense')}
               className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all touch-feedback cursor-pointer ${
                 type === 'expense' 
                   ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs' 
@@ -275,7 +308,7 @@ const TransactionForm = ({
             </button>
             <button 
               type="button" 
-              onClick={() => setType('income')}
+              onClick={() => handleTypeToggle('income')}
               className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all touch-feedback cursor-pointer ${
                 type === 'income' 
                   ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs' 
@@ -361,6 +394,11 @@ const TransactionForm = ({
                   {filteredCategories.map(cat => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
+                  {categoryId && !filteredCategories.some(c => c.id === categoryId) && (
+                    <option value={categoryId}>
+                      {resolveCategory(categoryId, categories, note)?.name || 'Other Category'}
+                    </option>
+                  )}
                 </select>
               )}
             </div>

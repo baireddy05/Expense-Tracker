@@ -773,17 +773,25 @@ const LentMoney = () => {
           <div className="flex items-center gap-1 shrink-0 ml-auto">
             <button
               type="button"
-              onClick={() => handleEdit(record)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEdit(record);
+              }}
               className="w-8 h-8 rounded-xl liquid-glass-subtle text-zinc-400 hover:text-zinc-900 dark:hover:text-white flex items-center justify-center transition-colors touch-feedback cursor-pointer"
               title="Edit record"
+              aria-label="Edit record"
             >
               <FontAwesomeIcon icon={faEdit} className="text-xs" />
             </button>
             <button
               type="button"
-              onClick={() => handleDelete(record.id, record.borrowerName)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete(record.id, record.borrowerName);
+              }}
               className="w-8 h-8 rounded-xl liquid-glass-subtle text-zinc-400 hover:text-rose-500 flex items-center justify-center transition-colors touch-feedback cursor-pointer"
               title="Delete record"
+              aria-label="Delete record"
             >
               <FontAwesomeIcon icon={faTrash} className="text-xs" />
             </button>
@@ -1138,7 +1146,7 @@ const LentMoney = () => {
         title="Delete Lending Record"
         message={`Are you sure you want to delete the lending record for "${deleteConfirm.name}"? This action cannot be undone.`}
         confirmText="Delete"
-        isDestructive={true}
+        isDanger={true}
       />
 
       <ConfirmModal
@@ -1148,7 +1156,7 @@ const LentMoney = () => {
         title="Mark Loan as Settled"
         message={`Confirm that ${settleConfirm.name} has fully returned the remaining balance of ₹${settleConfirm.amount.toLocaleString('en-IN')}?`}
         confirmText="Yes, Mark Settled"
-        isDestructive={false}
+        isDanger={false}
       />
 
       <ConfirmModal 
@@ -1158,7 +1166,7 @@ const LentMoney = () => {
         title="Export to PDF"
         message={`Are you sure you want to generate and download a PDF report containing ${filteredRecords.length} lent record(s)?`}
         confirmText="Export PDF"
-        isDestructive={false}
+        isDanger={false}
       />
     </div>
   );
