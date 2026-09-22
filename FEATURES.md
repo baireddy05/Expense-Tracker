@@ -106,8 +106,11 @@ Currency: INR (`en-IN`) throughout. Dates stored as local `YYYY-MM-DD` strings.
 - Status engine: pending / partial / overdue (past due date) / settled; filters for
   all/active/pending/partial/overdue/settled + 5 sort orders + text search.
 - Active list + collapsible "Settled Records Archive".
-- Actions per card: Lend More, Record Return, Settle (confirm), Remind (WhatsApp/SMS
-  message composer in `ReminderModal`), edit, delete (confirm).
+- Actions per card: Lend More, Record Return, Settle (confirm), Remind (auto-composed
+  polite message with pending balance, date lent and due date; one-tap copy to
+  clipboard + Send-via-WhatsApp deep link `wa.me` with automatic India `91` prefix
+  for 10-digit numbers; lent version shows a read-only preview, borrowed version has
+  an editable composer), edit, delete (confirm).
 - Every lend / top-up / repayment / settlement auto-posts a matching transaction
   (expense `Lent Money` / income `Lent Returned`, auto-creating the category if missing).
 - PDF report with totals row + confirm modal.
@@ -201,7 +204,22 @@ Currency: INR (`en-IN`) throughout. Dates stored as local `YYYY-MM-DD` strings.
 - Legacy Express + SQLite backend (`server/`) is unused dead code (frontend talks
   only to Firestore); kept for reference, not wired to any npm script.
 
-## 14. Suggested next features (NOT built yet)
+## 14. Deploy, config & dev tooling
+
+- **Web config**: `index.html` (Plus Jakarta Sans, viewport-fit cover, meta description,
+  theme-color), `public/favicon.svg`, `public/icons.svg`, `public/robots.txt`.
+- **Hosting**: `vercel.json` SPA rewrite to `/index.html`; `Dockerfile` (Node 20 build →
+  nginx static serve on port 80, Firebase keys via build args) + `docker-compose.yml`
+  (`8080:80`); `nginx.conf` (gzip, `X-Frame-Options`/`XSS`/`nosniff` headers, 1-year
+  immutable caching for hashed assets, no-store for `index.html`).
+- **Env**: `.env` / `.env.example` (`VITE_FIREBASE_*` keys consumed by
+  `services/firebase.js`, which falls back to baked-in defaults if unset).
+- **One-off scripts** (repo root, not part of the app): `inspect_db.mjs` (dump Firestore
+  root collections), `db_check.mjs` (bulk category-id fix), `server/database.sqlite`
+  (leftover of the retired backend).
+- **Lint**: `oxlint` via `npm run lint` (warnings only, zero errors enforced by CI habit).
+
+## 15. Suggested next features (NOT built yet)
 
 Pick from here when asked to "add more features" — check this list first and delete
 the item from this section when it gets built:
@@ -222,7 +240,11 @@ the item from this section when it gets built:
 14. PWA installability (manifest + service worker + offline queue).
 15. Unit/integration tests (currently zero; `db.js` guest store is the best first target).
 
-## 15. Recent change log (latest first)
+## 16. Recent change log (latest first)
+
+- 2026-09-22: Re-verified registry vs code: corrected Remind docs (copy + WhatsApp
+  `wa.me`, no SMS; lent preview read-only, borrowed editable); added deploy/tooling
+  section; added close-button labels to both reminder modals.
 
 - 2026-09-22: Verified all 10 routes (0 errors/overflow/unnamed buttons); added
   speed-dial + bottom-nav aria-labels, meta description/theme-color, `robots.txt`.

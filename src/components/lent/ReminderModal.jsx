@@ -72,6 +72,8 @@ const ReminderModal = ({ isOpen, onClose, record }) => {
           <button
             type="button"
             onClick={onClose}
+            title="Close"
+            aria-label="Close reminder"
             className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/10 transition-colors touch-feedback cursor-pointer"
           >
             <FontAwesomeIcon icon={faTimes} className="text-xs" />
