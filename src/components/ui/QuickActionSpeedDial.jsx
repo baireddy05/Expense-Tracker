@@ -117,6 +117,9 @@ const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) =>
                 </span>
                 <button
                   type="button"
+                  onClick={act.onClick}
+                  title={act.label}
+                  aria-label={act.label}
                   className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-transform duration-150 active:scale-95 group-hover:scale-110 cursor-pointer ${act.color}`}
                 >
                   <FontAwesomeIcon icon={act.icon} className="text-xs" />
@@ -130,6 +133,7 @@ const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) =>
         <button
           type="button"
           onClick={toggleDial}
+          aria-label={isOpen ? 'Close Quick Actions' : 'Open Quick Actions'}
           className={`w-13 h-13 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-300 touch-feedback cursor-pointer ${
             isOpen 
               ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rotate-90 scale-95' 

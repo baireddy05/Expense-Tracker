@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faHome, 
@@ -13,12 +13,10 @@ import {
   faChartPie, 
   faCog,
   faTimes,
-  faShieldAlt,
   faWallet,
   faSuitcase
 } from '@fortawesome/free-solid-svg-icons';
 import { useTransactions } from '../../context/TransactionContext';
-import { useAuth } from '../../context/AuthContext';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 
 const BottomNav = () => {
@@ -28,9 +26,7 @@ const BottomNav = () => {
   const isDraggingRef = React.useRef(false);
 
   const location = useLocation();
-  const navigate = useNavigate();
   const { subscriptions = [], lentRecords = [], borrowedRecords = [], accounts = [], savingsGoals = [], events = [] } = useTransactions();
-  const { currentUser } = useAuth();
 
   useBodyScrollLock(isMoreOpen);
 
@@ -156,6 +152,8 @@ const BottomNav = () => {
               <button 
                 type="button"
                 onClick={closeMoreSheet}
+                title="Close menu"
+                aria-label="Close menu"
                 className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
               >
                 <FontAwesomeIcon icon={faTimes} className="text-xs" />
@@ -231,6 +229,9 @@ const BottomNav = () => {
           {/* "More" Trigger Tab */}
           <button
             onClick={() => setIsMoreOpen(prev => !prev)}
+            title="More features"
+            aria-label="More features"
+            aria-expanded={isMoreOpen}
             className={`flex flex-col items-center justify-center flex-1 py-1.5 px-1 rounded-2xl transition-all duration-200 touch-feedback relative cursor-pointer ${
               isMoreActive || isMoreOpen
                 ? 'text-zinc-900 dark:text-white font-bold bg-white/60 dark:bg-white/15 shadow-2xs' 
