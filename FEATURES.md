@@ -183,7 +183,14 @@ Currency: INR (`en-IN`) throughout. Dates stored as local `YYYY-MM-DD` strings.
 - Data Management: full-system JSON backup export (v3.0: transactions, categories,
   accounts, goals, subscriptions, events, lent, borrowed, settings), JSON restore
   with animated progress modal + id remapping (no duplicate auto-posted transactions),
-  CSV export of transactions (`Papa.unparse`).
+  CSV export of transactions (`Papa.unparse`), CSV import (`CsvImportModal`):
+  bank/UPI-statement upload with auto column mapping (Date/Type/Category/Amount/Note
+  + aliases, manual override dropdowns), tolerant date parsing (ISO, DD/MM/YYYY,
+  DD-MM-YYYY, month names) and type normalization (debit/credit, Dr/Cr…),
+  category-by-name matching with type fallback, duplicate detection on
+  date + amount + type + note (skipped, never double-imported), invalid-row flagging,
+  50-row preview with status badges, progress bar and import summary. Works in guest
+  mode (localStorage) and cloud mode.
 
 ## 13. Data layer (`services/db.js`, `services/firebase.js`, `context/TransactionContext.jsx`)
 
@@ -225,23 +232,24 @@ Pick from here when asked to "add more features" — check this list first and d
 the item from this section when it gets built:
 
 1. Receipt attachments (photo upload per transaction, thumbnail in ledger).
-2. CSV import with duplicate detection + column mapping preview.
-3. Budget overspend push/in-app alerts + monthly rollover of unused budget.
-4. Recurring-transaction rule engine beyond subscriptions (e.g. "every payday").
-5. Bill reminders with due notifications (build on existing due-date engine).
-6. Monthly auto-generated PDF/email report.
-7. Spending forecast ("at this pace you'll spend ₹X by month-end").
-8. Multi-currency support (currently INR-only).
-9. Search Volta: global search ranking tuning + recent-search history.
-10. Shared lent/borrowed ledgers (two-user settle-up view).
-11. Dark-mode chart palette audit (some tooltip greys are low contrast).
-12. Remove dead Express/SQLite `server/` or wire it as an optional self-hosted backend.
-13. Onboarding tour for first-run users (guest → sign-in funnel).
-14. PWA installability (manifest + service worker + offline queue).
-15. Unit/integration tests (currently zero; `db.js` guest store is the best first target).
+2. Budget overspend push/in-app alerts + monthly rollover of unused budget.
+3. Recurring-transaction rule engine beyond subscriptions (e.g. "every payday").
+4. Bill reminders with due notifications (build on existing due-date engine).
+5. Monthly auto-generated PDF/email report.
+6. Spending forecast ("at this pace you'll spend ₹X by month-end").
+7. Multi-currency support (currently INR-only).
+8. Search Volta: global search ranking tuning + recent-search history.
+9. Shared lent/borrowed ledgers (two-user settle-up view).
+10. Dark-mode chart palette audit (some tooltip greys are low contrast).
+11. Remove dead Express/SQLite `server/` or wire it as an optional self-hosted backend.
+12. Onboarding tour for first-run users (guest → sign-in funnel).
+13. PWA installability (manifest + service worker + offline queue).
+14. Unit/integration tests (currently zero; `db.js` guest store + CSV date parser are the best first targets).
 
 ## 16. Recent change log (latest first)
 
+- 2026-09-22: CSV import (`CsvImportModal` + Settings Import button): column mapping,
+  duplicate detection, preview, progress; works in guest + cloud mode.
 - 2026-09-22: Re-verified registry vs code: corrected Remind docs (copy + WhatsApp
   `wa.me`, no SMS; lent preview read-only, borrowed editable); added deploy/tooling
   section; added close-button labels to both reminder modals.

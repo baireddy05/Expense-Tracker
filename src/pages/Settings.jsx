@@ -27,6 +27,7 @@ import {
   faCheckCircle
 } from '@fortawesome/free-solid-svg-icons';
 import { getCategoryIcon } from '../utils/categoryIcons';
+import CsvImportModal from '../components/transactions/CsvImportModal';
 import toast from 'react-hot-toast';
 
 const Settings = () => {
@@ -76,6 +77,9 @@ const Settings = () => {
   const [isSendingReset, setIsSendingReset] = useState(false);
 
   const fileInputRef = useRef(null);
+  const csvInputRef = useRef(null);
+  const [csvFile, setCsvFile] = useState(null);
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
 
   // Category Budgets State
   const [editingCategory, setEditingCategory] = useState(null);
@@ -201,6 +205,14 @@ const Settings = () => {
   };
 
   const [restoreProgress, setRestoreProgress] = useState(null);
+
+  const handlePickCSV = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setCsvFile(file);
+    setIsCsvModalOpen(true);
+  };
 
   const handleImportJSON = (e) => {
     const file = e.target.files?.[0];
@@ -641,7 +653,7 @@ const Settings = () => {
             <span>Data Management & Offline Backups</span>
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {/* Export Full System JSON */}
             <button 
               onClick={handleExportFullJSON}
@@ -676,9 +688,36 @@ const Settings = () => {
               <FontAwesomeIcon icon={faDownload} className="text-xs" />
               <span>Export CSV</span>
             </button>
+
+            {/* Import CSV */}
+            <input
+              type="file"
+              ref={csvInputRef}
+              onChange={handlePickCSV}
+              onClick={(e) => { e.target.value = ''; }}
+              accept=".csv,text/csv"
+              className="hidden"
+            />
+            <button
+              onClick={() => csvInputRef.current?.click()}
+              className="flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition-colors text-xs cursor-pointer touch-feedback shadow-2xs"
+            >
+              <FontAwesomeIcon icon={faUpload} className="text-xs" />
+              <span>Import CSV</span>
+            </button>
           </div>
         </div>
       </div>
+
+      {/* CSV Import Modal */}
+      <CsvImportModal
+        isOpen={isCsvModalOpen}
+        onClose={() => {
+          setIsCsvModalOpen(false);
+          setCsvFile(null);
+        }}
+        file={csvFile}
+      />
 
       {/* Interactive Restore Progress Modal */}
       {restoreProgress && (
