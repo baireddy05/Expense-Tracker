@@ -72,8 +72,15 @@ Currency: INR (`en-IN`) throughout. Dates stored as local `YYYY-MM-DD` strings.
 - Accounts & wallets glance grid (icon, name, type, live balance) → links to `/accounts`.
 - Savings-goals glance (top 3 with progress bars) → links to `/goals`.
 - Trips & events glance (top 3 with budget bars, over-budget badge) → links to `/events`.
-- Due-date alerts: lent + borrowed records due within 7 days (overdue highlighted),
-  sorted by urgency, deep-linking to `/lent` / `/borrowed`.
+- Due-date attention center ("Upcoming Bills & Due Dates"): lent + borrowed records due
+  within 7 days (overdue highlighted) plus active subscriptions/bills due within 7 days
+  (`Bill` badge), all sorted by urgency, deep-linking to `/lent` / `/borrowed` /
+  `/subscriptions`.
+- Budget breach banner: amber at ≥90% of the global monthly budget, red with over-by
+  amount at ≥100%. Saving an expense that pushes the month across 90%/100% fires an
+  edge-triggered toast warning (once per crossing, never repeated).
+- Month-end spend forecast under Monthly Expense ("Pace: ₹X projected by month-end",
+  from current daily run-rate × days in month).
 - Global monthly budget bar (emerald→amber→rose thresholds) + per-category envelope
   budget bars with over-budget warnings.
 - Weekly cash-flow line chart (income vs expense, privacy-aware tooltips).
@@ -232,22 +239,24 @@ Pick from here when asked to "add more features" — check this list first and d
 the item from this section when it gets built:
 
 1. Receipt attachments (photo upload per transaction, thumbnail in ledger).
-2. Budget overspend push/in-app alerts + monthly rollover of unused budget.
+2. Push-notification budget alerts + monthly rollover of unused budget (in-app
+   breach banner + crossing toasts already built).
 3. Recurring-transaction rule engine beyond subscriptions (e.g. "every payday").
-4. Bill reminders with due notifications (build on existing due-date engine).
+4. System/push notifications for bills & dues (in-app attention center already built).
 5. Monthly auto-generated PDF/email report.
-6. Spending forecast ("at this pace you'll spend ₹X by month-end").
-7. Multi-currency support (currently INR-only).
-8. Search Volta: global search ranking tuning + recent-search history.
-9. Shared lent/borrowed ledgers (two-user settle-up view).
-10. Dark-mode chart palette audit (some tooltip greys are low contrast).
-11. Remove dead Express/SQLite `server/` or wire it as an optional self-hosted backend.
-12. Onboarding tour for first-run users (guest → sign-in funnel).
-13. PWA installability (manifest + service worker + offline queue).
-14. Unit/integration tests (currently zero; `db.js` guest store + CSV date parser are the best first targets).
+6. Multi-currency support (currently INR-only).
+7. Search Volta: global search ranking tuning + recent-search history.
+8. Shared lent/borrowed ledgers (two-user settle-up view).
+9. Dark-mode chart palette audit (some tooltip greys are low contrast).
+10. Remove dead Express/SQLite `server/` or wire it as an optional self-hosted backend.
+11. Onboarding tour for first-run users (guest → sign-in funnel).
+12. PWA installability (manifest + service worker + offline queue).
+13. Unit/integration tests (currently zero; `db.js` guest store + CSV date parser are the best first targets).
 
 ## 16. Recent change log (latest first)
 
+- 2026-09-22: Attention center (subscription bills in due alerts), budget breach
+  banner + edge-triggered crossing toasts on save, month-end spend forecast.
 - 2026-09-22: CSV import (`CsvImportModal` + Settings Import button): column mapping,
   duplicate detection, preview, progress; works in guest + cloud mode.
 - 2026-09-22: Re-verified registry vs code: corrected Remind docs (copy + WhatsApp

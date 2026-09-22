@@ -143,6 +143,41 @@ export const TransactionProvider = ({ children }) => {
     try {
       const newTx = await DataService.addTransaction(tx, userId);
       setTransactions(prev => [newTx, ...prev]);
+
+      // Edge-triggered budget breach alert: warn only when this expense pushes
+      // the current month's total across the 90% / 100% thresholds.
+      try {
+        const budget = parseFloat(settings?.monthlyBudget) || 0;
+        const amt = parseFloat(newTx.amount) || 0;
+        if (budget > 0 && newTx.type === 'expense' && amt > 0) {
+          const now = new Date();
+          const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+          const txKey = typeof newTx.date === 'string' ? newTx.date.slice(0, 7) : '';
+          if (txKey === curKey) {
+            let prior = 0;
+            transactions.forEach(t => {
+              if (t.type === 'expense' && typeof t.date === 'string' && t.date.slice(0, 7) === curKey) {
+                prior += parseFloat(t.amount) || 0;
+              }
+            });
+            const after = prior + amt;
+            if (prior < budget && after >= budget) {
+              setTimeout(() => toast.error(
+                `Over budget! Monthly spending crossed ${new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(budget)}.`,
+                { icon: '🚨' }
+              ), 400);
+            } else if (prior < budget * 0.9 && after >= budget * 0.9) {
+              setTimeout(() => toast(
+                `Approaching budget limit — ${Math.round((after / budget) * 100)}% of monthly budget used.`,
+                { icon: '⚠️' }
+              ), 400);
+            }
+          }
+        }
+      } catch {
+        // Alert is best-effort; never break the save flow
+      }
+
       return newTx;
     } catch (err) {
       setError('Failed to add transaction');

@@ -29,7 +29,7 @@ import { getCategoryIcon, resolveCategory } from '../utils/categoryIcons';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler);
 
 const Dashboard = () => {
-  const { transactions, categories, accounts = [], savingsGoals = [], events = [], lentRecords = [], borrowedRecords = [], loading, settings } = useTransactions();
+  const { transactions, categories, accounts = [], savingsGoals = [], events = [], lentRecords = [], borrowedRecords = [], subscriptions = [], loading, settings } = useTransactions();
   const { isPrivacyMode } = useUI();
   const { currentUser, openAuthModal } = useAuth();
   const navigate = useNavigate();
@@ -169,13 +169,43 @@ const Dashboard = () => {
       }
     });
 
+    // Recurring subscriptions / bills due soon (active only)
+    (subscriptions || []).forEach(s => {
+      if (!s.active || !s.nextDueDate) return;
+      const due = new Date(s.nextDueDate);
+      if (isNaN(due.getTime())) return;
+      const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+      if (diffDays <= 7) {
+        alerts.push({
+          id: `sub_${s.id}`,
+          type: 'subscription',
+          person: s.name,
+          amount: parseFloat(s.amount) || 0,
+          dueDate: s.nextDueDate,
+          isOverdue: diffDays < 0,
+          diffDays,
+          link: '/subscriptions'
+        });
+      }
+    });
+
     return alerts.sort((a, b) => a.diffDays - b.diffDays);
-  }, [lentRecords, borrowedRecords]);
+  }, [lentRecords, borrowedRecords, subscriptions]);
 
   const budgetLimit = settings?.monthlyBudget || 0;
   const hasBudget = budgetLimit > 0;
   const budgetPercentage = hasBudget ? Math.min((stats.monthlyExpense / budgetLimit) * 100, 100) : 0;
+  const budgetRatio = hasBudget ? stats.monthlyExpense / budgetLimit : 0;
   const velocityMeter = Math.min((stats.monthlyExpense / (stats.monthlyIncome || 1)) * 100, 100);
+
+  // Month-end spend forecast from current daily pace (local calendar month)
+  const spendForecast = useMemo(() => {
+    const now = new Date();
+    const dayOfMonth = now.getDate();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    if (dayOfMonth <= 0 || stats.monthlyExpense <= 0) return 0;
+    return (stats.monthlyExpense / dayOfMonth) * daysInMonth;
+  }, [stats.monthlyExpense]);
 
   const expenseByCategory = useMemo(() => {
     const grouped = {};
@@ -400,6 +430,11 @@ const Dashboard = () => {
           <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-2.5">
             Total all time: {formatCurrency(stats.expense)}
           </p>
+          {spendForecast > 0 && (
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
+              Pace: <strong className="text-amber-600 dark:text-amber-400">{formatCurrency(spendForecast)}</strong> projected by month-end
+            </p>
+          )}
         </div>
 
         {/* Net Liquid Worth */}
@@ -597,7 +632,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-2">
               <FontAwesomeIcon icon={faExclamationTriangle} className="text-amber-500" />
-              <span>Pending Due Date Alerts</span>
+              <span>Upcoming Bills & Due Dates</span>
             </h3>
             <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
               {dueAlerts.length} item{dueAlerts.length === 1 ? '' : 's'}
@@ -618,9 +653,13 @@ const Dashboard = () => {
                   <div className="flex items-center gap-1.5">
                     <span className="font-semibold text-zinc-900 dark:text-white">{alert.person}</span>
                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                      alert.type === 'lent' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300'
+                      alert.type === 'lent'
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                        : alert.type === 'subscription'
+                          ? 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300'
+                          : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300'
                     }`}>
-                      {alert.type === 'lent' ? 'Lent' : 'Debt'}
+                      {alert.type === 'lent' ? 'Lent' : alert.type === 'subscription' ? 'Bill' : 'Debt'}
                     </span>
                   </div>
                   <p className="font-bold text-xs mt-0.5 text-zinc-900 dark:text-white">
@@ -646,6 +685,20 @@ const Dashboard = () => {
 
       {/* Spending Velocity & Category Budgets */}
       <div className="glass-card p-5">
+        {hasBudget && budgetRatio >= 0.9 && (
+          <div className={`mb-3 p-3 rounded-xl border text-xs flex items-center gap-2.5 ${
+            budgetRatio >= 1
+              ? 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300'
+              : 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300'
+          }`}>
+            <FontAwesomeIcon icon={faExclamationTriangle} />
+            <span className="font-semibold">
+              {budgetRatio >= 1
+                ? `Over budget by ${formatCurrency(stats.monthlyExpense - budgetLimit)} — monthly spending crossed your ${formatCurrency(budgetLimit)} limit.`
+                : `Approaching budget limit — ${formatCurrency(stats.monthlyExpense)} of ${formatCurrency(budgetLimit)} used (${(budgetRatio * 100).toFixed(0)}%).`}
+            </span>
+          </div>
+        )}
         <div className="flex justify-between items-center mb-3">
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
             {hasBudget ? 'Global Monthly Budget' : 'Monthly Spending Velocity'}
