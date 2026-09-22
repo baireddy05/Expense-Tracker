@@ -52,7 +52,12 @@ Currency: INR (`en-IN`) throughout. Dates stored as local `YYYY-MM-DD` strings.
   charts, tooltips, counters). Persisted in localStorage.
 - **Themes** (`ThemeContext.jsx`): light / dark / system (media-query aware), persisted.
 - **Haptics** (`utils/haptics.js`, `UIContext.jsx`): vibration engine with on/off toggle
-  + subtle/medium/strong intensity, global pointer-down feedback, test-vibration button.
+  + subtle/medium/strong intensity, test-buzz button (previews the selected level),
+  and one strict contract — the global pointerdown handler owns ALL tap feedback
+  (attach-once guarded, per-type cooldowns, `data-haptic` overrides, submit buttons
+  tick medium, toggles tick selection, danger tick heavy); component code fires only
+  OUTCOME haptics (`success`/`warning`/`error`/`heavy` on save/delete/failure/confirm),
+  which replace the tap tick instead of stacking.
 - **Date handling** (`utils/dateUtils.js`): local-timezone helpers — `getLocalDateString`,
   `parseLocalDate`, `formatDisplayDate`, `calculateNextDueDate` (daily/weekly/monthly/yearly).
   No UTC day-shift bugs.
@@ -255,6 +260,9 @@ the item from this section when it gets built:
 
 ## 16. Recent change log (latest first)
 
+- 2026-09-22: Haptics consistency overhaul: attach-once global handler, per-type
+  tap cooldowns, outcome-only call-site contract, correct intensity preview,
+  toggle tick instead of thud; removed double-firing speed-dial buzz.
 - 2026-09-22: Attention center (subscription bills in due alerts), budget breach
   banner + edge-triggered crossing toasts on save, month-end spend forecast.
 - 2026-09-22: CSV import (`CsvImportModal` + Settings Import button): column mapping,

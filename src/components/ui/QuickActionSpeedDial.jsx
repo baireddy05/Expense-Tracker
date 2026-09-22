@@ -11,7 +11,6 @@ import {
   faHandHolding, 
   faSearch
 } from '@fortawesome/free-solid-svg-icons';
-import { haptics } from '../../utils/haptics';
 
 const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,12 +18,8 @@ const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) =>
   const navigate = useNavigate();
 
   const toggleDial = () => {
-    setIsOpen(prev => {
-      const next = !prev;
-      if (next) haptics.medium();
-      else haptics.light();
-      return next;
-    });
+    // Tap feedback comes from the global pointerdown handler — no local buzz.
+    setIsOpen(prev => !prev);
   };
 
   const actions = [

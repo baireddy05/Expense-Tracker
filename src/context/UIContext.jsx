@@ -25,9 +25,10 @@ export const UIProvider = ({ children }) => {
     setIsPrivacyMode(prev => {
       const next = !prev;
       localStorage.setItem('extrack_privacy_mode', String(next));
-      triggerHaptic('medium');
       return next;
     });
+    // Tick (not thud): the global handler already buzzed the tap itself.
+    triggerHaptic('selection');
   }, []);
 
   const toggleHaptics = useCallback(() => {
@@ -42,7 +43,8 @@ export const UIProvider = ({ children }) => {
   const updateHapticIntensity = useCallback((level) => {
     setIntensityState(level);
     setHapticIntensity(level);
-    triggerHaptic('heavy');
+    // Preview the newly selected level with a representative single pulse.
+    triggerHaptic('medium');
   }, []);
 
   const openCommandPalette = useCallback(() => {

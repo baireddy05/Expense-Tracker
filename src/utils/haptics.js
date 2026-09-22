@@ -71,20 +71,39 @@ const INTENSITY_PROFILES = {
   }
 };
 
-let lastVibrateTime = 0;
+/**
+ * Cooldowns (ms) per haptic class. Tap-level feedback is rate-limited so rapid
+ * taps feel like even ticks; outcome patterns (success/warning/error/heavy)
+ * always play because navigator.vibrate() atomically replaces any in-progress
+ * pattern — they can never stack or double-buzz.
+ */
+const TAP_COOLDOWNS = {
+  selection: 60,
+  light: 60,
+  medium: 90,
+};
+
+const lastFiredAt = {};
 
 /**
  * Triggers a vibration pattern if supported and enabled.
  * Safe to call on all platforms (fails silently on desktop or unsupported devices).
+ *
+ * Consistency contract (see initGlobalHaptics below):
+ * - The global pointerdown handler owns ALL tap feedback. Do NOT call
+ *   light/medium/selection from click handlers for the same tap.
+ * - Call sites should only fire OUTCOME haptics: success / warning / error /
+ *   heavy, i.e. after an async save, delete, validation failure, or modal
+ *   confirm. Outcomes replace the tap tick instead of layering on top of it.
  */
 export const triggerHaptic = (type = 'light') => {
   if (typeof window === 'undefined' || !navigator || !navigator.vibrate) return;
   if (!isHapticsEnabled()) return;
 
   const now = Date.now();
-  // Don't cancel an ongoing multi-pulse vibration if called in rapid succession (< 70ms)
-  if (now - lastVibrateTime < 70 && type === 'selection') return;
-  lastVibrateTime = now;
+  const cooldown = TAP_COOLDOWNS[type];
+  if (cooldown && now - (lastFiredAt[type] || 0) < cooldown) return;
+  lastFiredAt[type] = now;
 
   try {
     const intensity = getHapticIntensity();
@@ -116,10 +135,20 @@ export const haptics = {
 
 /**
  * Global delegated touch-event listener.
- * Automatically gives tactile haptic feedback to buttons, interactive pills, and links on touch.
+ * Owns ALL tap feedback: buttons, links, radios, checkboxes, selects and
+ * `.touch-feedback` pills get exactly one tick on pointerdown. Component code
+ * must not add its own tap haptics — only outcome haptics (success/warning/
+ * error/heavy), which replace the tick via navigator.vibrate().
+ *
+ * Attach-once guarded: safe to call from module scope, StrictMode, and HMR
+ * without ever stacking duplicate listeners (the main cause of double-buzz).
+ * Returns a cleanup function for tests/unmount.
  */
+let globalHapticsCleanup = null;
+
 export const initGlobalHaptics = () => {
-  if (typeof window === 'undefined' || !window.addEventListener) return;
+  if (typeof window === 'undefined' || !window.addEventListener) return () => {};
+  if (globalHapticsCleanup) return globalHapticsCleanup;
 
   const handlePointerDown = (e) => {
     const target = e.target;
@@ -131,22 +160,50 @@ export const initGlobalHaptics = () => {
     );
 
     if (interactive) {
-      // Determine haptic weight based on element attributes
+      // Explicit per-element weight always wins (e.g. data-haptic="medium" on CTAs)
       const customType = interactive.getAttribute('data-haptic');
       if (customType) {
         triggerHaptic(customType);
-      } else if (interactive.classList.contains('bg-rose-600') || interactive.getAttribute('data-danger')) {
-        triggerHaptic('heavy');
-      } else if (interactive.tagName === 'BUTTON' && (interactive.classList.contains('py-2.5') || interactive.classList.contains('py-3') || interactive.classList.contains('bg-zinc-900'))) {
-        triggerHaptic('medium');
-      } else {
-        triggerHaptic('light');
+        return;
       }
+      // Destructive actions get a heavier tick
+      if (interactive.classList.contains('bg-rose-600') || interactive.getAttribute('data-danger')) {
+        triggerHaptic('heavy');
+        return;
+      }
+      // Primary submit-style buttons get a firmer tick than plain taps
+      if (
+        interactive.tagName === 'BUTTON' &&
+        (interactive.type === 'submit' ||
+          interactive.classList.contains('py-2.5') ||
+          interactive.classList.contains('py-3') ||
+          interactive.classList.contains('bg-zinc-900'))
+      ) {
+        triggerHaptic('medium');
+        return;
+      }
+      // Toggles / picks get a tick instead of a thud
+      if (
+        interactive.matches('input[type="radio"], input[type="checkbox"], select, [role="tab"]')
+      ) {
+        triggerHaptic('selection');
+        return;
+      }
+      triggerHaptic('light');
     }
   };
 
   // Attach pointerdown for immediate hardware response
   window.addEventListener('pointerdown', handlePointerDown, { passive: true });
+  globalHapticsCleanup = () => {
+    window.removeEventListener('pointerdown', handlePointerDown);
+    globalHapticsCleanup = null;
+  };
+  return globalHapticsCleanup;
+};
+
+export const destroyGlobalHaptics = () => {
+  if (globalHapticsCleanup) globalHapticsCleanup();
 };
 
 export default haptics;
