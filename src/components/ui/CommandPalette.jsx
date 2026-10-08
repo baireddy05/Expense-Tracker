@@ -357,7 +357,7 @@ const CommandPalette = () => {
             <span><kbd className="px-1.5 py-0.5 rounded bg-white/70 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-700 dark:text-zinc-300">Enter</kbd> Select</span>
             <span><kbd className="px-1.5 py-0.5 rounded bg-white/70 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-700 dark:text-zinc-300">Esc</kbd> Close</span>
           </div>
-          <span className="font-semibold text-zinc-600 dark:text-zinc-400">ExTrack Spotlight</span>
+          <span className="font-semibold text-zinc-600 dark:text-zinc-400">Kharch Spotlight</span>
         </div>
       </div>
     </div>,

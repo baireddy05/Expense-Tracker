@@ -49,7 +49,7 @@ const Sidebar = () => {
         </div>
         <div>
           <h1 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-white leading-tight">
-            ExTrack
+            Kharch
           </h1>
           <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">Liquid Ledger</p>
         </div>

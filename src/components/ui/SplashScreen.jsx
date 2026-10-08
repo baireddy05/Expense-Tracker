@@ -22,7 +22,7 @@ const SplashScreen = () => {
 
         {/* Brand Name & Tagline */}
         <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-900 dark:text-white">
-          ExTrack
+          Kharch
         </h1>
         <p className="text-[11px] sm:text-xs font-medium text-zinc-500 dark:text-zinc-400 mt-1.5 tracking-wide">
           Smart Expense & Lending Ledger

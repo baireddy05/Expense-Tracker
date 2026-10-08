@@ -1,4 +1,4 @@
-# ExTrack — Feature Registry
+# Kharch — Feature Registry
 
 > **Maintenance rule:** This file is the source of truth for what the app can do.
 > Whenever a feature is added, changed, or removed, update the matching section
@@ -46,7 +46,7 @@ Currency: INR (`en-IN`) throughout. Dates stored as local `YYYY-MM-DD` strings.
   email/password sign-up + login, password reset, display-name edit, guest mode,
   profile dropdown (Sync now, Settings, Sign out). Auth state gates cloud vs guest data.
 - **Guest / offline mode**: full localStorage persistence per collection
-  (`extrack_guest_*` keys). Guest data auto-migrates into Firestore on first sign-in
+  (`kharch_guest_*` keys). Guest data auto-migrates into Firestore on first sign-in
   (`DataService.migrateLocalDataToCloud`). Explicit "Purge Cache" in Settings only.
 - **Privacy mode** (`UIContext.jsx`): masks every currency as `₹••••••` (KPIs, tables,
   charts, tooltips, counters). Persisted in localStorage.

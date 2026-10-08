@@ -170,7 +170,7 @@ const Settings = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `extrack_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `kharch_export_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -196,7 +196,7 @@ const Settings = () => {
     const url = URL.createObjectURL(jsonBlob);
     const downloadAnchor = document.createElement('a');
     downloadAnchor.href = url;
-    downloadAnchor.download = `extrack_complete_backup_${new Date().toISOString().split('T')[0]}.json`;
+    downloadAnchor.download = `kharch_complete_backup_${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();

@@ -1,15 +1,36 @@
 /**
- * Web Haptic Feedback Engine for ExTrack
+ * Web Haptic Feedback Engine for Kharch
  * Provides tactile vibration feedback for mobile browsers & touch devices.
  */
 
-const STORAGE_KEY = 'extrack_haptics_enabled';
-const INTENSITY_KEY = 'extrack_haptics_intensity';
+const STORAGE_KEY = 'kharch_haptics_enabled';
+const LEGACY_STORAGE_KEY = 'extrack_haptics_enabled';
+const INTENSITY_KEY = 'kharch_haptics_intensity';
+const LEGACY_INTENSITY_KEY = 'extrack_haptics_intensity';
+
+// Pre-rename fallback: reads the old ExTrack key once and migrates it forward.
+const readKeyWithFallback = (key, legacyKey) => {
+  try {
+    const val = localStorage.getItem(key);
+    if (val !== null) return val;
+    const old = localStorage.getItem(legacyKey);
+    if (old !== null) {
+      try {
+        localStorage.setItem(key, old);
+        localStorage.removeItem(legacyKey);
+      } catch { /* ignore */ }
+      return old;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
 
 // Check if haptics are enabled (defaults to true)
 export const isHapticsEnabled = () => {
   try {
-    const val = localStorage.getItem(STORAGE_KEY);
+    const val = readKeyWithFallback(STORAGE_KEY, LEGACY_STORAGE_KEY);
     return val === null ? true : val === 'true';
   } catch {
     return true;
@@ -19,6 +40,7 @@ export const isHapticsEnabled = () => {
 export const setHapticsEnabled = (enabled) => {
   try {
     localStorage.setItem(STORAGE_KEY, String(enabled));
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
   } catch {
     // Ignore storage issues
   }
@@ -26,7 +48,7 @@ export const setHapticsEnabled = (enabled) => {
 
 export const getHapticIntensity = () => {
   try {
-    return localStorage.getItem(INTENSITY_KEY) || 'strong';
+    return readKeyWithFallback(INTENSITY_KEY, LEGACY_INTENSITY_KEY) || 'strong';
   } catch {
     return 'strong';
   }
@@ -35,6 +57,7 @@ export const getHapticIntensity = () => {
 export const setHapticIntensity = (intensity) => {
   try {
     localStorage.setItem(INTENSITY_KEY, intensity);
+    localStorage.removeItem(LEGACY_INTENSITY_KEY);
   } catch {
     // Ignore storage issues
   }

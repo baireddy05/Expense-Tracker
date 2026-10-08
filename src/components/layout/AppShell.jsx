@@ -55,8 +55,8 @@ const AppShell = () => {
 
   React.useEffect(() => {
     const onEscape = () => setIsMobileDrawerOpen(false);
-    window.addEventListener('extrack:escape', onEscape);
-    return () => window.removeEventListener('extrack:escape', onEscape);
+    window.addEventListener('kharch:escape', onEscape);
+    return () => window.removeEventListener('kharch:escape', onEscape);
   }, []);
 
   const handleOpenTx = (type = 'expense') => {
@@ -116,7 +116,7 @@ const AppShell = () => {
                 <FontAwesomeIcon icon={faBars} />
               </button>
               <span className="text-base font-bold tracking-tight text-zinc-900 dark:text-white">
-                ExTrack
+                Kharch
               </span>
             </div>
 
@@ -205,7 +205,7 @@ const AppShell = () => {
                     <FontAwesomeIcon icon={faWallet} />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold tracking-tight text-zinc-900 dark:text-white">ExTrack</h2>
+                    <h2 className="text-sm font-bold tracking-tight text-zinc-900 dark:text-white">Kharch</h2>
                     <p className="text-[10px] text-zinc-400">Personal Financial OS</p>
                   </div>
                 </div>

@@ -18,6 +18,20 @@ import { getLocalDateString } from "../utils/dateUtils";
 // Guest Mode actually retains data across reloads. Cloud (Firestore) is still
 // used whenever a userId is present. Explicit wipe only via purgeAllLocalData().
 const GUEST_KEYS = {
+  transactions: 'kharch_guest_transactions',
+  categories: 'kharch_guest_categories',
+  settings: 'kharch_guest_settings',
+  subscriptions: 'kharch_guest_subscriptions',
+  accounts: 'kharch_guest_accounts',
+  savingsGoals: 'kharch_guest_goals',
+  events: 'kharch_guest_events',
+  lentRecords: 'kharch_guest_lent',
+  borrowedRecords: 'kharch_guest_borrowed',
+};
+
+// Pre-rename keys (app was previously branded "ExTrack"). Reads fall back to
+// these once and migrate the value forward, so existing installs keep data.
+const LEGACY_GUEST_KEYS = {
   transactions: 'extrack_guest_transactions',
   categories: 'extrack_guest_categories',
   settings: 'extrack_guest_settings',
@@ -29,9 +43,45 @@ const GUEST_KEYS = {
   borrowedRecords: 'extrack_guest_borrowed',
 };
 
+const legacyKeyFor = (key) => {
+  for (const [name, value] of Object.entries(GUEST_KEYS)) {
+    if (value === key) return LEGACY_GUEST_KEYS[name];
+  }
+  return null;
+};
+
+const readWithMigration = (key) => {
+  try {
+    let raw = localStorage.getItem(key);
+    if (!raw) {
+      const legacy = legacyKeyFor(key);
+      if (legacy) {
+        raw = localStorage.getItem(legacy);
+        if (raw) {
+          try {
+            localStorage.setItem(key, raw);
+            localStorage.removeItem(legacy);
+          } catch { /* ignore */ }
+        }
+      }
+    }
+    return raw;
+  } catch {
+    return null;
+  }
+};
+
+const removeWithLegacy = (key) => {
+  try { localStorage.removeItem(key); } catch { /* ignore */ }
+  const legacy = legacyKeyFor(key);
+  if (legacy) {
+    try { localStorage.removeItem(legacy); } catch { /* ignore */ }
+  }
+};
+
 const loadGuestList = (key) => {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = readWithMigration(key);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -43,6 +93,10 @@ const loadGuestList = (key) => {
 const saveGuestList = (key, list) => {
   try {
     localStorage.setItem(key, JSON.stringify(list));
+    const legacy = legacyKeyFor(key);
+    if (legacy) {
+      try { localStorage.removeItem(legacy); } catch { /* ignore */ }
+    }
   } catch {
     // Ignore quota / private-mode errors; memory state still holds data
   }
@@ -50,7 +104,7 @@ const saveGuestList = (key, list) => {
 
 const loadGuestObject = (key, fallback) => {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = readWithMigration(key);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw);
     return parsed && typeof parsed === 'object' ? parsed : fallback;
@@ -62,6 +116,10 @@ const loadGuestObject = (key, fallback) => {
 const saveGuestObject = (key, obj) => {
   try {
     localStorage.setItem(key, JSON.stringify(obj));
+    const legacy = legacyKeyFor(key);
+    if (legacy) {
+      try { localStorage.removeItem(legacy); } catch { /* ignore */ }
+    }
   } catch {
     // Ignore storage errors
   }
@@ -100,7 +158,8 @@ export const DataService = {
     try {
       // Only remove app-owned guest keys — never touch other sessionStorage/
       // localStorage data that belongs to the browser or other apps.
-      Object.values(GUEST_KEYS).forEach(k => {
+      // Both current and pre-rename (ExTrack) keys are cleared.
+      [...Object.values(GUEST_KEYS), ...Object.values(LEGACY_GUEST_KEYS)].forEach(k => {
         try { localStorage.removeItem(k); } catch { /* ignore */ }
       });
     } catch {
@@ -838,7 +897,8 @@ export const DataService = {
       }
       // This collection fully uploaded — safe to clear it so a retry
       // (network hiccup mid-run, page close) never re-imports it.
-      try { localStorage.removeItem(key); } catch { /* ignore */ }
+      // Clears both current and pre-rename (ExTrack) keys.
+      removeWithLegacy(key);
       return migrated;
     };
 

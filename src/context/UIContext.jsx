@@ -11,9 +11,28 @@ import {
 const UIContext = createContext();
 
 export const UIProvider = ({ children }) => {
-  const [isPrivacyMode, setIsPrivacyMode] = useState(() => {
-    return localStorage.getItem('extrack_privacy_mode') === 'true';
-  });
+  const PRIVACY_KEY = 'kharch_privacy_mode';
+  const LEGACY_PRIVACY_KEY = 'extrack_privacy_mode';
+
+  const readPrivacyMode = () => {
+    try {
+      const val = localStorage.getItem(PRIVACY_KEY);
+      if (val !== null) return val === 'true';
+      const legacy = localStorage.getItem(LEGACY_PRIVACY_KEY);
+      if (legacy !== null) {
+        try {
+          localStorage.setItem(PRIVACY_KEY, legacy);
+          localStorage.removeItem(LEGACY_PRIVACY_KEY);
+        } catch { /* ignore */ }
+        return legacy === 'true';
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  const [isPrivacyMode, setIsPrivacyMode] = useState(() => readPrivacyMode());
 
   const [isHapticsOn, setIsHapticsOn] = useState(() => checkHaptics());
   const [hapticIntensity, setIntensityState] = useState(() => getHapticIntensity());
@@ -24,7 +43,10 @@ export const UIProvider = ({ children }) => {
   const togglePrivacyMode = useCallback(() => {
     setIsPrivacyMode(prev => {
       const next = !prev;
-      localStorage.setItem('extrack_privacy_mode', String(next));
+      try {
+        localStorage.setItem('kharch_privacy_mode', String(next));
+        localStorage.removeItem('extrack_privacy_mode');
+      } catch { /* ignore */ }
       return next;
     });
     // Tick (not thud): the global handler already buzzed the tap itself.
@@ -81,7 +103,7 @@ export const UIProvider = ({ children }) => {
       if (e.key === 'Escape') {
         setIsCommandPaletteOpen(false);
         setIsQuickAddOpen(false);
-        window.dispatchEvent(new CustomEvent('extrack:escape'));
+        window.dispatchEvent(new CustomEvent('kharch:escape'));
       }
     };
 

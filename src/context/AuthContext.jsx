@@ -15,18 +15,38 @@ import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
 
+const GUEST_MODE_KEY = 'kharch_guest_mode';
+const LEGACY_GUEST_MODE_KEY = 'extrack_guest_mode';
+
+const readGuestMode = () => {
+  try {
+    const val = localStorage.getItem(GUEST_MODE_KEY);
+    if (val !== null) return val === 'true';
+    const legacy = localStorage.getItem(LEGACY_GUEST_MODE_KEY);
+    if (legacy !== null) {
+      try {
+        localStorage.setItem(GUEST_MODE_KEY, legacy);
+        localStorage.removeItem(LEGACY_GUEST_MODE_KEY);
+      } catch { /* ignore */ }
+      return legacy === 'true';
+    }
+    return false;
+  } catch {
+    return false;
+  }
+};
+
+const clearGuestModeFlag = () => {
+  try { localStorage.removeItem(GUEST_MODE_KEY); } catch { /* ignore */ }
+  try { localStorage.removeItem(LEGACY_GUEST_MODE_KEY); } catch { /* ignore */ }
+};
+
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState('login');
-  const [isGuestMode, setIsGuestMode] = useState(() => {
-    try {
-      return localStorage.getItem('extrack_guest_mode') === 'true';
-    } catch {
-      return false;
-    }
-  });
+  const [isGuestMode, setIsGuestMode] = useState(() => readGuestMode());
 
   useEffect(() => {
     if (!auth) {
@@ -46,7 +66,7 @@ export const AuthProvider = ({ children }) => {
         setCurrentUser(user);
         if (user) {
           setIsGuestMode(false);
-          try { localStorage.removeItem('extrack_guest_mode'); } catch { /* ignore */ }
+          try { clearGuestModeFlag(); } catch { /* ignore */ }
           // Migrate any guest offline records into the newly signed-in account
           try {
             await DataService.migrateLocalDataToCloud(user.uid);
@@ -83,7 +103,7 @@ export const AuthProvider = ({ children }) => {
 
   const continueAsGuest = () => {
     setIsGuestMode(true);
-    try { localStorage.setItem('extrack_guest_mode', 'true'); } catch { /* ignore */ }
+    try { localStorage.setItem(GUEST_MODE_KEY, 'true'); } catch { /* ignore */ }
     setAuthModalOpen(false);
     toast.success('Continuing in Guest Mode (Offline Only)');
   };
@@ -97,9 +117,9 @@ export const AuthProvider = ({ children }) => {
         setCurrentUser({ ...userCredential.user, displayName });
       }
       setIsGuestMode(false);
-      try { localStorage.removeItem('extrack_guest_mode'); } catch { /* ignore */ }
+      try { clearGuestModeFlag(); } catch { /* ignore */ }
       setAuthModalOpen(false);
-      toast.success(`Welcome to ExTrack, ${displayName || 'User'}!`);
+      toast.success(`Welcome to Kharch, ${displayName || 'User'}!`);
       return userCredential.user;
     } catch (error) {
       console.error("Signup error:", error);
@@ -117,7 +137,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       setIsGuestMode(false);
-      try { localStorage.removeItem('extrack_guest_mode'); } catch { /* ignore */ }
+      try { clearGuestModeFlag(); } catch { /* ignore */ }
       setAuthModalOpen(false);
       toast.success(`Welcome back, ${userCredential.user.displayName || userCredential.user.email}!`);
       return userCredential.user;
@@ -139,7 +159,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       setIsGuestMode(false);
-      try { localStorage.removeItem('extrack_guest_mode'); } catch { /* ignore */ }
+      try { clearGuestModeFlag(); } catch { /* ignore */ }
       setAuthModalOpen(false);
       toast.success(`Signed in as ${result.user.displayName || result.user.email}`);
       return result.user;

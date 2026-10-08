@@ -36,8 +36,8 @@ const BottomNav = () => {
       setDragOffsetY(0);
       setIsMoreOpen(false);
     };
-    window.addEventListener('extrack:escape', onEscape);
-    return () => window.removeEventListener('extrack:escape', onEscape);
+    window.addEventListener('kharch:escape', onEscape);
+    return () => window.removeEventListener('kharch:escape', onEscape);
   }, []);
 
   const mainNavItems = [

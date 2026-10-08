@@ -1,5 +1,5 @@
 services:
-  expense-tracker:
+  kharch:
     build:
       context: .
       dockerfile: Dockerfile
@@ -10,7 +10,7 @@ services:
         VITE_FIREBASE_STORAGE_BUCKET: ${VITE_FIREBASE_STORAGE_BUCKET:-}
         VITE_FIREBASE_MESSAGING_SENDER_ID: ${VITE_FIREBASE_MESSAGING_SENDER_ID:-}
         VITE_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID:-}
-    container_name: expense-tracker-app
+    container_name: kharch-app
     restart: unless-stopped
     ports:
       - "8080:80"

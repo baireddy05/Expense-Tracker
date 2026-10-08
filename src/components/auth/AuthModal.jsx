@@ -126,7 +126,7 @@ const AuthModal = () => {
             <FontAwesomeIcon icon={faWallet} className="text-sm" />
           </div>
           <h3 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-white">
-            {activeTab === 'login' && 'Sign In to ExTrack'}
+            {activeTab === 'login' && 'Sign In to Kharch'}
             {activeTab === 'signup' && 'Create Account'}
             {activeTab === 'forgot' && 'Reset Password'}
           </h3>
