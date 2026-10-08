@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { DataService } from '../services/db';
 import { useAuth } from './AuthContext';
 import { getLocalDateString, calculateNextDueDate, formatDisplayDate } from '../utils/dateUtils';
@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 const TransactionContext = createContext();
 
 export const TransactionProvider = ({ children }) => {
-  const { currentUser, userId, loading: authLoading } = useAuth();
+  const { userId, loading: authLoading } = useAuth();
 
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -22,8 +22,23 @@ export const TransactionProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
 
+  // In-module guard against concurrent fetchData runs (StrictMode double-invoke,
+  // rapid auth flips). Subscription auto-posting reads nextDueDate from a fetch
+  // snapshot; two overlapping runs would both see the same stale due date and
+  // post the transaction twice. Second+ callers piggyback on the first run.
+  const fetchInFlightRef = useRef(null);
+
   const fetchData = useCallback(async () => {
     if (authLoading) return;
+    // Coalesce concurrent invocations: a fetch already running for this user
+    // (StrictMode double-effect, quick auth flips) makes later calls await its
+    // result rather than racing it on the auto-post logic.
+    if (fetchInFlightRef.current) {
+      try { await fetchInFlightRef.current; } catch { /* surface below */ }
+      return;
+    }
+
+    const run = (async () => {
     try {
       setLoading(true);
       const [txData, catData, settingsData, lentData, borrowData, subData, accData, goalData, eventData] = await Promise.all([
@@ -44,7 +59,10 @@ export const TransactionProvider = ({ children }) => {
       const currentGoals = goalData || [];
       const currentEvents = eventData || [];
 
-      // Auto-process due subscriptions using local timezone
+      // Auto-process due subscriptions using local timezone. Idempotency guard:
+      // advance nextDueDate BEFORE creating the transaction, so a crash between
+      // the two writes skips a cycle instead of double-posting; a re-run after
+      // success sees the advanced date and does nothing.
       const todayStr = getLocalDateString();
       const dueSubs = currentSubs.filter(s => s.active && s.nextDueDate && s.nextDueDate <= todayStr);
       
@@ -52,7 +70,11 @@ export const TransactionProvider = ({ children }) => {
         let postedCount = 0;
         for (const sub of dueSubs) {
           try {
-            // Post transaction
+            // Advance the schedule first (single source of truth), then post.
+            const nextDueStr = calculateNextDueDate(sub.nextDueDate, sub.frequency);
+            await DataService.updateSubscription(sub.id, { nextDueDate: nextDueStr }, userId);
+            sub.nextDueDate = nextDueStr;
+
             const newTx = await DataService.addTransaction({
               amount: parseFloat(sub.amount),
               categoryId: sub.categoryId,
@@ -61,12 +83,6 @@ export const TransactionProvider = ({ children }) => {
               type: sub.type || 'expense'
             }, userId);
             currentTx = [newTx, ...currentTx];
-            
-            // Advance nextDueDate cleanly without UTC day-shift
-            const nextDueStr = calculateNextDueDate(sub.nextDueDate, sub.frequency);
-            
-            await DataService.updateSubscription(sub.id, { nextDueDate: nextDueStr }, userId);
-            sub.nextDueDate = nextDueStr;
             postedCount++;
           } catch (e) {
             console.error("Failed to process subscription:", sub.name, e);
@@ -92,6 +108,14 @@ export const TransactionProvider = ({ children }) => {
       setError(err.message || 'Failed to load data');
     } finally {
       setLoading(false);
+      fetchInFlightRef.current = null;
+    }
+    })();
+    fetchInFlightRef.current = run;
+    try {
+      await run;
+    } finally {
+      if (fetchInFlightRef.current === run) fetchInFlightRef.current = null;
     }
   }, [userId, authLoading]);
 
@@ -155,10 +179,13 @@ export const TransactionProvider = ({ children }) => {
           const txKey = typeof newTx.date === 'string' ? newTx.date.slice(0, 7) : '';
           if (txKey === curKey) {
             let prior = 0;
-            transactions.forEach(t => {
-              if (t.type === 'expense' && typeof t.date === 'string' && t.date.slice(0, 7) === curKey) {
-                prior += parseFloat(t.amount) || 0;
-              }
+            setTransactions(prevTx => {
+              prevTx.forEach(t => {
+                if (t.type === 'expense' && typeof t.date === 'string' && t.date.slice(0, 7) === curKey) {
+                  prior += parseFloat(t.amount) || 0;
+                }
+              });
+              return prevTx; // read-only peek: state is returned unchanged
             });
             const after = prior + amt;
             if (prior < budget && after >= budget) {
@@ -440,8 +467,62 @@ export const TransactionProvider = ({ children }) => {
 
   const deleteAccount = async (id) => {
     try {
+      // Reassign this account's transactions to the remaining default account
+      // before removing it. Without this, deleted-account transactions match no
+      // account and silently vanish from every balance.
+      const remaining = accounts.filter(a => a.id !== id);
+      if (remaining.length === 0) {
+        throw new Error('Cannot delete the only account');
+      }
+      const fallbackAcc = remaining.find(a => a.isDefault) || remaining[0];
+
+      const orphaned = transactions.filter(t => {
+        if (t.type === 'transfer') return t.fromAccountId === id || t.toAccountId === id;
+        return (t.accountId || fallbackAcc.id) === id;
+      });
+
       await DataService.deleteAccount(id, userId);
-      setAccounts(prev => prev.filter(a => a.id !== id));
+      for (const t of orphaned) {
+        const updates = {};
+        if (t.type === 'transfer') {
+          if (t.fromAccountId === id) updates.fromAccountId = fallbackAcc.id;
+          if (t.toAccountId === id) updates.toAccountId = fallbackAcc.id;
+          // A transfer whose source and destination collapsed onto the same
+          // account is a no-op in the ledger — drop it entirely.
+          if (updates.fromAccountId === fallbackAcc.id && updates.toAccountId === fallbackAcc.id) {
+            await DataService.deleteTransaction(t.id, userId);
+            setTransactions(prev => prev.filter(x => x.id !== t.id));
+            continue;
+          }
+        } else {
+          updates.accountId = fallbackAcc.id;
+        }
+        await DataService.updateTransaction(t.id, updates, userId);
+      }
+
+      // If the deleted account was the default, promote the fallback.
+      const deletedWasDefault = !!accounts.find(a => a.id === id && a.isDefault);
+      if (deletedWasDefault) {
+        await DataService.updateAccount(fallbackAcc.id, { isDefault: true }, userId);
+      }
+
+      setAccounts(prev => prev
+        .filter(a => a.id !== id)
+        .map(a => (deletedWasDefault && a.id === fallbackAcc.id) ? { ...a, isDefault: true } : a)
+      );
+      if (orphaned.length > 0) {
+        setTransactions(prev => prev.map(t => {
+          if (!orphaned.some(o => o.id === t.id)) return t;
+          if (t.type === 'transfer') {
+            return {
+              ...t,
+              fromAccountId: t.fromAccountId === id ? fallbackAcc.id : t.fromAccountId,
+              toAccountId: t.toAccountId === id ? fallbackAcc.id : t.toAccountId
+            };
+          }
+          return { ...t, accountId: fallbackAcc.id };
+        }).filter(t => !(t.type === 'transfer' && t.fromAccountId === t.toAccountId)));
+      }
     } catch (err) {
       setError('Failed to delete account');
       throw err;
@@ -481,13 +562,21 @@ export const TransactionProvider = ({ children }) => {
   const accountsWithBalances = React.useMemo(() => {
     const defaultAcc = accounts.find(a => a.isDefault) || accounts[0];
     const defaultId = defaultAcc?.id;
+    const knownIds = new Set(accounts.map(a => a.id));
 
     return accounts.map(acc => {
       let balance = parseFloat(acc.initialBalance) || 0;
 
       transactions.forEach(t => {
         const amt = parseFloat(t.amount) || 0;
-        const txAccId = t.accountId || defaultId;
+        let txAccId = t.accountId || defaultId;
+
+        // Orphan guard: if the transaction's account was deleted, fold its
+        // amount into the default account instead of letting it vanish from
+        // every balance (previously deleting a wallet corrupted all totals).
+        if (txAccId && !knownIds.has(txAccId)) {
+          txAccId = defaultId;
+        }
 
         if (t.type === 'transfer') {
           if (t.fromAccountId === acc.id) balance -= amt;
@@ -1130,7 +1219,7 @@ export const TransactionProvider = ({ children }) => {
       if (data.savingsGoals && Array.isArray(data.savingsGoals)) {
         for (const goal of data.savingsGoals) {
           if (goal.name) {
-            const { id, ...goalData } = goal;
+            const { id: _goalId, ...goalData } = goal;
             await DataService.addSavingsGoal(goalData, userId);
             importedCount++;
           }
@@ -1142,7 +1231,7 @@ export const TransactionProvider = ({ children }) => {
       if (data.subscriptions && Array.isArray(data.subscriptions)) {
         for (const sub of data.subscriptions) {
           if (sub.name) {
-            const { id, ...subData } = sub;
+            const { id: _subId, ...subData } = sub;
             if (subData.categoryId && categoryIdMap[subData.categoryId]) {
               subData.categoryId = categoryIdMap[subData.categoryId];
             }
@@ -1160,7 +1249,7 @@ export const TransactionProvider = ({ children }) => {
       if (data.lentRecords && Array.isArray(data.lentRecords)) {
         for (const lr of data.lentRecords) {
           if (lr.borrowerName && lr.amount) {
-            const { id, ...lrData } = lr;
+            const { id: _lrId, ...lrData } = lr;
             await DataService.addLentRecord(lrData, userId);
             importedCount++;
           }
@@ -1172,7 +1261,7 @@ export const TransactionProvider = ({ children }) => {
       if (data.borrowedRecords && Array.isArray(data.borrowedRecords)) {
         for (const br of data.borrowedRecords) {
           if (br.lenderName && br.amount) {
-            const { id, ...brData } = br;
+            const { id: _brId, ...brData } = br;
             await DataService.addBorrowedRecord(brData, userId);
             importedCount++;
           }
@@ -1180,10 +1269,20 @@ export const TransactionProvider = ({ children }) => {
       }
 
       report('transactions', 90, 'Restoring transactions & remapping accounts...');
-      // 8. Restore Transactions with mapped accountId, categoryId, eventId
+      // 8. Restore Transactions with mapped accountId, categoryId, eventId.
+      // Fingerprint dedup: restoring the same backup twice must not double the
+      // ledger (same date + amount + type + note = already present, skip).
       if (data.transactions && Array.isArray(data.transactions)) {
+        const existingTx = await DataService.getTransactions(userId);
+        const seen = new Set(existingTx.map(t => {
+          const dateStr = (t.date || '').split('T')[0];
+          const amtStr = parseFloat(t.amount || 0).toFixed(2);
+          const noteStr = (t.note || '').trim().toLowerCase();
+          return `${dateStr}__${amtStr}__${t.type || 'expense'}__${noteStr}`;
+        }));
+
         for (const tx of data.transactions) {
-          const { id, createdAt, ...txData } = tx;
+          const { id: _oldTxId, createdAt: _oldCreated, ...txData } = tx;
           if (txData.categoryId && categoryIdMap[txData.categoryId]) {
             txData.categoryId = categoryIdMap[txData.categoryId];
           }
@@ -1199,6 +1298,11 @@ export const TransactionProvider = ({ children }) => {
           if (txData.eventId && eventIdMap[txData.eventId]) {
             txData.eventId = eventIdMap[txData.eventId];
           }
+
+          const fp = `${(txData.date || '').split('T')[0]}__${parseFloat(txData.amount || 0).toFixed(2)}__${txData.type || 'expense'}__${(txData.note || '').trim().toLowerCase()}`;
+          if (seen.has(fp)) continue;
+          seen.add(fp);
+
           await DataService.addTransaction(txData, userId);
           importedCount++;
         }
@@ -1275,9 +1379,14 @@ export const TransactionProvider = ({ children }) => {
     settleBorrowedRecord,
     restoreCompleteBackup,
     refreshData: fetchData
+  // Action functions are intentionally omitted from the deps below: they are
+  // recreated every render, so listing them would invalidate the memo every
+  // render and broadcast a new context object to all consumers. Every STATE
+  // dependency is listed, so the value stays correct — the functions close
+  // over state covered here.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [
     transactions,
-    categories,
     subscriptions,
     accountsWithBalances,
     accounts,

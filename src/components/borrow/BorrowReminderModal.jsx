@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faPaperPlane, faCopy, faCheck, faPhone, faComments } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faPaperPlane, faCopy, faCheck } from '@fortawesome/free-solid-svg-icons';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import toast from 'react-hot-toast';
+import { formatDisplayDate } from '../../utils/dateUtils';
 
 const BorrowReminderModal = ({ isOpen, onClose, record }) => {
   const total = record ? parseFloat(record.amount) || 0 : 0;
@@ -11,7 +12,7 @@ const BorrowReminderModal = ({ isOpen, onClose, record }) => {
   const remaining = Math.max(0, total - returned);
 
   const defaultMsg = record 
-    ? `Hey ${record.lenderName}, just updating you regarding the ₹${remaining.toLocaleString('en-IN')} I borrowed from you${record.dueDate ? ` (due: ${new Date(record.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })})` : ''}. I will be returning it soon. Thanks a lot for the help!`
+    ? `Hey ${record.lenderName}, just updating you regarding the ₹${remaining.toLocaleString('en-IN')} I borrowed from you${record.dueDate ? ` (due: ${formatDisplayDate(record.dueDate, { day: '2-digit', month: 'short' })})` : ''}. I will be returning it soon. Thanks a lot for the help!`
     : '';
 
   const [message, setMessage] = useState(defaultMsg);
@@ -23,7 +24,7 @@ const BorrowReminderModal = ({ isOpen, onClose, record }) => {
     if (record) {
       setMessage(defaultMsg);
     }
-  }, [record]);
+  }, [record, defaultMsg]);
 
   if (!isOpen || !record) return null;
 
@@ -48,7 +49,7 @@ const BorrowReminderModal = ({ isOpen, onClose, record }) => {
       onClick={onClose}
     >
       <div 
-        className="liquid-glass-dock w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-fade-in my-auto bg-white dark:bg-zinc-900"
+        className="liquid-glass-dock w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-[90dvh] animate-slide-up sm:animate-fade-in mt-auto sm:my-auto bg-white dark:bg-zinc-900"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -71,14 +72,14 @@ const BorrowReminderModal = ({ isOpen, onClose, record }) => {
             onClick={onClose}
             title="Close"
             aria-label="Close reminder"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/10 transition-colors touch-feedback cursor-pointer"
+            className="w-10 h-10 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/10 transition-colors touch-feedback cursor-pointer"
           >
             <FontAwesomeIcon icon={faTimes} className="text-xs" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-5 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 space-y-4">
           <div>
             <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1.5">
               Message Preview
@@ -87,15 +88,15 @@ const BorrowReminderModal = ({ isOpen, onClose, record }) => {
               rows="4"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="w-full p-3.5 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white resize-none bg-zinc-50 dark:bg-zinc-800/80"
+              className="w-full p-3.5 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-base sm:text-xs dark:text-white resize-none bg-zinc-50 dark:bg-zinc-800/80"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
             <button
               type="button"
               onClick={handleCopy}
-              className="py-2.5 px-3.5 liquid-glass-subtle hover:bg-white/60 dark:hover:bg-white/10 text-zinc-800 dark:text-zinc-200 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer touch-feedback"
+              className="py-2.5 min-h-[44px] px-3.5 liquid-glass-subtle hover:bg-white/60 dark:hover:bg-white/10 text-zinc-800 dark:text-zinc-200 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer touch-feedback"
             >
               <FontAwesomeIcon icon={copied ? faCheck : faCopy} className={copied ? 'text-emerald-500' : ''} />
               <span>{copied ? 'Copied!' : 'Copy Text'}</span>
@@ -104,7 +105,7 @@ const BorrowReminderModal = ({ isOpen, onClose, record }) => {
             <button
               type="button"
               onClick={handleWhatsApp}
-              className="py-2.5 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 text-xs cursor-pointer touch-feedback"
+              className="py-2.5 min-h-[44px] px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 text-xs cursor-pointer touch-feedback"
             >
               <FontAwesomeIcon icon={faPaperPlane} className="text-xs" />
               <span>Send WhatsApp</span>

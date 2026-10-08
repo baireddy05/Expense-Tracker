@@ -15,7 +15,7 @@ const SplashScreen = () => {
         {/* Glowing Logo Icon Container */}
         <div className="relative mb-6">
           <div className="absolute -inset-2 bg-gradient-to-r from-indigo-500 via-emerald-500 to-amber-500 rounded-3xl blur-md opacity-40 dark:opacity-50 animate-pulse" />
-          <div className="relative w-16 h-16 sm:w-18 sm:h-18 rounded-2xl sm:rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-xl flex items-center justify-center text-zinc-900 dark:text-white">
+          <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-xl flex items-center justify-center text-zinc-900 dark:text-white">
             <FontAwesomeIcon icon={faWallet} className="text-2xl sm:text-3xl text-indigo-600 dark:text-indigo-400" />
           </div>
         </div>

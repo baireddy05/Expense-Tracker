@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useTransactions } from '../context/TransactionContext';
 import { useUI } from '../context/UIContext';
 import { useAuth } from '../context/AuthContext';
@@ -16,7 +16,6 @@ import {
   faReceipt,
   faShieldAlt,
   faBuildingColumns,
-  faRightLeft,
   faBullseye,
   faSuitcase
 } from '@fortawesome/free-solid-svg-icons';
@@ -25,6 +24,7 @@ import { Doughnut, Line } from 'react-chartjs-2';
 import { DashboardSkeleton } from '../components/ui/Skeleton';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
 import { getCategoryIcon, resolveCategory } from '../utils/categoryIcons';
+import { toLocalDate, formatDisplayDate } from '../utils/dateUtils';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler);
 
@@ -32,7 +32,6 @@ const Dashboard = () => {
   const { transactions, categories, accounts = [], savingsGoals = [], events = [], lentRecords = [], borrowedRecords = [], subscriptions = [], loading, settings } = useTransactions();
   const { isPrivacyMode } = useUI();
   const { currentUser, openAuthModal } = useAuth();
-  const navigate = useNavigate();
 
   const formatCurrency = (amount) => {
     if (isPrivacyMode) {
@@ -59,8 +58,8 @@ const Dashboard = () => {
         tYear = parseInt(t.date.slice(0, 4), 10);
         tMonth = parseInt(t.date.slice(5, 7), 10) - 1;
       } else {
-        const tDate = new Date(t.date);
-        if (!isNaN(tDate.getTime())) {
+        const tDate = toLocalDate(t.date);
+        if (tDate) {
           tYear = tDate.getFullYear();
           tMonth = tDate.getMonth();
         }
@@ -126,7 +125,8 @@ const Dashboard = () => {
       const remaining = Math.max(0, total - returned);
 
       if (remaining > 0 && r.dueDate) {
-        const due = new Date(r.dueDate);
+        const due = toLocalDate(r.dueDate);
+        if (!due) return;
         const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
         if (diffDays <= 7) {
           alerts.push({
@@ -151,7 +151,8 @@ const Dashboard = () => {
       const remaining = Math.max(0, total - returned);
 
       if (remaining > 0 && r.dueDate) {
-        const due = new Date(r.dueDate);
+        const due = toLocalDate(r.dueDate);
+        if (!due) return;
         const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
         if (diffDays <= 7) {
           alerts.push({
@@ -172,8 +173,8 @@ const Dashboard = () => {
     // Recurring subscriptions / bills due soon (active only)
     (subscriptions || []).forEach(s => {
       if (!s.active || !s.nextDueDate) return;
-      const due = new Date(s.nextDueDate);
-      if (isNaN(due.getTime())) return;
+      const due = toLocalDate(s.nextDueDate);
+      if (!due) return;
       const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
       if (diffDays <= 7) {
         alerts.push({
@@ -259,8 +260,10 @@ const Dashboard = () => {
     if (!transactions.length) return [];
     return [...transactions]
       .sort((a, b) => {
-        const bTime = typeof b.date === 'string' ? (new Date(b.date).getTime() || 0) : 0;
-        const aTime = typeof a.date === 'string' ? (new Date(a.date).getTime() || 0) : 0;
+        const bDate = toLocalDate(b.date);
+        const aDate = toLocalDate(a.date);
+        const bTime = bDate ? bDate.getTime() : 0;
+        const aTime = aDate ? aDate.getTime() : 0;
         return bTime - aTime;
       })
       .slice(0, 5);
@@ -307,7 +310,7 @@ const Dashboard = () => {
   if (loading) return <DashboardSkeleton />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20 md:pb-8">
       {/* Header & Quick Action Pills */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -320,7 +323,7 @@ const Dashboard = () => {
         </div>
 
         {/* Minimalist Quick Shortcuts */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 max-w-full overflow-x-auto no-scrollbar">
           <Link
             to="/transactions"
             className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold rounded-xl text-xs transition-colors flex items-center gap-1.5 touch-feedback border border-zinc-200/60 dark:border-zinc-700/60"
@@ -371,12 +374,12 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Cash Balance */}
         <div className="glass-card p-5 transition-all glass-hover">
-          <div className="flex justify-between items-start">
-            <div>
+          <div className="flex justify-between items-start gap-2 min-w-0">
+            <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Total Balance
               </p>
-              <h2 className={`text-2xl font-bold mt-1 tracking-tight ${stats.balance >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-500'}`}>
+              <h2 className={`text-xl sm:text-2xl font-bold mt-1 tracking-tight truncate tabular-nums ${stats.balance >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-500'}`}>
                 <AnimatedCounter value={stats.balance} isCurrency={true} />
               </h2>
             </div>
@@ -394,12 +397,12 @@ const Dashboard = () => {
 
         {/* Monthly Income */}
         <div className="glass-card p-5 transition-all glass-hover">
-          <div className="flex justify-between items-start">
-            <div>
+          <div className="flex justify-between items-start gap-2 min-w-0">
+            <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Monthly Income
               </p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight text-emerald-600 dark:text-emerald-400">
+              <h2 className="text-xl sm:text-2xl font-bold mt-1 tracking-tight text-emerald-600 dark:text-emerald-400 truncate tabular-nums">
                 <AnimatedCounter value={stats.monthlyIncome} isCurrency={true} />
               </h2>
             </div>
@@ -414,12 +417,12 @@ const Dashboard = () => {
 
         {/* Monthly Expense */}
         <div className="glass-card p-5 transition-all glass-hover">
-          <div className="flex justify-between items-start">
-            <div>
+          <div className="flex justify-between items-start gap-2 min-w-0">
+            <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Monthly Expense
               </p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white">
+              <h2 className="text-xl sm:text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white truncate tabular-nums">
                 <AnimatedCounter value={stats.monthlyExpense} isCurrency={true} />
               </h2>
             </div>
@@ -439,12 +442,12 @@ const Dashboard = () => {
 
         {/* Net Liquid Worth */}
         <div className="glass-card p-5 transition-all glass-hover">
-          <div className="flex justify-between items-start">
-            <div>
+          <div className="flex justify-between items-start gap-2 min-w-0">
+            <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Net Liquid Worth
               </p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white">
+              <h2 className="text-xl sm:text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white truncate tabular-nums">
                 <AnimatedCounter value={stats.netWorth} isCurrency={true} />
               </h2>
             </div>
@@ -452,7 +455,7 @@ const Dashboard = () => {
               <FontAwesomeIcon icon={faCoins} />
             </div>
           </div>
-          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-2.5 truncate">
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-2.5 flex flex-wrap gap-x-1">
             {isPrivacyMode ? '+₹•••• Lent • -₹•••• Debt' : `+₹${stats.totalLentPending.toLocaleString('en-IN')} Lent • -₹${stats.totalBorrowedPending.toLocaleString('en-IN')} Debt`}
           </p>
         </div>
@@ -494,7 +497,7 @@ const Dashboard = () => {
                     </p>
                   </div>
                 </div>
-                <p className={`text-xs font-bold shrink-0 ${acc.balance < 0 ? 'text-rose-500' : 'text-zinc-900 dark:text-white'}`}>
+                <p className={`text-[11px] sm:text-xs font-bold tabular-nums min-w-0 truncate ${acc.balance < 0 ? 'text-rose-500' : 'text-zinc-900 dark:text-white'}`}>
                   {formatCurrency(acc.balance || 0)}
                 </p>
               </div>
@@ -525,15 +528,14 @@ const Dashboard = () => {
               const target = parseFloat(goal.targetAmount) || 0;
               const saved = parseFloat(goal.savedAmount) || 0;
               const percent = target > 0 ? Math.min((saved / target) * 100, 100) : 0;
-              const isDone = saved >= target && target > 0;
 
               return (
-                <div key={goal.id} className="p-3 rounded-xl liquid-glass-subtle space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-zinc-900 dark:text-white truncate">
+                <div key={goal.id} className="p-3 rounded-xl liquid-glass-subtle space-y-2 min-w-0">
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-xs font-bold text-zinc-900 dark:text-white truncate min-w-0 flex-1">
                       {goal.name}
                     </span>
-                    <span className="text-[10px] font-bold text-zinc-500">
+                    <span className="text-[10px] font-bold text-zinc-500 shrink-0 ml-2">
                       {percent.toFixed(0)}%
                     </span>
                   </div>
@@ -548,9 +550,9 @@ const Dashboard = () => {
                     />
                   </div>
 
-                  <div className="flex justify-between items-center text-[10px] text-zinc-400">
-                    <span>{formatCurrency(saved)}</span>
-                    <span>Target: {formatCurrency(target)}</span>
+                  <div className="flex justify-between items-center text-[10px] text-zinc-400 gap-2">
+                    <span className="truncate min-w-0">{formatCurrency(saved)}</span>
+                    <span className="shrink-0">Target: {formatCurrency(target)}</span>
                   </div>
                 </div>
               );
@@ -584,13 +586,13 @@ const Dashboard = () => {
               const isOver = spent > budget && budget > 0;
 
               return (
-                <div key={event.id} className="p-3 rounded-xl liquid-glass-subtle space-y-2">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-1.5 truncate">
+                <div key={event.id} className="p-3 rounded-xl liquid-glass-subtle space-y-2 min-w-0">
+                  <div className="flex justify-between items-center gap-2">
+                    <div className="flex items-center gap-1.5 truncate min-w-0 flex-1">
                       <span className="text-xs font-bold text-zinc-900 dark:text-white truncate">
                         {event.name}
                       </span>
-                      <span className="text-[9px] px-1 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-mono">
+                      <span className="text-[9px] px-1 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-mono truncate max-w-[90px]">
                         #{event.tag}
                       </span>
                     </div>
@@ -615,9 +617,9 @@ const Dashboard = () => {
                     />
                   </div>
 
-                  <div className="flex justify-between items-center text-[10px] text-zinc-400">
-                    <span>Spent: {formatCurrency(spent)}</span>
-                    <span>Budget: {budget > 0 ? formatCurrency(budget) : 'No limit'}</span>
+                  <div className="flex justify-between items-center text-[10px] text-zinc-400 gap-2">
+                    <span className="truncate min-w-0">Spent: {formatCurrency(spent)}</span>
+                    <span className="shrink-0">Budget: {budget > 0 ? formatCurrency(budget) : 'No limit'}</span>
                   </div>
                 </div>
               );
@@ -628,7 +630,7 @@ const Dashboard = () => {
 
       {/* Due Date & Action Alerts (If any) */}
       {dueAlerts.length > 0 && (
-        <div className="glass-card p-4.5 border-amber-200/80 dark:border-amber-900/40 bg-amber-50/20 dark:bg-amber-950/10">
+        <div className="glass-card p-4 sm:p-5 border-amber-200/80 dark:border-amber-900/40 bg-amber-50/20 dark:bg-amber-950/10 overflow-hidden min-w-0">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-2">
               <FontAwesomeIcon icon={faExclamationTriangle} className="text-amber-500" />
@@ -643,13 +645,13 @@ const Dashboard = () => {
             {dueAlerts.map(alert => (
               <div 
                 key={alert.id}
-                className={`p-3 rounded-xl border text-xs flex items-center justify-between gap-3 ${
+                className={`p-3 rounded-xl border text-xs flex items-center justify-between gap-3 min-w-0 ${
                   alert.isOverdue 
                     ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50'
                     : 'bg-white dark:bg-zinc-800/60 border-zinc-200/80 dark:border-zinc-700/60'
                 }`}
               >
-                <div>
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <span className="font-semibold text-zinc-900 dark:text-white">{alert.person}</span>
                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -699,12 +701,12 @@ const Dashboard = () => {
             </span>
           </div>
         )}
-        <div className="flex justify-between items-center mb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-3 mb-3">
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
             {hasBudget ? 'Global Monthly Budget' : 'Monthly Spending Velocity'}
           </h3>
           {hasBudget && (
-            <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+            <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 truncate">
               {formatCurrency(stats.monthlyExpense)} / {formatCurrency(budgetLimit)}
             </span>
           )}
@@ -772,12 +774,12 @@ const Dashboard = () => {
       </div>
 
       {/* Trend Line Chart */}
-      <div className="glass-card p-5">
+      <div className="glass-card p-5 overflow-hidden min-w-0">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Weekly Cash Flow Trend</h3>
           <span className="text-xs text-zinc-400">Past 7 Days</span>
         </div>
-        <div className="w-full h-[230px]">
+        <div className="w-full h-[200px] sm:h-[230px] min-h-0 min-w-0">
           <Line 
             data={lineChartData}
             options={{
@@ -812,9 +814,9 @@ const Dashboard = () => {
       </div>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
         {/* Expenses by Category */}
-        <div className="glass-card p-5 flex flex-col items-center">
+        <div className="glass-card p-5 flex flex-col items-center overflow-hidden min-w-0">
           <h3 className="text-sm font-semibold mb-4 text-zinc-900 dark:text-white self-start">Expenses by Category</h3>
           <div className="w-full max-w-[260px] aspect-square relative my-auto">
             {expenseByCategory.length > 0 ? (
@@ -873,7 +875,7 @@ const Dashboard = () => {
                       {hasNote ? t.note : categoryName}
                     </p>
                     <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-zinc-400">
-                      <span>{new Date(t.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
+                      <span>{formatDisplayDate(t.date, { day: '2-digit', month: 'short' })}</span>
                       <span>&bull;</span>
                       <span className="truncate">{categoryName}</span>
                     </div>

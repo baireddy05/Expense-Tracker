@@ -13,9 +13,7 @@ import {
   faPlus,
   faEdit,
   faTrash,
-  faScaleBalanced,
-  faCheckCircle,
-  faShieldAlt
+  faScaleBalanced
 } from '@fortawesome/free-solid-svg-icons';
 import { getLocalDateString, formatDisplayDate } from '../utils/dateUtils';
 import ConfirmModal from '../components/ui/ConfirmModal';
@@ -162,7 +160,7 @@ const Accounts = () => {
         toast.success('New account created');
       }
       setIsAccountModalOpen(false);
-    } catch (err) {
+    } catch {
       toast.error('Failed to save account');
     } finally {
       setIsSubmitting(false);
@@ -183,7 +181,7 @@ const Accounts = () => {
     try {
       await deleteAccount(deleteConfirm.id);
       toast.success('Account deleted');
-    } catch (err) {
+    } catch {
       toast.error('Failed to delete account');
     }
   };
@@ -220,7 +218,7 @@ const Accounts = () => {
     try {
       await transferFunds(transferForm);
       setIsTransferModalOpen(false);
-    } catch (err) {
+    } catch {
       // Toast handled in context
     } finally {
       setIsSubmitting(false);
@@ -240,7 +238,7 @@ const Accounts = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => handleOpenTransferModal()}
             className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 transition-colors flex items-center gap-2 cursor-pointer touch-feedback shadow-2xs"
@@ -267,7 +265,7 @@ const Accounts = () => {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Total Net Worth
               </p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white">
+              <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-zinc-900 dark:text-white">
                 {formatCurrency(summary.netWorth)}
               </h2>
             </div>
@@ -286,7 +284,7 @@ const Accounts = () => {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Liquid Assets
               </p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight text-emerald-500">
+              <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-emerald-500">
                 {formatCurrency(summary.liquidAssets)}
               </h2>
             </div>
@@ -305,7 +303,7 @@ const Accounts = () => {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Total Liabilities
               </p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight text-rose-500">
+              <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-rose-500">
                 {formatCurrency(summary.liabilities)}
               </h2>
             </div>
@@ -356,16 +354,16 @@ const Accounts = () => {
                 {/* Header Row */}
                 <div>
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div 
                         className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm shadow-2xs shrink-0"
                         style={{ backgroundColor: acc.color || '#3b82f6' }}
                       >
                         <FontAwesomeIcon icon={iconObj} />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <h3 className="font-bold text-sm text-zinc-900 dark:text-white leading-tight">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <h3 className="font-bold text-sm text-zinc-900 dark:text-white leading-tight truncate min-w-0 flex-1">
                             {acc.name}
                           </h3>
                           {acc.isDefault && (
@@ -403,20 +401,20 @@ const Accounts = () => {
                     <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-semibold">
                       Current Balance
                     </p>
-                    <h4 className={`text-2xl font-bold mt-0.5 tracking-tight ${balance < 0 ? 'text-rose-500' : 'text-zinc-900 dark:text-white'}`}>
+                    <h4 className={`text-xl sm:text-2xl font-bold truncate tabular-nums mt-0.5 tracking-tight ${balance < 0 ? 'text-rose-500' : 'text-zinc-900 dark:text-white'}`}>
                       {formatCurrency(balance)}
                     </h4>
                   </div>
                 </div>
 
                 {/* Card Footer Actions */}
-                <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between mt-4">
-                  <span className="text-[10px] text-zinc-400">
+                <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between gap-2 mt-4">
+                  <span className="text-[10px] text-zinc-400 truncate min-w-0 flex-1">
                     Initial: {formatCurrency(acc.initialBalance || 0)}
                   </span>
                   <button
                     onClick={() => handleOpenTransferModal(acc.id)}
-                    className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+                    className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer shrink-0"
                   >
                     <FontAwesomeIcon icon={faRightLeft} className="text-[9px]" />
                     <span>Transfer</span>
@@ -450,23 +448,23 @@ const Accounts = () => {
               const toAcc = accounts.find(a => a.id === t.toAccountId);
 
               return (
-                <div key={t.id} className="p-4 flex items-center justify-between hover:bg-zinc-50/80 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center gap-3">
+                <div key={t.id} className="p-4 flex items-center justify-between gap-3 hover:bg-zinc-50/80 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs shrink-0">
                       <FontAwesomeIcon icon={faRightLeft} />
                     </div>
-                    <div>
-                      <p className="text-xs font-bold text-zinc-900 dark:text-white">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">
                         {fromAcc?.name || 'Account'} ➔ {toAcc?.name || 'Account'}
                       </p>
-                      <p className="text-[10px] text-zinc-500 mt-0.5">
+                      <p className="text-[10px] text-zinc-500 mt-0.5 truncate">
                         {t.note || 'Internal Transfer'} &bull; {formatDisplayDate(t.date)}
                       </p>
                     </div>
                   </div>
 
-                  <div className="text-right">
-                    <p className="text-xs font-bold text-zinc-900 dark:text-white">
+                  <div className="text-right shrink-0">
+                    <p className="text-xs font-bold text-zinc-900 dark:text-white whitespace-nowrap tabular-nums">
                       {formatCurrency(t.amount)}
                     </p>
                   </div>
@@ -509,7 +507,7 @@ const Accounts = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
                     Type
@@ -551,7 +549,7 @@ const Accounts = () => {
                 <label className="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">
                   Theme Color
                 </label>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {COLOR_PRESETS.map(color => (
                     <button
                       key={color}
@@ -633,7 +631,7 @@ const Accounts = () => {
             </div>
 
             <form onSubmit={handleTransferSubmit} className="p-5 space-y-4 overflow-y-auto">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
                     From Account <span className="text-rose-500">*</span>
@@ -673,7 +671,7 @@ const Accounts = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
                     Transfer Amount <span className="text-rose-500">*</span>

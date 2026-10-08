@@ -108,9 +108,9 @@ const AuthModal = () => {
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in" onClick={closeAuthModal}>
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md animate-fade-in" onClick={closeAuthModal}>
       <div 
-        className="liquid-glass-dock w-full max-w-md rounded-3xl overflow-hidden border border-white/60 dark:border-white/10 shadow-2xl animate-pop-in sm:my-auto mt-auto mb-0 sm:mb-auto sm:mt-auto"
+        className="liquid-glass-dock w-full max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden border border-white/60 dark:border-white/10 shadow-2xl animate-slide-up sm:animate-pop-in mt-auto sm:my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Modal */}
@@ -165,7 +165,7 @@ const AuthModal = () => {
           </div>
         )}
 
-        <div className="p-5 pt-4 pb-safe sm:pb-5 max-h-[85vh] overflow-y-auto sm:overflow-visible">
+        <div className="p-5 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-5 max-h-[85dvh] overflow-y-auto">
           {/* Google Sign-in Button */}
           {activeTab !== 'forgot' && (
             <>
@@ -234,7 +234,7 @@ const AuthModal = () => {
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="e.g. Alex Sharma"
-                    className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
+                    className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl text-base sm:text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
                   />
                 </div>
               </div>
@@ -254,7 +254,7 @@ const AuthModal = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="alex@example.com"
-                  className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
+                  className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl text-base sm:text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
                 />
               </div>
             </div>
@@ -285,7 +285,7 @@ const AuthModal = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-9 pr-9 py-2 liquid-glass-input rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
+                    className="w-full pl-9 pr-9 py-2 liquid-glass-input rounded-xl text-base sm:text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
                   />
                   <button
                     type="button"
@@ -313,7 +313,7 @@ const AuthModal = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
+                    className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl text-base sm:text-xs focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-zinc-900 dark:text-white transition-all"
                   />
                 </div>
               </div>

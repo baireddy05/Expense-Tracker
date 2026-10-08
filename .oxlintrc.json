@@ -4,5 +4,16 @@
   "rules": {
     "react/rules-of-hooks": "error",
     "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
+  },
+  "overrides": [
+    {
+      // React Context files must export both the Provider component and the
+      // useXxx() hook — the standard Context pattern. Fast-refresh can't
+      // hot-swap them, which is an accepted trade-off here.
+      "files": ["src/context/**/*.{js,jsx}"],
+      "rules": {
+        "react/only-export-components": "off"
+      }
+    }
+  ]
 }

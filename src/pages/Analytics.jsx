@@ -9,19 +9,15 @@ import {
   faArrowTrendUp, 
   faArrowTrendDown, 
   faHandHoldingDollar, 
-  faHandHolding, 
   faTags,
   faShieldAlt,
   faScaleBalanced,
-  faCalendarAlt,
-  faArrowRight,
-  faExchangeAlt,
-  faClock
+  faExchangeAlt
 } from '@fortawesome/free-solid-svg-icons';
 import { getCategoryIcon, resolveCategory } from '../utils/categoryIcons';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
 import { useUI } from '../context/UIContext';
-import { getLocalDateString, formatDisplayDate } from '../utils/dateUtils';
+import { getLocalDateString, parseLocalDate } from '../utils/dateUtils';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement);
 
@@ -187,19 +183,23 @@ const Analytics = () => {
       pB_End = new Date(curYear - 1, 11, 31);
       pB_Label = `${curYear - 1} (Last Year)`;
     } else {
-      pA_Start = customRange.startA ? new Date(customRange.startA) : new Date(curYear, curMonth, 1);
-      pA_End = customRange.endA ? new Date(customRange.endA) : new Date(curYear, curMonth + 1, 0);
+      // parseLocalDate: new Date('YYYY-MM-DD') parses as UTC midnight and
+      // shifts the picked day in non-UTC timezones.
+      pA_Start = customRange.startA ? parseLocalDate(customRange.startA) : new Date(curYear, curMonth, 1);
+      pA_End = customRange.endA ? parseLocalDate(customRange.endA) : new Date(curYear, curMonth + 1, 0);
       pA_Label = 'Period A';
 
-      pB_Start = customRange.startB ? new Date(customRange.startB) : new Date(curYear, curMonth - 1, 1);
-      pB_End = customRange.endB ? new Date(customRange.endB) : new Date(curYear, curMonth, 0);
+      pB_Start = customRange.startB ? parseLocalDate(customRange.startB) : new Date(curYear, curMonth - 1, 1);
+      pB_End = customRange.endB ? parseLocalDate(customRange.endB) : new Date(curYear, curMonth, 0);
       pB_Label = 'Period B';
     }
 
-    // Helper to filter txns by date range
+    // Helper to filter txns by date range. Local-timezone formatting (NOT
+    // toISOString, which shifts the boundary a day in non-UTC timezones).
+    const ymdLocal = (d) => getLocalDateString(d);
     const filterTx = (start, end) => {
-      const s = start.toISOString().split('T')[0];
-      const e = end.toISOString().split('T')[0];
+      const s = ymdLocal(start);
+      const e = ymdLocal(end);
       return transactions.filter(t => {
         const d = (t.date || '').split('T')[0];
         return d >= s && d <= e;
@@ -337,10 +337,10 @@ const Analytics = () => {
         </div>
 
         {/* Tab Toggle Buttons */}
-        <div className="flex items-center gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-700/80 self-start sm:self-auto">
+        <div className="flex items-center gap-1.5 max-w-full overflow-x-auto no-scrollbar p-1 bg-zinc-100 dark:bg-zinc-800/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-700/80 self-start sm:self-auto">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer touch-feedback flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer touch-feedback flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'overview'
                 ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-xs'
                 : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
@@ -352,14 +352,15 @@ const Analytics = () => {
 
           <button
             onClick={() => setActiveTab('comparison')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer touch-feedback flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer touch-feedback flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'comparison'
                 ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-xs'
                 : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
             }`}
           >
             <FontAwesomeIcon icon={faScaleBalanced} className="text-xs" />
-            <span>Period Comparison</span>
+            <span className="hidden min-[400px]:inline">Period Comparison</span>
+            <span className="min-[400px]:hidden">Compare</span>
           </button>
         </div>
       </header>
@@ -398,7 +399,7 @@ const Analytics = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Total Income</p>
-                  <h2 className="text-2xl font-bold mt-1 tracking-tight text-emerald-600 dark:text-emerald-400">
+                  <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-emerald-600 dark:text-emerald-400">
                     <AnimatedCounter value={stats.income} isCurrency={true} />
                   </h2>
                 </div>
@@ -414,7 +415,7 @@ const Analytics = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Total Expenses</p>
-                  <h2 className="text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white">
+                  <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-zinc-900 dark:text-white">
                     <AnimatedCounter value={stats.expense} isCurrency={true} />
                   </h2>
                 </div>
@@ -430,7 +431,7 @@ const Analytics = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Savings Rate</p>
-                  <h2 className="text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white">
+                  <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-zinc-900 dark:text-white">
                     {stats.savingsRate.toFixed(1)}%
                   </h2>
                 </div>
@@ -448,7 +449,7 @@ const Analytics = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Receivable vs Debt</p>
-                  <h2 className="text-2xl font-bold mt-1 tracking-tight text-amber-600 dark:text-amber-400">
+                  <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-amber-600 dark:text-amber-400">
                     {isPrivacyMode ? '+₹••••' : `+₹${stats.totalLentPending.toLocaleString('en-IN')}`}
                   </h2>
                 </div>
@@ -465,15 +466,17 @@ const Analytics = () => {
           {/* Primary Visual Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Income vs Expense Pie */}
-            <div className="glass-card p-5 flex flex-col items-center">
+            <div className="glass-card p-5 flex flex-col items-center overflow-hidden min-w-0">
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-white self-start mb-4">
                 Income vs Expense Distribution
               </h3>
-              <div className="w-full max-w-[260px] aspect-square relative my-auto">
+              <div className="w-full max-w-[260px] aspect-square relative my-auto min-w-0">
                 {transactions.length > 0 ? (
                   <Pie 
                     data={incomeVsExpenseData}
                     options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
                       plugins: {
                         legend: { position: 'bottom', labels: { color: '#a1a1aa', font: { family: 'Plus Jakarta Sans', size: 11 } } },
                         tooltip: {
@@ -495,11 +498,11 @@ const Analytics = () => {
             </div>
 
             {/* Expenses by Category Bar */}
-            <div className="glass-card p-5 flex flex-col">
+            <div className="glass-card p-5 flex flex-col overflow-hidden min-w-0">
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-white mb-4">
                 Expenses by Category (₹)
               </h3>
-              <div className="flex-1 w-full min-h-[240px]">
+              <div className="flex-1 w-full h-[260px] sm:h-[300px] min-w-0">
                 {expenseByCategory.length > 0 ? (
                   <Bar 
                     data={categoryChartData}
@@ -518,7 +521,7 @@ const Analytics = () => {
                         },
                         x: {
                           grid: { display: false },
-                          ticks: { color: '#a1a1aa', font: { size: 10 } }
+                          ticks: { color: '#a1a1aa', font: { size: 10 }, maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 6 }
                         }
                       },
                       plugins: {
@@ -543,8 +546,8 @@ const Analytics = () => {
           </div>
 
           {/* Category Spending Breakdown Table */}
-          <div className="glass-card p-5">
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-white mb-4 flex items-center gap-2">
+          <div className="glass-card p-5 overflow-hidden min-w-0">
+            <h3 className="text-sm font-semibold text-zinc-900 dark:text-white mb-4 flex flex-wrap items-center gap-2">
               <FontAwesomeIcon icon={faTags} className="text-zinc-400 text-xs" />
               <span>Category Spending Breakdown</span>
             </h3>
@@ -553,7 +556,7 @@ const Analytics = () => {
               {expenseByCategory.map(cat => (
                 <div key={cat.id} className="p-3 rounded-xl border border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-800/30">
                   <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex flex-wrap items-center gap-2.5">
                       <div 
                         className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs shrink-0 shadow-2xs"
                         style={{ backgroundColor: cat.color }}
@@ -594,7 +597,7 @@ const Analytics = () => {
         <div className="space-y-6 animate-fade-in">
           {/* Comparison Controls */}
           <div className="glass-card p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+            <div className="flex flex-wrap items-center gap-2 overflow-x-auto no-scrollbar">
               {[
                 { id: 'month', label: 'Month vs. Last Month' },
                 { id: 'quarter', label: 'Quarter vs. Last Quarter' },
@@ -615,7 +618,7 @@ const Analytics = () => {
               ))}
             </div>
 
-            <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
               <span className="font-bold text-zinc-900 dark:text-white">{comparisonData.pA_Label}</span>
               <FontAwesomeIcon icon={faExchangeAlt} className="text-zinc-400 text-[10px]" />
               <span className="font-bold text-zinc-900 dark:text-white">{comparisonData.pB_Label}</span>
@@ -666,12 +669,12 @@ const Analytics = () => {
           {/* Comparative Metrics KPI Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total Spend Velocity */}
-            <div className="glass-card p-5">
+            <div className="glass-card p-5 overflow-hidden min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Spending Change
               </p>
-              <div className="flex items-baseline gap-2 mt-1">
-                <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-1">
+                <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums tracking-tight text-zinc-900 dark:text-white">
                   {formatCurrency(comparisonData.expenseA)}
                 </h2>
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
@@ -688,12 +691,12 @@ const Analytics = () => {
             </div>
 
             {/* Total Income Delta */}
-            <div className="glass-card p-5">
+            <div className="glass-card p-5 overflow-hidden min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Income Change
               </p>
-              <div className="flex items-baseline gap-2 mt-1">
-                <h2 className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-1">
+                <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums tracking-tight text-emerald-600 dark:text-emerald-400">
                   {formatCurrency(comparisonData.incomeA)}
                 </h2>
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
@@ -710,12 +713,12 @@ const Analytics = () => {
             </div>
 
             {/* Net Savings Delta */}
-            <div className="glass-card p-5">
+            <div className="glass-card p-5 overflow-hidden min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Net Savings Delta
               </p>
-              <div className="flex items-baseline gap-2 mt-1">
-                <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-1">
+                <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums tracking-tight text-zinc-900 dark:text-white">
                   {formatCurrency(comparisonData.savingsA)}
                 </h2>
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
@@ -732,12 +735,12 @@ const Analytics = () => {
             </div>
 
             {/* Daily Spend Burn Rate */}
-            <div className="glass-card p-5">
+            <div className="glass-card p-5 overflow-hidden min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Daily Burn Rate
               </p>
-              <div className="flex items-baseline gap-2 mt-1">
-                <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-1">
+                <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums tracking-tight text-zinc-900 dark:text-white">
                   {formatCurrency(comparisonData.dailyA)}/d
                 </h2>
               </div>
@@ -748,11 +751,11 @@ const Analytics = () => {
           </div>
 
           {/* Comparative Side-by-Side Chart */}
-          <div className="glass-card p-5">
+          <div className="glass-card p-5 overflow-hidden min-w-0">
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-white mb-4">
               Side-by-Side Category Spending Comparison
             </h3>
-            <div className="w-full min-h-[260px]">
+            <div className="w-full h-[260px] sm:h-[300px]">
               {comparisonData.topCategories.length > 0 ? (
                 <Bar 
                   data={comparativeChartData}
@@ -771,7 +774,7 @@ const Analytics = () => {
                       },
                       x: {
                         grid: { display: false },
-                        ticks: { color: '#a1a1aa', font: { size: 10 } }
+                        ticks: { color: '#a1a1aa', font: { size: 10 }, maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 6 }
                       }
                     },
                     plugins: {
@@ -797,7 +800,7 @@ const Analytics = () => {
           </div>
 
           {/* Category Shifts Detailed Table */}
-          <div className="glass-card p-5">
+          <div className="glass-card p-5 overflow-hidden min-w-0">
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-white mb-4">
               Category Shift & Variance Analysis
             </h3>

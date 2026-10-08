@@ -88,7 +88,7 @@ const BorrowMoreModal = ({ isOpen, onClose, record }) => {
       onClick={onClose}
     >
       <div 
-        className="liquid-glass-dock w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-fade-in my-auto bg-white dark:bg-zinc-900"
+        className="liquid-glass-dock w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-[90dvh] animate-slide-up sm:animate-fade-in mt-auto sm:my-auto bg-white dark:bg-zinc-900"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -98,9 +98,9 @@ const BorrowMoreModal = ({ isOpen, onClose, record }) => {
               <FontAwesomeIcon icon={faHandHolding} />
             </div>
             <div>
-              <h2 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+              <h2 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2 flex-wrap">
                 <span>Borrow More Money</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400 whitespace-nowrap">
                   New Borrow Log
                 </span>
               </h2>
@@ -112,7 +112,7 @@ const BorrowMoreModal = ({ isOpen, onClose, record }) => {
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/10 transition-colors touch-feedback cursor-pointer"
+            className="w-10 h-10 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/10 transition-colors touch-feedback cursor-pointer"
           >
             <FontAwesomeIcon icon={faTimes} className="text-xs" />
           </button>
@@ -140,7 +140,7 @@ const BorrowMoreModal = ({ isOpen, onClose, record }) => {
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto sm:overflow-visible p-5 space-y-4 pb-8 sm:pb-5">
+        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto sm:overflow-y-auto p-5 space-y-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-5">
           {/* Amount input */}
           <div>
             <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1.5">
@@ -161,13 +161,13 @@ const BorrowMoreModal = ({ isOpen, onClose, record }) => {
             </div>
 
             {/* Quick Add Chips */}
-            <div className="flex gap-2 mt-2">
+            <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar">
               {quickAmounts.map(val => (
                 <button
                   key={val}
                   type="button"
                   onClick={() => handleQuickAdd(val)}
-                  className="flex-1 py-1 text-xs font-semibold rounded-lg liquid-glass-subtle hover:bg-white/60 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-300 transition-colors touch-feedback cursor-pointer"
+                  className="flex-1 min-w-0 py-2 min-h-[44px] px-2 text-xs font-semibold rounded-lg liquid-glass-subtle hover:bg-white/60 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-300 transition-colors touch-feedback cursor-pointer whitespace-nowrap"
                 >
                   +{val}
                 </button>
@@ -186,7 +186,7 @@ const BorrowMoreModal = ({ isOpen, onClose, record }) => {
                 required
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white font-medium bg-zinc-50 dark:bg-zinc-800/80"
+                className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-base sm:text-xs dark:text-white font-medium bg-zinc-50 dark:bg-zinc-800/80"
               />
             </div>
 
@@ -198,7 +198,7 @@ const BorrowMoreModal = ({ isOpen, onClose, record }) => {
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white font-medium bg-zinc-50 dark:bg-zinc-800/80"
+                className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-base sm:text-xs dark:text-white font-medium bg-zinc-50 dark:bg-zinc-800/80"
               />
             </div>
           </div>
@@ -217,7 +217,7 @@ const BorrowMoreModal = ({ isOpen, onClose, record }) => {
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="e.g. Month-end expenses, Grocery bill help, Travel expenses"
-                className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white resize-none bg-zinc-50 dark:bg-zinc-800/80"
+                className="w-full pl-9 pr-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-base sm:text-xs dark:text-white resize-none bg-zinc-50 dark:bg-zinc-800/80"
               />
             </div>
           </div>

@@ -5,14 +5,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faSuitcase, 
   faPlus, 
-  faCalendarAlt, 
-  faTag, 
   faReceipt, 
   faEdit, 
   faTrash, 
   faArrowTrendUp, 
   faExclamationTriangle,
-  faCheckCircle,
   faUmbrellaBeach,
   faRing,
   faGift,
@@ -21,7 +18,6 @@ import {
   faPlane,
   faChampagneGlasses,
   faBriefcase,
-  faTimes,
   faArrowRight
 } from '@fortawesome/free-solid-svg-icons';
 import { getLocalDateString, formatDisplayDate } from '../utils/dateUtils';
@@ -173,7 +169,7 @@ const Events = () => {
         toast.success('New Trip/Event created!');
       }
       setIsEventModalOpen(false);
-    } catch (err) {
+    } catch {
       toast.error('Failed to save trip/event');
     } finally {
       setIsSubmitting(false);
@@ -190,7 +186,7 @@ const Events = () => {
     try {
       await deleteEvent(deleteConfirm.id);
       toast.success('Trip/Event deleted');
-    } catch (err) {
+    } catch {
       toast.error('Failed to delete trip/event');
     }
   };
@@ -242,7 +238,7 @@ const Events = () => {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Total Events Spent
               </p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight text-rose-500">
+              <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-rose-500">
                 {formatCurrency(summary.totalSpent)}
               </h2>
             </div>
@@ -261,7 +257,7 @@ const Events = () => {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Total Allocated Budget
               </p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white">
+              <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-zinc-900 dark:text-white">
                 {formatCurrency(summary.totalBudget)}
               </h2>
             </div>
@@ -280,7 +276,7 @@ const Events = () => {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Budget Utilization
               </p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white">
+              <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-zinc-900 dark:text-white">
                 {summary.overallPercentage.toFixed(1)}%
               </h2>
             </div>
@@ -321,7 +317,7 @@ const Events = () => {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {events.map(event => {
               const budget = parseFloat(event.budget) || 0;
               const spent = parseFloat(event.spent) || 0;
@@ -339,16 +335,16 @@ const Events = () => {
                   {/* Card Top */}
                   <div>
                     <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div 
                           className="w-11 h-11 rounded-xl flex items-center justify-center text-white text-base shadow-2xs shrink-0"
                           style={{ backgroundColor: event.color || '#6366f1' }}
                         >
                           <FontAwesomeIcon icon={iconObj} />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-bold text-sm text-zinc-900 dark:text-white leading-tight">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <h3 className="font-bold text-sm text-zinc-900 dark:text-white leading-tight truncate min-w-0 flex-1">
                               {event.name}
                             </h3>
                             {isOver && (
@@ -359,12 +355,12 @@ const Events = () => {
                             )}
                           </div>
                           
-                          <div className="flex items-center gap-2 mt-1 text-[10px] text-zinc-400">
-                            <span className="px-1.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-mono font-bold">
+                          <div className="flex flex-wrap items-center gap-2 mt-1 text-[10px] text-zinc-400 min-w-0">
+                            <span className="px-1.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-mono font-bold truncate max-w-[120px]">
                               #{event.tag}
                             </span>
                             {event.startDate && (
-                              <span className="flex items-center gap-1">
+                              <span className="flex items-center gap-1 whitespace-nowrap">
                                 <FontAwesomeIcon icon={faCalendarAlt} className="text-[9px]" />
                                 <span>{formatDisplayDate(event.startDate)} {event.endDate ? `→ ${formatDisplayDate(event.endDate)}` : ''}</span>
                               </span>
@@ -398,12 +394,12 @@ const Events = () => {
                     )}
 
                     {/* Progress Bar & Amount Row */}
-                    <div className="space-y-2 mb-4">
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-xs font-bold text-zinc-900 dark:text-white">
+                    <div className="space-y-2 mb-4 min-w-0">
+                      <div className="flex justify-between items-baseline gap-2">
+                        <span className="text-xs font-bold text-zinc-900 dark:text-white truncate min-w-0">
                           Spent: {formatCurrency(spent)}
                         </span>
-                        <span className="text-xs font-semibold text-zinc-400">
+                        <span className="text-xs font-semibold text-zinc-400 shrink-0">
                           Budget: {budget > 0 ? formatCurrency(budget) : 'No limit'}
                         </span>
                       </div>
@@ -481,7 +477,7 @@ const Events = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
                     Tag Identifier <span className="text-rose-500">*</span>
@@ -518,7 +514,7 @@ const Events = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
                     Start Date
@@ -565,7 +561,7 @@ const Events = () => {
                 <label className="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">
                   Icon
                 </label>
-                <div className="grid grid-cols-9 gap-1.5">
+                <div className="grid grid-cols-5 sm:grid-cols-9 gap-1.5">
                   {Object.entries(EVENT_ICONS).map(([key, iconObj]) => (
                     <button
                       key={key}
@@ -646,14 +642,14 @@ const Events = () => {
             </div>
 
             {/* Spent Tally Summary */}
-            <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-zinc-800 grid grid-cols-2 gap-4">
-              <div>
+            <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-zinc-800 grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
+              <div className="min-w-0">
                 <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Total Spent</p>
-                <p className="text-lg font-bold text-rose-500 mt-0.5">{formatCurrency(viewingEvent.spent || 0)}</p>
+                <p className="text-base sm:text-lg font-bold text-rose-500 mt-0.5 truncate tabular-nums">{formatCurrency(viewingEvent.spent || 0)}</p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Budget Limit</p>
-                <p className="text-lg font-bold text-zinc-900 dark:text-white mt-0.5">
+                <p className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white mt-0.5 truncate tabular-nums">
                   {viewingEvent.budget > 0 ? formatCurrency(viewingEvent.budget) : 'No limit'}
                 </p>
               </div>
@@ -675,22 +671,22 @@ const Events = () => {
                   return (
                     <div 
                       key={t.id}
-                      className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800 flex items-center justify-between gap-3"
+                      className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800 flex items-center justify-between gap-3 min-w-0"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div 
                           className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs shrink-0"
                           style={{ backgroundColor: cat?.color || '#71717a' }}
                         >
                           <FontAwesomeIcon icon={getCategoryIcon(cat?.icon)} />
                         </div>
-                        <div>
-                          <p className="text-xs font-bold text-zinc-900 dark:text-white">{t.note || cat?.name || 'Expense'}</p>
-                          <p className="text-[10px] text-zinc-400">{formatDisplayDate(t.date)}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">{t.note || cat?.name || 'Expense'}</p>
+                          <p className="text-[10px] text-zinc-400 truncate">{formatDisplayDate(t.date)}</p>
                         </div>
                       </div>
 
-                      <p className="text-xs font-bold text-rose-500 shrink-0">
+                      <p className="text-xs font-bold text-rose-500 shrink-0 whitespace-nowrap tabular-nums">
                         -{formatCurrency(t.amount)}
                       </p>
                     </div>

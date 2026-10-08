@@ -41,7 +41,7 @@ const Sidebar = () => {
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
-    <aside className="hidden md:flex flex-col w-64 liquid-glass-dock border-r border-white/60 dark:border-white/10 h-screen sticky top-0 transition-colors duration-300 z-40 select-none">
+    <aside className="hidden md:flex flex-col w-60 lg:w-64 shrink-0 liquid-glass-dock border-r border-white/60 dark:border-white/10 h-dvh sticky top-0 transition-colors duration-300 z-40 select-none">
       {/* Brand Logo Header */}
       <div className="p-6 pb-5 flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center text-sm shadow-xs">

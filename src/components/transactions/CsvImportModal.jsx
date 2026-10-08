@@ -20,7 +20,7 @@ const EXPENSE_WORDS = new Set(['expense', 'expenses', 'debit', 'debits', 'dr', '
 const INCOME_WORDS = new Set(['income', 'incomes', 'credit', 'credits', 'cr', 'in', 'received', 'deposit', 'salary', 'refund']);
 
 // Parse a loose date cell into local YYYY-MM-DD, or null if unparseable
-export const normalizeImportDate = (raw) => {
+const normalizeImportDate = (raw) => {
   if (raw === null || raw === undefined) return null;
   const s = String(raw).trim();
   if (!s) return null;
@@ -248,7 +248,7 @@ const CsvImportModal = ({ isOpen, onClose, file }) => {
               onClick={onClose}
               title="Close"
               aria-label="Close CSV import"
-              className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors touch-feedback cursor-pointer"
+              className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors touch-feedback cursor-pointer"
             >
               <FontAwesomeIcon icon={faTimes} className="text-xs" />
             </button>
@@ -276,12 +276,12 @@ const CsvImportModal = ({ isOpen, onClose, file }) => {
                     { key: 'category', label: 'Category' },
                     { key: 'note', label: 'Note' },
                   ].map(col => (
-                    <label key={col.key} className="block">
+                    <label key={col.key} className="block min-w-0">
                       <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400">{col.label}</span>
                       <select
                         value={mapping[col.key]}
                         onChange={e => setMapping(prev => ({ ...prev, [col.key]: e.target.value }))}
-                        className="mt-1 w-full px-2.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl text-xs text-zinc-900 dark:text-white cursor-pointer"
+                        className="mt-1 w-full px-2.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl text-base sm:text-xs text-zinc-900 dark:text-white cursor-pointer"
                       >
                         <option value="">— ignore —</option>
                         {headers.map(h => (
@@ -295,7 +295,7 @@ const CsvImportModal = ({ isOpen, onClose, file }) => {
 
               {/* Counts */}
               {canPreview && (
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                     { label: 'New', value: counts.fresh, cls: 'text-emerald-600 dark:text-emerald-400' },
                     { label: 'Duplicates', value: counts.duplicates, cls: 'text-amber-600 dark:text-amber-400' },
@@ -383,7 +383,7 @@ const CsvImportModal = ({ isOpen, onClose, file }) => {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-zinc-100 dark:border-zinc-800/80 shrink-0 flex gap-2">
+        <div className="p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-zinc-100 dark:border-zinc-800/80 shrink-0 flex gap-2">
           <button
             type="button"
             onClick={onClose}

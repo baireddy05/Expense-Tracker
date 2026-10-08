@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useTransactions } from '../../context/TransactionContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faCheckCircle, faCalendarAlt, faFileAlt, faArrowRotateLeft } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faCheckCircle, faArrowRotateLeft } from '@fortawesome/free-solid-svg-icons';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import toast from 'react-hot-toast';
 
@@ -34,7 +34,9 @@ const RepaymentModal = ({ isOpen, onClose, record }) => {
       setDate(getLocalToday());
       setNote('');
     }
-  }, [record, isOpen]);
+    // remainingAmount derives from record; included so the prefilled amount
+    // stays correct if the record's balance changes while the modal is open.
+  }, [record, isOpen, remainingAmount]);
 
   if (!isOpen || !record) return null;
 
@@ -73,7 +75,7 @@ const RepaymentModal = ({ isOpen, onClose, record }) => {
       onClick={onClose}
     >
       <div 
-        className="liquid-glass-dock w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-fade-in my-auto bg-white dark:bg-zinc-900"
+        className="liquid-glass-dock w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-[90dvh] animate-slide-up sm:animate-fade-in mt-auto sm:my-auto bg-white dark:bg-zinc-900"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -94,7 +96,7 @@ const RepaymentModal = ({ isOpen, onClose, record }) => {
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/10 transition-colors touch-feedback cursor-pointer"
+            className="w-10 h-10 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/10 transition-colors touch-feedback cursor-pointer"
           >
             <FontAwesomeIcon icon={faTimes} className="text-xs" />
           </button>
@@ -102,22 +104,22 @@ const RepaymentModal = ({ isOpen, onClose, record }) => {
 
         {/* Debt State Summary */}
         <div className="p-4 bg-emerald-500/5 dark:bg-emerald-500/10 border-b border-white/50 dark:border-white/10 shrink-0">
-          <div className="grid grid-cols-3 gap-2 text-center text-xs">
-            <div className="p-2 rounded-xl liquid-glass-subtle">
-              <p className="text-zinc-400 text-[10px] font-semibold uppercase">Total Lent</p>
-              <p className="font-bold text-zinc-800 dark:text-zinc-200 text-xs mt-0.5">
+          <div className="grid grid-cols-3 gap-1.5 text-center text-xs">
+            <div className="p-2 rounded-xl liquid-glass-subtle min-w-0">
+              <p className="text-zinc-400 text-[10px] font-semibold uppercase break-words">Total Lent</p>
+              <p className="font-bold text-zinc-800 dark:text-zinc-200 text-xs mt-0.5 break-words tabular-nums">
                 ₹{totalAmount.toLocaleString('en-IN')}
               </p>
             </div>
-            <div className="p-2 rounded-xl liquid-glass-subtle">
-              <p className="text-zinc-400 text-[10px] font-semibold uppercase">Returned</p>
-              <p className="font-bold text-emerald-600 dark:text-emerald-400 text-xs mt-0.5">
+            <div className="p-2 rounded-xl liquid-glass-subtle min-w-0">
+              <p className="text-zinc-400 text-[10px] font-semibold uppercase break-words">Returned</p>
+              <p className="font-bold text-emerald-600 dark:text-emerald-400 text-xs mt-0.5 break-words tabular-nums">
                 ₹{returnedAmount.toLocaleString('en-IN')}
               </p>
             </div>
-            <div className="p-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30">
-              <p className="text-emerald-700 dark:text-emerald-400 text-[10px] font-bold uppercase">Pending</p>
-              <p className="font-bold text-emerald-700 dark:text-emerald-300 text-xs mt-0.5">
+            <div className="p-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 min-w-0">
+              <p className="text-emerald-700 dark:text-emerald-400 text-[10px] font-bold uppercase break-words">Pending</p>
+              <p className="font-bold text-emerald-700 dark:text-emerald-300 text-xs mt-0.5 break-words tabular-nums">
                 ₹{remainingAmount.toLocaleString('en-IN')}
               </p>
             </div>
@@ -125,7 +127,7 @@ const RepaymentModal = ({ isOpen, onClose, record }) => {
         </div>
 
         {/* Form body */}
-        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto sm:overflow-visible p-5 space-y-4 pb-8 sm:pb-5">
+        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto sm:overflow-y-auto p-5 space-y-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-5">
           {/* Amount input */}
           <div>
             <div className="flex justify-between items-center mb-1.5">
@@ -135,7 +137,7 @@ const RepaymentModal = ({ isOpen, onClose, record }) => {
               <button
                 type="button"
                 onClick={() => setAmount(String(remainingAmount))}
-                className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer py-1 px-1 min-h-[32px] shrink-0"
               >
                 Pay Full (₹{remainingAmount.toLocaleString('en-IN')})
               </button>
@@ -166,7 +168,7 @@ const RepaymentModal = ({ isOpen, onClose, record }) => {
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white font-medium bg-zinc-50 dark:bg-zinc-800/80"
+              className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-base sm:text-xs dark:text-white font-medium bg-zinc-50 dark:bg-zinc-800/80"
             />
           </div>
 
@@ -180,7 +182,7 @@ const RepaymentModal = ({ isOpen, onClose, record }) => {
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="e.g. GPay, Cash, Bank Transfer"
-              className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-xs dark:text-white bg-zinc-50 dark:bg-zinc-800/80"
+              className="w-full px-3.5 py-2 liquid-glass-input rounded-xl focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 outline-none text-base sm:text-xs dark:text-white bg-zinc-50 dark:bg-zinc-800/80"
             />
           </div>
 

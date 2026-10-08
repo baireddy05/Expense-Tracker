@@ -53,6 +53,12 @@ const AppShell = () => {
 
   useBodyScrollLock(isMobileDrawerOpen);
 
+  React.useEffect(() => {
+    const onEscape = () => setIsMobileDrawerOpen(false);
+    window.addEventListener('extrack:escape', onEscape);
+    return () => window.removeEventListener('extrack:escape', onEscape);
+  }, []);
+
   const handleOpenTx = (type = 'expense') => {
     setInitialTxType(type);
     setIsTxModalOpen(true);
@@ -64,7 +70,7 @@ const AppShell = () => {
 
   if (error) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-[#f6f8fc] dark:bg-[#070709] p-4 relative overflow-hidden">
+      <div className="flex min-h-dvh w-full items-center justify-center bg-[#f6f8fc] dark:bg-[#070709] p-4 relative overflow-hidden">
         <div className="liquid-glass-card p-6 max-w-md text-center space-y-4 z-10 animate-scale-in">
           <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto text-xl font-bold">
             !
@@ -85,19 +91,19 @@ const AppShell = () => {
   }
 
   return (
-    <div className="min-h-screen flex bg-[#f6f8fc] dark:bg-[#070709] text-zinc-900 dark:text-zinc-100 antialiased relative">
+    <div className="min-h-dvh flex bg-[#f6f8fc] dark:bg-[#070709] text-zinc-900 dark:text-zinc-100 antialiased relative overflow-x-clip max-w-[100vw]">
       {/* Ambient Floating Liquid Light Orbs */}
-      <div className="fixed -top-32 -left-32 w-[550px] h-[550px] rounded-full bg-indigo-400/12 dark:bg-indigo-600/12 blur-[130px] pointer-events-none liquid-orb-1 z-0" />
-      <div className="fixed top-[25%] -right-32 w-[600px] h-[600px] rounded-full bg-emerald-400/10 dark:bg-emerald-600/10 blur-[140px] pointer-events-none liquid-orb-2 z-0" />
-      <div className="fixed -bottom-32 left-[30%] w-[500px] h-[500px] rounded-full bg-rose-400/8 dark:bg-rose-600/10 blur-[130px] pointer-events-none liquid-orb-1 z-0" />
+      <div aria-hidden="true" className="fixed -top-32 -left-32 w-[320px] h-[320px] md:w-[550px] md:h-[550px] max-w-[100vw] overflow-clip rounded-full bg-indigo-400/12 dark:bg-indigo-600/12 blur-[130px] pointer-events-none liquid-orb-1 z-0" />
+      <div aria-hidden="true" className="fixed top-[25%] -right-32 w-[320px] h-[320px] md:w-[600px] md:h-[600px] max-w-[100vw] overflow-clip rounded-full bg-emerald-400/10 dark:bg-emerald-600/10 blur-[140px] pointer-events-none liquid-orb-2 z-0" />
+      <div aria-hidden="true" className="fixed -bottom-32 left-[30%] w-[300px] h-[300px] md:w-[500px] md:h-[500px] max-w-[100vw] overflow-clip rounded-full bg-rose-400/8 dark:bg-rose-600/10 blur-[130px] pointer-events-none liquid-orb-1 z-0" />
 
       {/* Desktop Liquid Glass Sidebar */}
       <Sidebar />
       
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 pb-32 md:pb-8 relative flex flex-col z-10">
+      <main className="flex-1 min-w-0 pb-32 md:pb-8 relative flex flex-col z-10 overflow-x-clip">
         {/* Top Floating Liquid Glass Navbar Header */}
-        <header className="sticky top-0 z-30 liquid-glass-dock border-b border-white/60 dark:border-white/10 px-4 md:px-8 py-3.5 flex justify-between items-center transition-all">
+        <header className="sticky top-0 z-30 liquid-glass-dock border-b border-white/60 dark:border-white/10 px-4 md:px-8 py-3.5 flex justify-between items-center transition-all pt-[calc(0.875rem+env(safe-area-inset-top,0px))]">
           {/* Logo on mobile / Search trigger on desktop */}
           <div className="flex items-center gap-3">
             <div className="md:hidden flex items-center gap-2">
@@ -181,11 +187,14 @@ const AppShell = () => {
       {/* Mobile Slide-Out Drawer Menu */}
       {isMobileDrawerOpen && (
         <div 
-          className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fade-in flex"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation menu"
+          className="md:hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm animate-fade-in flex"
           onClick={() => setIsMobileDrawerOpen(false)}
         >
           <div 
-            className="w-72 max-w-[80vw] h-full bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border-r border-zinc-200/80 dark:border-zinc-800 p-5 flex flex-col justify-between shadow-2xl animate-slide-right overflow-y-auto"
+            className="w-72 max-w-[80vw] h-[100dvh] max-h-[100dvh] pt-[calc(1.25rem+env(safe-area-inset-top,0px))] pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border-r border-zinc-200/80 dark:border-zinc-800 px-5 flex flex-col justify-between shadow-2xl animate-slide-right overflow-y-auto overscroll-contain"
             onClick={e => e.stopPropagation()}
           >
             {/* Drawer Header */}

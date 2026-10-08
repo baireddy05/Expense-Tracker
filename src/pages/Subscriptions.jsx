@@ -100,7 +100,7 @@ const Subscriptions = () => {
         toast.success('Subscription added successfully!');
       }
       setIsModalOpen(false);
-    } catch (err) {
+    } catch {
       toast.error('Failed to save subscription');
     } finally {
       setIsSubmitting(false);
@@ -116,7 +116,7 @@ const Subscriptions = () => {
     try {
       await deleteSubscription(deleteConfirm.id);
       toast.success('Subscription deleted');
-    } catch (err) {
+    } catch {
       toast.error('Failed to delete subscription');
     }
   };
@@ -125,7 +125,7 @@ const Subscriptions = () => {
     try {
       await updateSubscription(sub.id, { active: !sub.active });
       toast.success(sub.active ? 'Subscription paused' : 'Subscription activated');
-    } catch (err) {
+    } catch {
       toast.error('Failed to toggle subscription');
     }
   };
@@ -169,14 +169,14 @@ const Subscriptions = () => {
       </header>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
         <div className="glass-card p-5">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Monthly Fixed Costs
               </p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight text-rose-500">
+              <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-rose-500">
                 {formatCurrency(stats.activeMonthlyTotal)}
               </h2>
             </div>
@@ -195,7 +195,7 @@ const Subscriptions = () => {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Total Tracked
               </p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white">
+              <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-zinc-900 dark:text-white">
                 {stats.totalCount}
               </h2>
             </div>
@@ -233,15 +233,15 @@ const Subscriptions = () => {
               return (
                 <div key={sub.id} className={`p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-800/30 ${!sub.active ? 'opacity-60 grayscale-[0.5]' : ''}`}>
                   
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div 
                       className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm shadow-2xs shrink-0"
                       style={{ backgroundColor: catColor }}
                     >
                       <FontAwesomeIcon icon={getCategoryIcon(catIcon)} />
                     </div>
-                    <div>
-                      <h3 className="font-bold text-sm text-zinc-900 dark:text-white leading-tight">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-bold text-sm text-zinc-900 dark:text-white leading-tight truncate">
                         {sub.name}
                       </h3>
                       <div className="flex flex-wrap items-center gap-2 mt-1">
@@ -255,8 +255,8 @@ const Subscriptions = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-0 border-zinc-100 dark:border-zinc-800/80 pt-3 sm:pt-0">
-                    <div className="text-left sm:text-right">
+                  <div className="flex items-center gap-3 sm:gap-6 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-0 border-zinc-100 dark:border-zinc-800/80 pt-3 sm:pt-0 min-w-0">
+                    <div className="text-left sm:text-right min-w-0">
                       <p className={`font-bold text-sm ${sub.type === 'income' ? 'text-emerald-500' : 'text-zinc-900 dark:text-white'}`}>
                         {sub.type === 'income' ? '+' : '-'}{formatCurrency(sub.amount)}
                       </p>
@@ -329,7 +329,7 @@ const Subscriptions = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
                     Amount <span className="text-rose-500">*</span>
@@ -381,7 +381,7 @@ const Subscriptions = () => {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
                     Frequency

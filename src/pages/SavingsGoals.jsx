@@ -6,8 +6,6 @@ import {
   faPiggyBank, 
   faPlus, 
   faBullseye, 
-  faCoins, 
-  faCheckCircle, 
   faCalendarAlt, 
   faTrash, 
   faEdit, 
@@ -20,7 +18,7 @@ import {
   faGraduationCap,
   faHeartPulse
 } from '@fortawesome/free-solid-svg-icons';
-import { getLocalDateString, formatDisplayDate } from '../utils/dateUtils';
+import { formatDisplayDate } from '../utils/dateUtils';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import useBodyScrollLock from '../hooks/useBodyScrollLock';
 import toast from 'react-hot-toast';
@@ -164,7 +162,7 @@ const SavingsGoals = () => {
         toast.success('New savings goal created!');
       }
       setIsGoalModalOpen(false);
-    } catch (err) {
+    } catch {
       toast.error('Failed to save savings goal');
     } finally {
       setIsSubmitting(false);
@@ -181,7 +179,7 @@ const SavingsGoals = () => {
     try {
       await deleteSavingsGoal(deleteConfirm.id);
       toast.success('Goal deleted');
-    } catch (err) {
+    } catch {
       toast.error('Failed to delete goal');
     }
   };
@@ -206,7 +204,7 @@ const SavingsGoals = () => {
     try {
       await contributeToGoal(selectedGoal.id, depositAmount, depositNote);
       setIsDepositModalOpen(false);
-    } catch (err) {
+    } catch {
       // Toast handled in context
     } finally {
       setIsSubmitting(false);
@@ -254,7 +252,7 @@ const SavingsGoals = () => {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Total Saved
               </p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight text-emerald-600 dark:text-emerald-400">
+              <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-emerald-600 dark:text-emerald-400">
                 {formatCurrency(summary.totalSaved)}
               </h2>
             </div>
@@ -273,7 +271,7 @@ const SavingsGoals = () => {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Total Target Goal
               </p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white">
+              <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-zinc-900 dark:text-white">
                 {formatCurrency(summary.totalTarget)}
               </h2>
             </div>
@@ -292,7 +290,7 @@ const SavingsGoals = () => {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Overall Progress
               </p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white">
+              <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-zinc-900 dark:text-white">
                 {summary.overallPercentage.toFixed(1)}%
               </h2>
             </div>
@@ -333,7 +331,7 @@ const SavingsGoals = () => {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {savingsGoals.map(goal => {
               const target = parseFloat(goal.targetAmount) || 0;
               const saved = parseFloat(goal.savedAmount) || 0;
@@ -352,16 +350,16 @@ const SavingsGoals = () => {
                   {/* Top Header */}
                   <div>
                     <div className="flex items-start justify-between gap-3 mb-4">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div 
                           className="w-11 h-11 rounded-xl flex items-center justify-center text-white text-base shadow-2xs shrink-0"
                           style={{ backgroundColor: goal.color || '#10b981' }}
                         >
                           <FontAwesomeIcon icon={iconObj} />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-bold text-sm text-zinc-900 dark:text-white leading-tight">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <h3 className="font-bold text-sm text-zinc-900 dark:text-white leading-tight truncate min-w-0 flex-1">
                               {goal.name}
                             </h3>
                             {isCompleted && (
@@ -372,7 +370,7 @@ const SavingsGoals = () => {
                             )}
                           </div>
                           {goal.targetDate && (
-                            <p className="text-[10px] text-zinc-400 mt-0.5 flex items-center gap-1">
+                            <p className="text-[10px] text-zinc-400 mt-0.5 flex flex-wrap items-center gap-1">
                               <FontAwesomeIcon icon={faCalendarAlt} className="text-[9px]" />
                               <span>Target: {formatDisplayDate(goal.targetDate)}</span>
                               {daysLeft !== null && (
@@ -404,12 +402,12 @@ const SavingsGoals = () => {
                     </div>
 
                     {/* Progress Bar & Amount Row */}
-                    <div className="space-y-2 mb-4">
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-xs font-bold text-zinc-900 dark:text-white">
+                    <div className="space-y-2 mb-4 min-w-0">
+                      <div className="flex justify-between items-baseline gap-2">
+                        <span className="text-xs font-bold text-zinc-900 dark:text-white truncate min-w-0">
                           {formatCurrency(saved)}
                         </span>
-                        <span className="text-xs font-semibold text-zinc-400">
+                        <span className="text-xs font-semibold text-zinc-400 shrink-0">
                           of {formatCurrency(target)}
                         </span>
                       </div>
@@ -424,16 +422,16 @@ const SavingsGoals = () => {
                         />
                       </div>
 
-                      <div className="flex justify-between items-center text-[10px] text-zinc-400">
-                        <span>{percent.toFixed(1)}% completed</span>
-                        <span>{isCompleted ? 'Target achieved! 🎉' : `${formatCurrency(target - saved)} to go`}</span>
+                      <div className="flex justify-between items-center text-[10px] text-zinc-400 gap-2">
+                        <span className="truncate min-w-0">{percent.toFixed(1)}% completed</span>
+                        <span className="shrink-0">{isCompleted ? 'Target achieved! 🎉' : `${formatCurrency(target - saved)} to go`}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Card Bottom Actions */}
-                  <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
-                    <span className="text-[10px] text-zinc-400">
+                  <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-zinc-400 truncate min-w-0 flex-1">
                       {goal.contributions ? `${goal.contributions.length} deposit(s)` : 'No deposits logged'}
                     </span>
 
@@ -484,7 +482,7 @@ const SavingsGoals = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
                     Target Amount <span className="text-rose-500">*</span>
@@ -558,7 +556,7 @@ const SavingsGoals = () => {
                 <label className="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">
                   Icon
                 </label>
-                <div className="grid grid-cols-8 gap-2">
+                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
                   {Object.entries(GOAL_ICONS).map(([key, iconObj]) => (
                     <button
                       key={key}

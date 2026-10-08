@@ -28,6 +28,7 @@ import autoTable from 'jspdf-autotable';
 import { TransactionsSkeleton } from '../components/ui/Skeleton';
 import SwipeableItem from '../components/transactions/SwipeableItem';
 import { getCategoryIcon, resolveCategory } from '../utils/categoryIcons';
+import { toLocalDate, formatDisplayDate } from '../utils/dateUtils';
 import toast from 'react-hot-toast';
 
 const Transactions = () => {
@@ -153,7 +154,10 @@ const Transactions = () => {
         if (categoryFilter !== 'all' && t.categoryId !== categoryFilter && cat?.id !== categoryFilter) return false;
 
         if (timeFilter !== 'all') {
-          const txDate = new Date(t.date);
+          // toLocalDate treats YYYY-MM-DD as local midnight; raw new Date()
+          // parses it as UTC and shifts Today/Yesterday/Week boundaries.
+          const txDate = toLocalDate(t.date);
+          if (!txDate) return false;
           if (timeFilter === 'today') {
             if (txDate.toDateString() !== todayStr) return false;
           } else if (timeFilter === 'yesterday') {
@@ -377,7 +381,7 @@ const Transactions = () => {
       const typeLabel = t.type === 'income' ? 'Income' : t.type === 'transfer' ? 'Transfer' : 'Expense';
       const sign = t.type === 'income' ? '+' : t.type === 'transfer' ? '' : '-';
       tableRows.push([
-        t.date ? new Date(t.date).toLocaleDateString('en-IN') : 'N/A',
+        t.date ? formatDisplayDate(t.date) : 'N/A',
         typeLabel,
         cat ? cat.name : (t.type === 'transfer' ? 'Transfer' : 'Unknown'),
         t.note || '-',
@@ -430,7 +434,7 @@ const Transactions = () => {
   if (loading) return <TransactionsSkeleton />;
 
   return (
-    <div className="space-y-6 relative h-full">
+    <div className="space-y-6 relative h-full pb-20 md:pb-8">
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">Transactions</h1>
@@ -585,7 +589,7 @@ const Transactions = () => {
                 className="px-3.5 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/40 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer touch-feedback"
               >
                 <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
-                <span>Add Expense ({formatDateHeader(customDate)})</span>
+                <span>Add Expense</span>
               </button>
               <button
                 type="button"
@@ -799,8 +803,8 @@ const Transactions = () => {
                     <div className="border-t border-zinc-100 dark:border-zinc-800/80 animate-page-enter gpu-accelerated">
                       {/* Desktop Table inside Date Group */}
                       <div className="hidden md:block overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                          <thead>
+                        <table className="w-full min-w-[640px] text-left border-collapse">
+                          <thead className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-zinc-50 dark:[&_th]:bg-zinc-950">
                             <tr className="border-b border-zinc-100 dark:border-zinc-800/60 bg-zinc-50/60 dark:bg-zinc-950/40 text-zinc-500 dark:text-zinc-400 text-xs font-medium uppercase tracking-wider">
                               <th className="p-3 pl-4">Category</th>
                               <th className="p-3">Note</th>
@@ -834,7 +838,7 @@ const Transactions = () => {
                                       </span>
                                     </div>
                                   </td>
-                                  <td className="p-3 text-zinc-700 dark:text-zinc-300 font-medium text-sm">
+                                  <td className="p-3 text-zinc-700 dark:text-zinc-300 font-medium text-sm max-w-[220px] truncate">
                                     {t.note || '-'}
                                   </td>
                                   <td className={`p-3 text-right font-bold whitespace-nowrap text-sm ${t.type === 'income' ? 'text-emerald-500' : 'text-zinc-900 dark:text-white'}`}>
@@ -1005,8 +1009,8 @@ const Transactions = () => {
           {/* Desktop Table View */}
           <div className="hidden md:block glass-card rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
+              <table className="w-full min-w-[640px] text-left border-collapse">
+                <thead className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-zinc-50 dark:[&_th]:bg-zinc-950">
                   <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 text-zinc-500 dark:text-zinc-400 text-sm">
                     <th className="p-4 font-medium">Date</th>
                     <th className="p-4 font-medium">Category</th>
@@ -1022,7 +1026,7 @@ const Transactions = () => {
                     return (
                       <tr key={t.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors group">
                         <td className="p-4 text-zinc-900 dark:text-zinc-300 whitespace-nowrap">
-                          {new Date(t.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          {formatDisplayDate(t.date)}
                         </td>
                         <td className="p-4">
                           <div className="flex items-center gap-2.5">
@@ -1044,7 +1048,7 @@ const Transactions = () => {
                             </span>
                           </div>
                         </td>
-                        <td className="p-4 text-zinc-700 dark:text-zinc-300 font-medium">{t.note || '-'}</td>
+                        <td className="p-4 text-zinc-700 dark:text-zinc-300 font-medium max-w-[220px] truncate">{t.note || '-'}</td>
                         <td className={`p-4 text-right font-semibold whitespace-nowrap ${t.type === 'income' ? 'text-emerald-500' : 'text-zinc-900 dark:text-white'}`}>
                           {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                         </td>
@@ -1100,7 +1104,7 @@ const Transactions = () => {
             
             {/* Direct Add footer on standard table */}
             {filteredTransactions.length > 0 && (
-              <div className="p-3.5 bg-zinc-50/50 dark:bg-zinc-900/50 border-t border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between">
+              <div className="p-3.5 bg-zinc-50/50 dark:bg-zinc-900/50 border-t border-zinc-200/80 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs text-zinc-500 dark:text-zinc-400">
                   Quick add to this view:
                 </span>
@@ -1158,7 +1162,7 @@ const Transactions = () => {
                       
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 text-xs">
                         <span className="text-zinc-500 dark:text-zinc-400 whitespace-nowrap font-normal">
-                          {new Date(t.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          {formatDisplayDate(t.date)}
                         </span>
                         
                         <span className="text-zinc-300 dark:text-zinc-600 select-none">&bull;</span>
@@ -1176,8 +1180,8 @@ const Transactions = () => {
                     </div>
                     
                     {/* Amount */}
-                    <div className="text-right shrink-0 ml-1 self-center">
-                      <p className={`font-bold text-base whitespace-nowrap ${t.type === 'income' ? 'text-emerald-500' : 'text-zinc-900 dark:text-white'}`}>
+                    <div className="text-right shrink-0 ml-1 self-center min-w-0">
+                      <p className={`font-bold text-sm tabular-nums whitespace-nowrap ${t.type === 'income' ? 'text-emerald-500' : 'text-zinc-900 dark:text-white'}`}>
                         {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                       </p>
                     </div>

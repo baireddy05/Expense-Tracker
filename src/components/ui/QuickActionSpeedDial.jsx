@@ -89,7 +89,7 @@ const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) =>
         />
       )}
 
-      <div className="fixed bottom-28 md:bottom-8 right-5 md:right-8 z-40 flex flex-col items-end">
+      <div className="fixed bottom-[calc(7rem+env(safe-area-inset-bottom,0px))] md:bottom-8 right-5 md:right-8 z-40 flex flex-col items-end">
         {/* Expanded Speed-Dial items with smooth origin-bottom-right spring expand/collapse */}
         <div 
           className={`mb-3 space-y-2.5 flex flex-col items-end origin-bottom-right transition-all duration-300 ease-out ${
@@ -107,15 +107,15 @@ const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) =>
                 className="flex items-center gap-3 cursor-pointer group touch-feedback transition-all duration-200"
                 style={{ transitionDelay: `${delay}ms` }}
               >
-                <span className="px-3 py-1.5 rounded-xl liquid-glass-dock text-zinc-800 dark:text-zinc-200 text-xs font-semibold shadow-lg transition-all group-hover:scale-105 border border-white/60 dark:border-white/10">
+                <span className="px-3 py-1.5 rounded-xl liquid-glass-dock text-zinc-800 dark:text-zinc-200 text-xs font-semibold shadow-lg transition-all group-hover:scale-105 border border-white/60 dark:border-white/10 max-w-[180px] truncate">
                   {act.label}
                 </span>
                 <button
                   type="button"
-                  onClick={act.onClick}
+                  onClick={(e) => { e.stopPropagation(); act.onClick(); }}
                   title={act.label}
                   aria-label={act.label}
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-transform duration-150 active:scale-95 group-hover:scale-110 cursor-pointer ${act.color}`}
+                  className={`w-11 h-11 rounded-xl flex items-center justify-center shadow-lg transition-transform duration-150 active:scale-95 group-hover:scale-110 cursor-pointer ${act.color}`}
                 >
                   <FontAwesomeIcon icon={act.icon} className="text-xs" />
                 </button>
@@ -129,7 +129,7 @@ const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) =>
           type="button"
           onClick={toggleDial}
           aria-label={isOpen ? 'Close Quick Actions' : 'Open Quick Actions'}
-          className={`w-13 h-13 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-300 touch-feedback cursor-pointer ${
+          className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-300 touch-feedback cursor-pointer ${
             isOpen 
               ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rotate-90 scale-95' 
               : 'bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 shadow-zinc-950/25 hover:scale-105'

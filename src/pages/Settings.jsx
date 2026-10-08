@@ -49,7 +49,7 @@ const Settings = () => {
     syncLocalData,
     purgeLocalCache,
     restoreCompleteBackup,
-    refreshData
+    refreshData: _refreshData
   } = useTransactions();
   
   const { theme, setTheme } = useTheme();
@@ -562,7 +562,7 @@ const Settings = () => {
                       ⚡ Test Vibration
                     </button>
                   </div>
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                     {[
                       { id: 'subtle', label: 'Subtle' },
                       { id: 'medium', label: 'Medium' },

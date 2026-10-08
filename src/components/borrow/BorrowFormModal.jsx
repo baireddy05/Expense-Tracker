@@ -127,7 +127,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
       onClick={onClose}
     >
       <div 
-        className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border border-zinc-200/80 dark:border-white/10 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-pop-in sm:my-auto"
+        className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border border-zinc-200/80 dark:border-white/10 overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-[90dvh] animate-slide-up sm:animate-pop-in sm:my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -148,14 +148,14 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors touch-feedback cursor-pointer"
+            className="w-10 h-10 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors touch-feedback cursor-pointer"
           >
             <FontAwesomeIcon icon={faTimes} className="text-xs" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto sm:overflow-visible p-5 space-y-4 pb-safe sm:pb-5">
+        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto sm:overflow-y-auto p-5 space-y-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-5">
           <div>
             <div className="flex justify-between items-center mb-1.5">
               <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
@@ -173,7 +173,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
                     key={name}
                     type="button"
                     onClick={() => setLenderName(name)}
-                    className={`px-2 py-0.5 text-[11px] font-semibold rounded-md transition-all touch-feedback cursor-pointer shrink-0 ${
+                    className={`px-3 py-1.5 min-h-[32px] text-[11px] font-semibold rounded-md transition-all touch-feedback cursor-pointer shrink-0 ${
                       lenderName.trim().toLowerCase() === name.toLowerCase()
                         ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs'
                         : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700'
@@ -196,7 +196,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
                 value={lenderName}
                 onChange={(e) => setLenderName(e.target.value)}
                 placeholder="e.g. Varshith, Surya"
-                className="w-full pl-9 pr-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white font-medium"
+                className="w-full pl-9 pr-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-base sm:text-xs text-zinc-900 dark:text-white font-medium"
               />
               <datalist id="lender-name-suggestions">
                 {previousLenderSuggestions.map(n => (
@@ -235,7 +235,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
                 required
                 value={dateBorrowed}
                 onChange={(e) => setDateBorrowed(e.target.value)}
-                className="w-full px-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white font-medium"
+                className="w-full px-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-base sm:text-xs text-zinc-900 dark:text-white font-medium"
               />
             </div>
 
@@ -247,7 +247,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white font-medium"
+                className="w-full px-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-base sm:text-xs text-zinc-900 dark:text-white font-medium"
               />
             </div>
           </div>
@@ -265,7 +265,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+91 98765 43210"
-                className="w-full pl-9 pr-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400"
+                className="w-full pl-9 pr-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-base sm:text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400"
               />
             </div>
           </div>
@@ -287,7 +287,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
                     key={reason}
                     type="button"
                     onClick={() => setNote(reason)}
-                    className={`px-2 py-0.5 text-[11px] font-semibold rounded-md transition-all touch-feedback cursor-pointer shrink-0 flex items-center gap-1 ${
+                    className={`px-3 py-1.5 min-h-[32px] text-[11px] font-semibold rounded-md transition-all touch-feedback cursor-pointer shrink-0 flex items-center gap-1 ${
                       note.trim().toLowerCase() === reason.toLowerCase()
                         ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs'
                         : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700'
@@ -309,7 +309,7 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="e.g. Emergency expense, Laptop EMI support"
-                className="w-full pl-9 pr-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 resize-none"
+                className="w-full pl-9 pr-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-base sm:text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 resize-none"
               />
             </div>
           </div>

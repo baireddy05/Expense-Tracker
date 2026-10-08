@@ -23,8 +23,7 @@ import {
   faBuildingColumns,
   faBullseye,
   faSyncAlt,
-  faSuitcase,
-  faCalendarDay
+  faSuitcase
 } from '@fortawesome/free-solid-svg-icons';
 import { getCategoryIcon, resolveCategory } from '../../utils/categoryIcons';
 import { formatDisplayDate } from '../../utils/dateUtils';
@@ -240,15 +239,15 @@ const CommandPalette = () => {
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-[100] flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/60 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-[100] flex items-start justify-center pt-10 sm:pt-24 px-4 bg-black/60 backdrop-blur-md animate-fade-in"
       onClick={closeCommandPalette}
     >
       <div 
-        className="liquid-glass-dock w-full max-w-xl rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[80vh] animate-pop-in"
+        className="liquid-glass-dock w-full max-w-xl rounded-3xl shadow-2xl border border-white/60 dark:border-white/10 overflow-hidden flex flex-col max-h-[80dvh] animate-pop-in"
         onClick={e => e.stopPropagation()}
       >
         {/* Search input header */}
-        <div className="relative border-b border-white/50 dark:border-white/10 flex items-center px-4.5">
+        <div className="relative border-b border-white/50 dark:border-white/10 flex items-center px-4">
           <FontAwesomeIcon icon={faSearch} className="text-zinc-400 text-sm mr-3" />
           <input
             ref={inputRef}
@@ -260,7 +259,7 @@ const CommandPalette = () => {
             }}
             onKeyDown={handleKeyDown}
             placeholder="Type a transaction note (e.g. Diet Coke), page, or friend... (ESC to exit)"
-            className="w-full py-4 bg-transparent outline-none text-sm font-medium text-zinc-900 dark:text-white placeholder-zinc-400"
+            className="w-full py-4 bg-transparent outline-none text-base sm:text-sm font-medium text-zinc-900 dark:text-white placeholder-zinc-400 placeholder:text-ellipsis"
           />
           <button
             onClick={closeCommandPalette}
@@ -352,7 +351,7 @@ const CommandPalette = () => {
         </div>
 
         {/* Footer shortcuts */}
-        <div className="px-4.5 py-2.5 liquid-glass-subtle border-t border-white/50 dark:border-white/10 flex items-center justify-between text-[11px] text-zinc-400">
+        <div className="hidden sm:flex px-4 py-2.5 liquid-glass-subtle border-t border-white/50 dark:border-white/10 items-center justify-between text-[11px] text-zinc-400">
           <div className="flex items-center gap-3">
             <span><kbd className="px-1.5 py-0.5 rounded bg-white/70 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-700 dark:text-zinc-300">↑↓</kbd> Navigate</span>
             <span><kbd className="px-1.5 py-0.5 rounded bg-white/70 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-700 dark:text-zinc-300">Enter</kbd> Select</span>

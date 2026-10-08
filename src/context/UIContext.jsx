@@ -81,6 +81,7 @@ export const UIProvider = ({ children }) => {
       if (e.key === 'Escape') {
         setIsCommandPaletteOpen(false);
         setIsQuickAddOpen(false);
+        window.dispatchEvent(new CustomEvent('extrack:escape'));
       }
     };
 

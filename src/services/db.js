@@ -98,11 +98,11 @@ export const DataService = {
   // ----------------------------------------------------
   purgeAllLocalData() {
     try {
+      // Only remove app-owned guest keys — never touch other sessionStorage/
+      // localStorage data that belongs to the browser or other apps.
       Object.values(GUEST_KEYS).forEach(k => {
         try { localStorage.removeItem(k); } catch { /* ignore */ }
       });
-      // Also clear legacy unversioned keys if present, but preserve UI prefs
-      try { sessionStorage.clear(); } catch { /* ignore */ }
     } catch {
       // Ignore storage errors
     }
@@ -125,7 +125,8 @@ export const DataService = {
       try {
         const q = query(colRef, orderBy("date", "desc"));
         snapshot = await getDocs(q);
-      } catch (err) {
+      } catch {
+        // orderBy can fail on legacy docs missing the field; retry unsorted.
         snapshot = await getDocs(colRef);
       }
 
@@ -155,8 +156,10 @@ export const DataService = {
 
       return uniqueList;
     } catch (e) {
+      // Propagate so the app can surface a real sync error instead of
+      // showing an empty (misleading) ledger during transient failures.
       console.warn("Firestore fetch transactions error:", e);
-      return [];
+      throw e;
     }
   },
 
@@ -247,7 +250,7 @@ export const DataService = {
         return seeded;
       }
 
-      const existingCats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const existingCats = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       const existingNames = new Set(existingCats.map(c => (c.name || '').trim().toLowerCase()));
 
       // Automatically backfill any new standard default categories (e.g., Debt Repayment, Lent Returned)
@@ -278,7 +281,7 @@ export const DataService = {
       return existingCats;
     } catch (e) {
       console.warn("Firestore fetch categories error:", e);
-      return DEFAULT_CATEGORIES.map((c, i) => ({ id: 'default_' + i, ...c }));
+      throw e;
     }
   },
 
@@ -335,7 +338,7 @@ export const DataService = {
       return { monthlyBudget: 0 };
     } catch (e) {
       console.warn("Firestore fetch settings error:", e);
-      return { monthlyBudget: 0 };
+      throw e;
     }
   },
 
@@ -360,10 +363,10 @@ export const DataService = {
     try {
       const colRef = collection(db, "users", userId, "subscriptions");
       const snapshot = await getDocs(colRef);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (e) {
       console.warn("Firestore fetch subscriptions error:", e);
-      return [];
+      throw e;
     }
   },
 
@@ -439,7 +442,7 @@ export const DataService = {
       return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (e) {
       console.warn("Firestore fetch accounts error:", e);
-      return DEFAULT_ACCOUNTS.map((a, i) => ({ id: `default_acc_${i}`, ...a }));
+      throw e;
     }
   },
 
@@ -501,7 +504,7 @@ export const DataService = {
       return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (e) {
       console.warn("Firestore fetch savings goals error:", e);
-      return [];
+      throw e;
     }
   },
 
@@ -558,7 +561,7 @@ export const DataService = {
       return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (e) {
       console.warn("Firestore fetch events error:", e);
-      return [];
+      throw e;
     }
   },
 
@@ -633,7 +636,7 @@ export const DataService = {
       return uniqueList;
     } catch (e) {
       console.warn("Error fetching user lent records:", e);
-      return [];
+      throw e;
     }
   },
 
@@ -735,7 +738,7 @@ export const DataService = {
       return uniqueList;
     } catch (e) {
       console.warn("Error fetching user borrowed records:", e);
-      return [];
+      throw e;
     }
   },
 
@@ -818,51 +821,35 @@ export const DataService = {
   },
 
   // Migrate guest (device-local) records into the signed-in user's cloud
-  // collections, then clear the local guest store to avoid duplicates.
+  // collections, then clear ONLY the successfully migrated guest stores.
+  // Per-collection tracking guarantees no duplicate re-uploads if a later
+  // batch fails mid-migration (previously the whole guest store survived a
+  // single failed upload and everything got re-imported on the next login).
   async migrateLocalDataToCloud(userId) {
     if (!userId || !db) return { count: 0 };
-    try {
-      let count = 0;
-      const guestTx = loadGuestList(GUEST_KEYS.transactions);
-      for (const { id: _txId, ...tx } of guestTx) {
-        await this.addTransaction(tx, userId);
-        count++;
+
+    const migrateList = async (key, addFn) => {
+      const items = loadGuestList(key);
+      if (items.length === 0) return 0;
+      let migrated = 0;
+      for (const { id: _ignored, ...item } of items) {
+        await addFn(item, userId);
+        migrated++;
       }
-      const guestLent = loadGuestList(GUEST_KEYS.lentRecords);
-      for (const { id: _lentId, ...rec } of guestLent) {
-        await this.addLentRecord(rec, userId);
-        count++;
-      }
-      const guestBorrow = loadGuestList(GUEST_KEYS.borrowedRecords);
-      for (const { id: _borrowId, ...rec } of guestBorrow) {
-        await this.addBorrowedRecord(rec, userId);
-        count++;
-      }
-      const guestSubs = loadGuestList(GUEST_KEYS.subscriptions);
-      for (const { id: _subId, ...s } of guestSubs) {
-        await this.addSubscription(s, userId);
-        count++;
-      }
-      const guestGoals = loadGuestList(GUEST_KEYS.savingsGoals);
-      for (const { id: _goalId, ...g } of guestGoals) {
-        await this.addSavingsGoal(g, userId);
-        count++;
-      }
-      const guestEvents = loadGuestList(GUEST_KEYS.events);
-      for (const { id: _eventId, ...e } of guestEvents) {
-        await this.addEvent(e, userId);
-        count++;
-      }
-      // Clear guest stores after successful migration
-      Object.values(GUEST_KEYS).forEach(k => {
-        if (k !== GUEST_KEYS.categories && k !== GUEST_KEYS.accounts && k !== GUEST_KEYS.settings) {
-          try { localStorage.removeItem(k); } catch { /* ignore */ }
-        }
-      });
-      return { count };
-    } catch (e) {
-      console.warn("migrateLocalDataToCloud error:", e);
-      return { count: 0 };
-    }
+      // This collection fully uploaded — safe to clear it so a retry
+      // (network hiccup mid-run, page close) never re-imports it.
+      try { localStorage.removeItem(key); } catch { /* ignore */ }
+      return migrated;
+    };
+
+    let count = 0;
+    count += await migrateList(GUEST_KEYS.transactions, (t, uid) => this.addTransaction(t, uid));
+    count += await migrateList(GUEST_KEYS.lentRecords, (r, uid) => this.addLentRecord(r, uid));
+    count += await migrateList(GUEST_KEYS.borrowedRecords, (r, uid) => this.addBorrowedRecord(r, uid));
+    count += await migrateList(GUEST_KEYS.subscriptions, (s, uid) => this.addSubscription(s, uid));
+    count += await migrateList(GUEST_KEYS.savingsGoals, (g, uid) => this.addSavingsGoal(g, uid));
+    count += await migrateList(GUEST_KEYS.events, (e, uid) => this.addEvent(e, uid));
+
+    return { count };
   }
 };

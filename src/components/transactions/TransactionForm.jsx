@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTransactions } from '../../context/TransactionContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faCommentDots, faSuitcase, faTag, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faCommentDots, faSuitcase, faTag } from '@fortawesome/free-solid-svg-icons';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import toast from 'react-hot-toast';
 import { haptics } from '../../utils/haptics';
@@ -260,7 +260,7 @@ const TransactionForm = ({
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200/80 dark:border-white/10 flex flex-col max-h-[90dvh] sm:max-h-none animate-slide-up sm:animate-pop-in sm:my-auto"
+        className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200/80 dark:border-white/10 flex flex-col max-h-[90dvh] sm:max-h-[90dvh] animate-slide-up sm:animate-pop-in sm:my-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -285,20 +285,20 @@ const TransactionForm = ({
           <button 
             type="button" 
             onClick={onClose} 
-            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors touch-feedback cursor-pointer"
+            className="w-10 h-10 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors touch-feedback cursor-pointer"
           >
             <FontAwesomeIcon icon={faTimes} className="text-xs" />
           </button>
         </div>
         
         {/* Form Body - Compact and Non-Scrollable on Desktop */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto sm:overflow-visible p-4 sm:p-5 space-y-3 sm:space-y-3.5 pb-safe sm:pb-5">
+        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-3 sm:space-y-3.5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-5">
           {/* Expense / Income Toggle */}
           <div className="flex rounded-xl bg-zinc-100 dark:bg-zinc-800/80 p-1 shrink-0 border border-zinc-200/60 dark:border-zinc-700/60">
             <button 
               type="button" 
               onClick={() => handleTypeToggle('expense')}
-              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all touch-feedback cursor-pointer ${
+              className={`flex-1 py-2.5 min-h-[44px] text-xs font-semibold rounded-lg transition-all touch-feedback cursor-pointer ${
                 type === 'expense' 
                   ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs' 
                   : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
@@ -309,7 +309,7 @@ const TransactionForm = ({
             <button 
               type="button" 
               onClick={() => handleTypeToggle('income')}
-              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all touch-feedback cursor-pointer ${
+              className={`flex-1 py-2.5 min-h-[44px] text-xs font-semibold rounded-lg transition-all touch-feedback cursor-pointer ${
                 type === 'income' 
                   ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs' 
                   : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
@@ -365,7 +365,7 @@ const TransactionForm = ({
                     value={newCategoryName}
                     onChange={e => setNewCategoryName(e.target.value)}
                     placeholder="Name"
-                    className="flex-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white font-medium"
+                    className="flex-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-base sm:text-xs text-zinc-900 dark:text-white font-medium"
                     autoFocus
                   />
                   <button 
@@ -388,7 +388,7 @@ const TransactionForm = ({
                   required
                   value={categoryId}
                   onChange={e => setCategoryId(e.target.value)}
-                  className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white font-medium cursor-pointer"
+                  className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-base sm:text-xs text-zinc-900 dark:text-white font-medium cursor-pointer"
                 >
                   <option value="" disabled>Select category</option>
                   {filteredCategories.map(cat => (
@@ -420,7 +420,7 @@ const TransactionForm = ({
                       key={preset.value}
                       type="button"
                       onClick={() => setDate(preset.value)}
-                      className={`px-2 py-0.5 text-[11px] font-semibold rounded-md transition-all touch-feedback cursor-pointer shrink-0 ${
+                      className={`px-3 py-1.5 min-h-[32px] text-[11px] font-semibold rounded-md transition-all touch-feedback cursor-pointer shrink-0 ${
                         isSelected
                           ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs'
                           : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700'
@@ -443,7 +443,7 @@ const TransactionForm = ({
                 required
                 value={date}
                 onChange={e => setDate(e.target.value)}
-                className="w-full px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white font-medium"
+                className="w-full px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-base sm:text-xs text-zinc-900 dark:text-white font-medium"
               />
             </div>
           </div>
@@ -457,7 +457,7 @@ const TransactionForm = ({
               <select
                 value={accountId}
                 onChange={e => setAccountId(e.target.value)}
-                className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white font-medium cursor-pointer"
+                className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-base sm:text-xs text-zinc-900 dark:text-white font-medium cursor-pointer"
               >
                 {accounts.map(acc => (
                   <option key={acc.id} value={acc.id}>
@@ -491,7 +491,7 @@ const TransactionForm = ({
                       key={suggestion}
                       type="button"
                       onClick={() => setNote(suggestion)}
-                      className={`px-2 py-0.5 text-[11px] font-semibold rounded-md transition-all touch-feedback cursor-pointer shrink-0 flex items-center gap-1 ${
+                      className={`px-3 py-1.5 min-h-[32px] text-[11px] font-semibold rounded-md transition-all touch-feedback cursor-pointer shrink-0 flex items-center gap-1 ${
                         isSelected
                           ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-2xs'
                           : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700'
@@ -510,7 +510,7 @@ const TransactionForm = ({
               list="tx-note-suggestions-list"
               value={note}
               onChange={e => setNote(e.target.value)}
-              className="w-full px-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400"
+              className="w-full px-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-base sm:text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400"
               placeholder="e.g. Dinner, Coffee, Groceries"
             />
             <datalist id="tx-note-suggestions-list">
@@ -530,7 +530,7 @@ const TransactionForm = ({
               <select
                 value={eventId}
                 onChange={e => setEventId(e.target.value)}
-                className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white font-medium cursor-pointer"
+                className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-base sm:text-xs text-zinc-900 dark:text-white font-medium cursor-pointer"
               >
                 <option value="">None (Personal / General Expense)</option>
                 {events.map(ev => (
@@ -553,7 +553,7 @@ const TransactionForm = ({
               value={tagInput}
               onChange={e => setTagInput(e.target.value)}
               placeholder="e.g. #GoaTrip, #Diwali, #ClientLunch"
-              className="w-full px-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400"
+              className="w-full px-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:border-zinc-900 dark:focus:border-white outline-none text-base sm:text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400"
             />
           </div>
 
@@ -561,7 +561,7 @@ const TransactionForm = ({
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full py-2.5 mt-1 bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 font-semibold text-xs rounded-xl shadow-xs transition-all disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer touch-feedback"
+            className="w-full py-2.5 min-h-[48px] mt-1 bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 font-semibold text-xs rounded-xl shadow-xs transition-all disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer touch-feedback"
           >
             {loading ? (
               <div className="w-4 h-4 border-2 border-zinc-400 border-t-zinc-900 dark:border-t-white rounded-full animate-spin" />

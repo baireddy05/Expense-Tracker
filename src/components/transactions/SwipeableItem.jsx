@@ -1,11 +1,10 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { motion, useAnimation, useMotionValue, useTransform } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faEdit } from '@fortawesome/free-solid-svg-icons';
 import { haptics } from '../../utils/haptics';
 
 const SwipeableItem = ({ children, onEdit, onDelete, resetToken }) => {
-  const [exitX, setExitX] = useState(0);
   const containerRef = useRef(null);
   const controls = useAnimation();
   const x = useMotionValue(0);
@@ -77,10 +76,29 @@ const SwipeableItem = ({ children, onEdit, onDelete, resetToken }) => {
         onDragEnd={handleDragEnd}
         animate={controls}
         style={{ x }}
-        className="relative z-10 w-full bg-white dark:bg-zinc-900 shadow-sm rounded-xl touch-pan-y"
+        className="relative z-10 w-full bg-white dark:bg-zinc-900 shadow-sm rounded-xl touch-pan-y select-none"
       >
         {children}
       </motion.div>
+      {/* Desktop fallback: visible edit/delete on hover */}
+      <div className="hidden sm:flex absolute right-2 top-1/2 -translate-y-1/2 z-20 gap-1.5 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity">
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onEdit?.(); }}
+          aria-label="Edit"
+          className="w-9 h-9 rounded-lg bg-blue-500/90 text-white flex items-center justify-center text-xs shadow hover:bg-blue-600"
+        >
+          <FontAwesomeIcon icon={faEdit} />
+        </button>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onDelete?.(); }}
+          aria-label="Delete"
+          className="w-9 h-9 rounded-lg bg-rose-500/90 text-white flex items-center justify-center text-xs shadow hover:bg-rose-600"
+        >
+          <FontAwesomeIcon icon={faTrash} />
+        </button>
+      </div>
     </div>
   );
 };

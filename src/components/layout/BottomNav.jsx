@@ -24,11 +24,21 @@ const BottomNav = () => {
   const [dragOffsetY, setDragOffsetY] = useState(0);
   const touchStartYRef = React.useRef(0);
   const isDraggingRef = React.useRef(false);
+  const sheetRef = React.useRef(null);
 
   const location = useLocation();
   const { subscriptions = [], lentRecords = [], borrowedRecords = [], accounts = [], savingsGoals = [], events = [] } = useTransactions();
 
   useBodyScrollLock(isMoreOpen);
+
+  React.useEffect(() => {
+    const onEscape = () => {
+      setDragOffsetY(0);
+      setIsMoreOpen(false);
+    };
+    window.addEventListener('extrack:escape', onEscape);
+    return () => window.removeEventListener('extrack:escape', onEscape);
+  }, []);
 
   const mainNavItems = [
     { name: 'Home', path: '/dashboard', icon: faHome },
@@ -90,6 +100,11 @@ const BottomNav = () => {
   };
 
   const handleTouchStart = (e) => {
+    // Only allow drag-to-dismiss when sheet is scrolled to top
+    if (sheetRef.current && sheetRef.current.scrollTop > 0) {
+      isDraggingRef.current = false;
+      return;
+    }
     touchStartYRef.current = e.touches[0].clientY;
     isDraggingRef.current = true;
   };
@@ -117,20 +132,24 @@ const BottomNav = () => {
       {/* Mobile "More" Hub Bottom Sheet */}
       {isMoreOpen && (
         <div 
-          className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-end animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-label="All features"
+          className="md:hidden fixed inset-0 z-[55] bg-black/60 backdrop-blur-sm flex flex-col justify-end animate-fade-in"
           onClick={closeMoreSheet}
         >
           <div 
+            ref={sheetRef}
             style={{
               transform: dragOffsetY > 0 ? `translateY(${dragOffsetY}px)` : undefined,
               transition: isDraggingRef.current ? 'none' : 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
             }}
-            className="bg-white dark:bg-zinc-900 rounded-t-3xl border-t border-zinc-200/80 dark:border-zinc-800 p-5 pb-8 shadow-2xl max-h-[85vh] overflow-y-auto space-y-4 origin-bottom-right animate-slide-up"
+            className="bg-white dark:bg-zinc-900 rounded-t-3xl border-t border-zinc-200/80 dark:border-zinc-800 p-5 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] shadow-2xl max-h-[85dvh] overflow-y-auto overscroll-contain space-y-4 origin-bottom-right animate-slide-up"
             onClick={e => e.stopPropagation()}
           >
             {/* Sheet Pull & Drag Handle Area */}
             <div 
-              className="w-full py-2 cursor-grab active:cursor-grabbing flex justify-center items-center touch-pan-y"
+              className="w-full py-2 cursor-grab active:cursor-grabbing flex justify-center items-center touch-none select-none"
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
@@ -203,8 +222,8 @@ const BottomNav = () => {
       )}
 
       {/* Floating Bottom Nav Dock */}
-      <nav className="md:hidden fixed bottom-3 left-3 right-3 liquid-glass-dock rounded-3xl pb-safe z-40 transition-all duration-300 shadow-2xl border border-white/60 dark:border-white/10">
-        <div className="flex justify-around items-center h-15 px-1">
+      <nav className="md:hidden fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] left-3 right-3 pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)] liquid-glass-dock rounded-3xl pb-safe z-40 transition-all duration-300 shadow-2xl border border-white/60 dark:border-white/10">
+        <div className="flex justify-around items-center min-h-[3.75rem] px-1">
           {mainNavItems.map((item) => (
             <NavLink
               key={item.name}

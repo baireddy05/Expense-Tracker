@@ -97,7 +97,8 @@ function App() {
                 <Toaster 
                   position="top-center"
                   containerStyle={{
-                    top: 24,
+                    top: 'calc(24px + env(safe-area-inset-top, 0px))',
+                    zIndex: 9999,
                   }}
                   toastOptions={{
                     duration: 3000,

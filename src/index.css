@@ -52,16 +52,20 @@
     scroll-behavior: smooth;
     text-rendering: optimizeLegibility;
     height: 100%;
+    overflow-x: clip;
+    max-width: 100%;
   }
 
   body {
     background-color: var(--bg-color);
     color: var(--text-color);
-    @apply antialiased min-h-screen overflow-x-hidden;
+    @apply antialiased min-h-dvh;
+    overflow-x: clip;
+    max-width: 100%;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     transition: background-color 0.3s var(--ease-spring), color 0.3s var(--ease-spring);
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
+    overscroll-behavior-y: none;
   }
 }
 
@@ -130,9 +134,9 @@
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid rgba(226, 232, 240, 0.9);
     box-shadow: 0 20px 50px -12px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.03);
-    transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
-    transition: all 0.25s var(--ease-spring);
+    -webkit-backface-visibility: hidden;
+    transition: background-color 0.25s var(--ease-spring), border-color 0.25s var(--ease-spring), box-shadow 0.25s var(--ease-spring);
   }
 
   .dark .liquid-glass-dock,
@@ -204,7 +208,14 @@
   }
 
   .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom, 1rem);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .px-safe {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
   }
 }
 

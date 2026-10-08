@@ -15,7 +15,6 @@ import {
   faCheckCircle, 
   faClock, 
   faExclamationTriangle, 
-  faPaperPlane, 
   faTrash, 
   faEdit, 
   faFilePdf, 
@@ -26,15 +25,13 @@ import {
   faUserFriends,
   faCalendarAlt,
   faPhone,
-  faCoins,
-  faArrowRotateLeft,
-  faComments,
   faShieldAlt
 } from '@fortawesome/free-solid-svg-icons';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import toast from 'react-hot-toast';
 import { useUI } from '../context/UIContext';
+import { toLocalDate, formatDisplayDate } from '../utils/dateUtils';
 
 const BorrowedMoney = () => {
   const { borrowedRecords = [], deleteBorrowedRecord, settleBorrowedRecord, loading } = useTransactions();
@@ -77,10 +74,12 @@ const BorrowedMoney = () => {
     if (remaining <= 0) return 'settled';
 
     if (record.dueDate) {
-      const due = new Date(record.dueDate);
+      const due = toLocalDate(record.dueDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      if (due < today) return 'overdue';
+      // toLocalDate parses date-only strings as local midnight; raw new Date()
+      // used UTC and flagged same-day due items as overdue.
+      if (due && due < today) return 'overdue';
     }
 
     if (returned > 0) return 'partial';
@@ -222,7 +221,7 @@ const BorrowedMoney = () => {
       try {
         await deleteBorrowedRecord(deleteConfirm.id);
         toast.success('Borrowed record deleted');
-      } catch (e) {
+      } catch {
         toast.error('Failed to delete record');
       }
     }
@@ -240,7 +239,7 @@ const BorrowedMoney = () => {
       try {
         await settleBorrowedRecord(settleConfirm.id);
         toast.success(`Marked debt to ${settleConfirm.name} as fully paid back!`);
-      } catch (e) {
+      } catch {
         toast.error('Failed to settle debt');
       }
     }
@@ -295,11 +294,11 @@ const BorrowedMoney = () => {
 
       tableRows.push([
         r.lenderName,
-        r.dateBorrowed ? new Date(r.dateBorrowed).toLocaleDateString('en-IN') : 'N/A',
+        r.dateBorrowed ? formatDisplayDate(r.dateBorrowed) : 'N/A',
         formatCurrencyPDF(total),
         formatCurrencyPDF(returned),
         formatCurrencyPDF(remaining),
-        r.dueDate ? new Date(r.dueDate).toLocaleDateString('en-IN') : 'N/A',
+        r.dueDate ? formatDisplayDate(r.dueDate) : 'N/A',
         status
       ]);
     });
@@ -444,13 +443,13 @@ const BorrowedMoney = () => {
                 )}
                 <span className="flex items-center gap-1">
                   <FontAwesomeIcon icon={faCalendarAlt} className="text-[9px]" />
-                  {new Date(record.dateBorrowed || (borrows[0] && borrows[0].date) || 0).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                  {formatDisplayDate(record.dateBorrowed || (borrows[0] && borrows[0].date) || 0, { day: '2-digit', month: 'short' })}
                 </span>
                 {record.dueDate && (
                   <>
                     <span>&bull;</span>
                     <span className={status === 'overdue' ? 'text-rose-500 font-semibold' : ''}>
-                      Due: {new Date(record.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                      Due: {formatDisplayDate(record.dueDate, { day: '2-digit', month: 'short' })}
                     </span>
                   </>
                 )}
@@ -468,18 +467,18 @@ const BorrowedMoney = () => {
           </div>
 
           {/* Amounts Breakdown */}
-          <div className="text-right shrink-0">
+          <div className="text-right shrink-0 max-w-[38%]">
             <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">
               {remaining > 0 ? 'Pending' : 'Status'}
             </p>
-            <p className={`text-sm sm:text-lg font-bold leading-tight ${
+            <p className={`text-sm sm:text-lg font-bold leading-tight truncate tabular-nums ${
               remaining > 0 
                 ? (status === 'overdue' ? 'text-rose-500' : 'text-cyan-600 dark:text-cyan-400')
                 : 'text-emerald-600 dark:text-emerald-400'
             }`}>
               {remaining > 0 ? formatCurrency(remaining) : 'Paid in Full'}
             </p>
-            <p className="text-[10px] text-zinc-400 mt-0.5">
+            <p className="text-[10px] text-zinc-400 mt-0.5 truncate tabular-nums">
               of {formatCurrency(total)}
             </p>
           </div>
@@ -511,9 +510,9 @@ const BorrowedMoney = () => {
 
         {/* Note if present */}
         {record.note && (
-          <div className="mt-2.5 text-xs liquid-glass-subtle p-2 sm:p-2.5 rounded-xl text-zinc-600 dark:text-zinc-300 flex items-start gap-2">
+          <div className="mt-2.5 text-xs liquid-glass-subtle p-2 sm:p-2.5 rounded-xl text-zinc-600 dark:text-zinc-300 flex items-start gap-2 min-w-0">
             <span className="font-semibold text-zinc-400 shrink-0 text-[11px]">Note:</span>
-            <span className="italic text-[11px] truncate">{record.note}</span>
+            <span className="italic text-[11px] line-clamp-2 break-words min-w-0">{record.note}</span>
           </div>
         )}
 
@@ -652,7 +651,7 @@ const BorrowedMoney = () => {
                               {idx === 0 ? 'Initial Borrow' : `Top-up #${idx + 1}`}
                             </span>
                             <span className="text-[10px] text-zinc-400 shrink-0">
-                              &bull; {new Date(b.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                              &bull; {formatDisplayDate(b.date, { day: '2-digit', month: 'short' })}
                             </span>
                           </div>
                           {b.note && (
@@ -747,7 +746,7 @@ const BorrowedMoney = () => {
                   className="px-2.5 py-1.5 liquid-glass-subtle text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white rounded-xl text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer touch-feedback"
                 >
                   <FontAwesomeIcon icon={faCheckCircle} className="text-emerald-500 text-[10px]" />
-                  <span className="hidden xs:inline">Settle</span>
+                  <span className="hidden min-[400px]:inline">Settle</span>
                 </button>
               </>
             )}
@@ -864,7 +863,7 @@ const BorrowedMoney = () => {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Pending Debt Owed
               </p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight text-rose-500">
+              <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-rose-500">
                 <AnimatedCounter value={stats.totalPendingDebt} isCurrency={true} />
               </h2>
             </div>
@@ -887,7 +886,7 @@ const BorrowedMoney = () => {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Total Repaid by Me
               </p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight text-emerald-600 dark:text-emerald-400">
+              <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-emerald-600 dark:text-emerald-400">
                 <AnimatedCounter value={stats.totalReturned} isCurrency={true} />
               </h2>
             </div>
@@ -915,7 +914,7 @@ const BorrowedMoney = () => {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Total Money Borrowed
               </p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white">
+              <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-zinc-900 dark:text-white">
                 <AnimatedCounter value={stats.totalBorrowed} isCurrency={true} />
               </h2>
             </div>
@@ -935,7 +934,7 @@ const BorrowedMoney = () => {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 Settled Debts
               </p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight text-zinc-900 dark:text-white">
+              <h2 className="text-xl sm:text-2xl font-bold truncate tabular-nums mt-1 tracking-tight text-zinc-900 dark:text-white">
                 <AnimatedCounter value={stats.settledDebtsCount} isCurrency={false} />
               </h2>
             </div>
@@ -1074,7 +1073,7 @@ const BorrowedMoney = () => {
 
         {/* Empty State */}
         {filteredRecords.length === 0 && !loading && (
-          <div className="glass-card rounded-3xl p-12 text-center max-w-lg mx-auto space-y-4">
+          <div className="glass-card rounded-3xl p-8 sm:p-12 text-center max-w-lg mx-auto space-y-4">
             <div className="w-16 h-16 rounded-3xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center text-2xl mx-auto shadow-2xs">
               <FontAwesomeIcon icon={faHandHolding} />
             </div>

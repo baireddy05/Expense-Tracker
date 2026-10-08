@@ -12,14 +12,21 @@ import {
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
+// Config comes exclusively from Vite env vars (see .env.example).
+// Do NOT hardcode fallback values: they end up baked into the public bundle
+// and make environment overrides meaningless.
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDzyDZxtkn6qBW94fuof4CsRm53FFEVcho",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "expense-tracker-321ba.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "expense-tracker-321ba",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "expense-tracker-321ba.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "611669328733",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:611669328733:web:c09579cfa91d9aecff1eb4"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
+
+const isConfigured = Boolean(
+  firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId
+);
 
 let app;
 let auth;
@@ -27,15 +34,22 @@ let db;
 let googleProvider;
 
 try {
-  if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
+  if (isConfigured) {
+    if (!getApps().length) {
+      app = initializeApp(firebaseConfig);
+    } else {
+      app = getApps()[0];
+    }
+    auth = getAuth(app);
+    db = getFirestore(app);
+    googleProvider = new GoogleAuthProvider();
+    googleProvider.setCustomParameters({ prompt: 'select_account' });
   } else {
-    app = getApps()[0];
+    console.warn(
+      "Firebase is not configured. Set the VITE_FIREBASE_* environment variables (see .env.example). " +
+      "The app will run in offline guest mode."
+    );
   }
-  auth = getAuth(app);
-  db = getFirestore(app);
-  googleProvider = new GoogleAuthProvider();
-  googleProvider.setCustomParameters({ prompt: 'select_account' });
 } catch (error) {
   console.error("Firebase initialization failed:", error);
 }

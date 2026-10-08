@@ -18,7 +18,7 @@ const UserProfileMenu = ({ isCompact = false }) => {
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking / tapping outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -26,7 +26,11 @@ const UserProfileMenu = ({ isCompact = false }) => {
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, []);
 
   if (!currentUser) {
@@ -83,7 +87,7 @@ const UserProfileMenu = ({ isCompact = false }) => {
 
       {/* Popover Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 liquid-glass-dock border border-white/60 dark:border-white/10 rounded-2xl shadow-xl z-50 p-2 animate-fade-in">
+        <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-1rem)] liquid-glass-dock border border-white/60 dark:border-white/10 rounded-2xl shadow-xl z-50 p-2 animate-fade-in">
           {/* User Info Header */}
           <div className="p-3 border-b border-white/50 dark:border-white/10 liquid-glass-subtle rounded-xl mb-1">
             <div className="flex items-center gap-2.5">
@@ -131,7 +135,7 @@ const UserProfileMenu = ({ isCompact = false }) => {
             <button
               type="button"
               onClick={() => { setIsOpen(false); navigate('/settings'); }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-white/40 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer text-left touch-feedback"
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 min-h-[44px] text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-white/40 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer text-left touch-feedback"
             >
               <FontAwesomeIcon icon={faCog} className="text-zinc-400 text-xs" />
               <span>Settings & Account</span>
@@ -140,7 +144,7 @@ const UserProfileMenu = ({ isCompact = false }) => {
             <button
               type="button"
               onClick={() => { setIsOpen(false); logout(); }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer text-left touch-feedback"
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 min-h-[44px] text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer text-left touch-feedback"
             >
               <FontAwesomeIcon icon={faSignOutAlt} className="text-xs" />
               <span>Sign Out</span>
