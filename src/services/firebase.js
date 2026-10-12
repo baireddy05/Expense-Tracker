@@ -1,11 +1,13 @@
 import { initializeApp, getApps } from "firebase/app";
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut, 
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
   sendPasswordResetEmail,
   updateProfile,
   onAuthStateChanged
@@ -54,16 +56,18 @@ try {
   console.error("Firebase initialization failed:", error);
 }
 
-export { 
-  app, 
-  auth, 
-  db, 
+export {
+  app,
+  auth,
+  db,
   googleProvider,
-  signInWithPopup, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut, 
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
   sendPasswordResetEmail,
   updateProfile,
-  onAuthStateChanged 
+  onAuthStateChanged
 };

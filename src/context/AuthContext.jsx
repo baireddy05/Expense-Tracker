@@ -1,14 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  auth, 
+import {
+  auth,
   googleProvider,
-  signInWithPopup, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut, 
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
   sendPasswordResetEmail,
   updateProfile,
-  onAuthStateChanged 
+  onAuthStateChanged
 } from '../services/firebase';
 import toast from 'react-hot-toast';
 
@@ -57,6 +59,23 @@ export const AuthProvider = ({ children }) => {
     const safetyTimer = setTimeout(() => {
       setLoading(false);
     }, 2500);
+
+    // Completes a signInWithRedirect round-trip (used on mobile browsers and
+    // WebViews where popups are blocked or unsupported). Resolves null when
+    // there is no pending redirect — safe to call on every launch.
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          clearTimeout(safetyTimer);
+          setCurrentUser(result.user);
+          setIsGuestMode(false);
+          try { clearGuestModeFlag(); } catch { /* ignore */ }
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.warn("Redirect sign-in result error:", err?.code || err);
+      });
 
     let unsubscribe = () => {};
     try {
@@ -164,7 +183,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Sign in with Google
+  // Sign in with Google.
+  // Popup first (best UX on desktop); on mobile browsers / WebViews where
+  // popups are blocked or unsupported, fall back to a full-page redirect —
+  // the result is picked up by getRedirectResult() on return.
   const loginWithGoogle = async () => {
     if (!auth || !googleProvider) {
       toast.error('Cloud auth is not configured. Continue as Guest to use the app offline.');
@@ -179,6 +201,15 @@ export const AuthProvider = ({ children }) => {
       return result.user;
     } catch (error) {
       console.error("Google Auth error:", error);
+      if (
+        error.code === 'auth/popup-blocked' ||
+        error.code === 'auth/operation-not-supported-in-this-environment' ||
+        error.code === 'auth/cancelled-popup-request'
+      ) {
+        // Never toast here: the page is about to navigate away to Google.
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      }
       if (error.code !== 'auth/popup-closed-by-user') {
         toast.error(error.message || 'Google sign-in failed.');
       }

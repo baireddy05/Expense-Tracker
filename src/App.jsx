@@ -101,9 +101,15 @@ function App() {
                   }}
                   toastOptions={{
                     duration: 3000,
-                    className: 'liquid-glass-dock !border !border-zinc-200/80 dark:!border-white/10 !text-zinc-900 dark:!text-white !font-medium !text-xs !shadow-2xl !py-2.5 !px-4 !rounded-2xl',
+                    // NOTE: react-hot-toast paints its default white background
+                    // as an INLINE style, which beats the liquid-glass-dock
+                    // stylesheet. So the background here is pinned explicitly —
+                    // otherwise dark mode gets white-on-white invisible text.
+                    className: 'liquid-glass-dock !border !border-zinc-200/80 dark:!border-white/10 !text-zinc-900 !font-medium !text-xs !shadow-2xl !py-2.5 !px-4 !rounded-2xl',
                     style: {
                       backdropFilter: 'blur(20px)',
+                      background: '#ffffff',
+                      color: '#09090b',
                     },
                     success: {
                       iconTheme: {

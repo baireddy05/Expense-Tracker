@@ -260,6 +260,10 @@ the item from this section when it gets built:
 
 ## 16. Recent change log (latest first)
 
+- 2026-10-13: Auth reliability: Google sign-in falls back to full-page redirect
+  where popups are blocked/unsupported (mobile WebViews), redirect results are
+  consumed on launch, failures show actionable messages with Firebase codes,
+  and toast text is pinned readable in both themes (was white-on-white).
 - 2026-10-12: Full-project bug sweep: category resolver prefers explicit id over
   note inference (no more recategorized transactions flipping to system
   categories); date utils hardened for Date/{seconds}/garbage inputs;

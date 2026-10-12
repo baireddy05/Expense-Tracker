@@ -112,6 +112,30 @@ const AuthModal = () => {
     }
   };
 
+  // Maps Firebase failures to actionable text (with the raw code) so a
+  // failure on a deployed phone build can actually be diagnosed instead of
+  // showing a dead-end "Google sign in failed."
+  const googleErrorMessage = (err) => {
+    if (!err) return 'Google sign in failed.';
+    switch (err.code) {
+      case 'auth/unauthorized-domain':
+        return 'This app domain is not authorized: Firebase Console → Authentication → Settings → Authorized domains → add this domain. (auth/unauthorized-domain)';
+      case 'auth/operation-not-supported-in-this-environment':
+        return 'This browser blocked the pop-up — retrying via Google redirect… (auth/operation-not-supported)';
+      case 'auth/popup-blocked':
+        return 'Pop-up was blocked — allow pop-ups for this site and try again. (auth/popup-blocked)';
+      case 'auth/network-request-failed':
+        return 'Network error — check your connection and try again. (auth/network-request-failed)';
+      case 'auth/account-exists-with-different-credential':
+        return 'This email is already registered with a different sign-in method — use email sign-in instead.';
+      default:
+        if (err.message === 'Firebase auth is not configured') {
+          return 'Cloud sign-in is not set up on this build — use “Continue as Guest”, or ask the owner to add the Firebase keys.';
+        }
+        return `Google sign in failed${err.code ? ` (${err.code})` : ''}.`;
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     setFormError('');
     setIsSubmitting(true);
@@ -119,7 +143,7 @@ const AuthModal = () => {
       await loginWithGoogle();
     } catch (err) {
       if (err.code !== 'auth/popup-closed-by-user') {
-        setFormError('Google sign in failed.');
+        setFormError(googleErrorMessage(err));
       }
     } finally {
       setIsSubmitting(false);
