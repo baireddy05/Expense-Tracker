@@ -16,7 +16,8 @@ import {
   faPlane,
   faLaptop,
   faGraduationCap,
-  faHeartPulse
+  faHeartPulse,
+  faCheckCircle
 } from '@fortawesome/free-solid-svg-icons';
 import { formatDisplayDate } from '../utils/dateUtils';
 import ConfirmModal from '../components/ui/ConfirmModal';

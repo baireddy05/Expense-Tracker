@@ -150,8 +150,23 @@ const CsvImportModal = ({ isOpen, onClose, file }) => {
     if (!mapping.date || !mapping.amount) return [];
     return rawRows.map((row, idx) => {
       const date = normalizeImportDate(row[mapping.date]);
-      const amt = parseFloat(String(row[mapping.amount] ?? '').replace(/[,₹\s]/g, ''));
-      const type = normalizeImportType(mapping.type ? row[mapping.type] : '');
+      const rawAmtStr = String(row[mapping.amount] ?? '').trim();
+      const isParenNegative = /^\(.*\)$/.test(rawAmtStr);
+      const cleanAmtStr = rawAmtStr.replace(/[()]/g, '').replace(/[,₹\s]/g, '');
+      let amt = parseFloat(cleanAmtStr);
+      let isNegative = isParenNegative;
+      if (!isNaN(amt) && amt < 0) {
+        isNegative = true;
+        amt = Math.abs(amt);
+      }
+
+      let type = normalizeImportType(mapping.type ? row[mapping.type] : '');
+      if (!mapping.type || !row[mapping.type]) {
+        if (isNegative) {
+          type = 'expense';
+        }
+      }
+
       const note = String(mapping.note ? (row[mapping.note] ?? '') : '').trim();
       const catName = String(mapping.category ? (row[mapping.category] ?? '') : '').trim();
 
@@ -164,7 +179,7 @@ const CsvImportModal = ({ isOpen, onClose, file }) => {
           || categories.find(c => c.name?.toLowerCase() === catName.toLowerCase())
         : null;
       if (!cat) cat = categories.find(c => c.type === type);
-      const categoryId = cat?.id || '';
+      const categoryId = cat?.id || categories[0]?.id || '';
 
       const fp = `${date}__${amt.toFixed(2)}__${type}__${note.toLowerCase()}__${categoryId}`;
       if (existingFingerprints.has(fp)) {

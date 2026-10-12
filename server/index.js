@@ -78,7 +78,7 @@ app.post('/api/transactions/import', (req, res) => {
   db.run("COMMIT", (commitErr) => {
     if (failed || commitErr) {
       db.run("ROLLBACK", () => {
-        return res.status(500).json({ error: (failed || commitErr).message });
+        return res.status(500).json({ error: failed || commitErr?.message || 'Transaction failed' });
       });
       return;
     }

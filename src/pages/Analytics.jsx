@@ -830,20 +830,22 @@ const Analytics = () => {
 
                     <div className="flex items-center justify-between sm:justify-end gap-3">
                       <div className="text-left sm:text-right">
-                        <p className={`text-xs font-bold ${isDecreased ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
-                          {cat.diff > 0 ? `+${formatCurrency(cat.diff)}` : `-${formatCurrency(Math.abs(cat.diff))}`}
+                        <p className={`text-xs font-bold ${isDecreased ? 'text-emerald-600 dark:text-emerald-400' : cat.diff === 0 ? 'text-zinc-500' : 'text-rose-500'}`}>
+                          {cat.diff > 0 ? `+${formatCurrency(cat.diff)}` : cat.diff < 0 ? `-${formatCurrency(Math.abs(cat.diff))}` : formatCurrency(0)}
                         </p>
                         <p className="text-[10px] text-zinc-400">
-                          {cat.pct > 0 ? `+${cat.pct.toFixed(1)}%` : `${cat.pct.toFixed(1)}%`}
+                          {cat.diff === 0 ? '0.0%' : cat.pct > 0 ? `+${cat.pct.toFixed(1)}%` : `${cat.pct.toFixed(1)}%`}
                         </p>
                       </div>
 
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                         isDecreased
                           ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
+                          : cat.diff === 0
+                          ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                           : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'
                       }`}>
-                        {isDecreased ? 'SAVED' : 'INCREASED'}
+                        {isDecreased ? 'SAVED' : cat.diff === 0 ? 'UNCHANGED' : 'INCREASED'}
                       </span>
                     </div>
                   </div>

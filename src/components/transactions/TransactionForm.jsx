@@ -195,7 +195,7 @@ const TransactionForm = ({
     
     setLoading(true);
     try {
-      const selectedEvent = events.find(e => e.id === eventId);
+      const selectedEvent = events.find(ev => ev.id === eventId);
       const parsedTags = tagInput 
         ? tagInput.split(',').map(s => s.trim().replace(/^#/, '')).filter(Boolean)
         : (selectedEvent ? [selectedEvent.tag] : []);

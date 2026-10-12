@@ -70,7 +70,9 @@ export const TransactionProvider = ({ children }) => {
         let postedCount = 0;
         for (const sub of dueSubs) {
           try {
-            // Advance the schedule first (single source of truth), then post.
+            // Advance the schedule (single source of truth), but stamp the transaction
+            // with the actual due date being paid.
+            const paymentDate = sub.nextDueDate;
             const nextDueStr = calculateNextDueDate(sub.nextDueDate, sub.frequency);
             await DataService.updateSubscription(sub.id, { nextDueDate: nextDueStr }, userId);
             sub.nextDueDate = nextDueStr;
@@ -78,9 +80,10 @@ export const TransactionProvider = ({ children }) => {
             const newTx = await DataService.addTransaction({
               amount: parseFloat(sub.amount),
               categoryId: sub.categoryId,
-              date: sub.nextDueDate,
+              date: paymentDate,
               note: `Auto-posted: ${sub.name}`,
-              type: sub.type || 'expense'
+              type: sub.type || 'expense',
+              accountId: sub.accountId || (currentAccs.find(a => a.isDefault)?.id || currentAccs[0]?.id || null)
             }, userId);
             currentTx = [newTx, ...currentTx];
             postedCount++;
@@ -179,13 +182,10 @@ export const TransactionProvider = ({ children }) => {
           const txKey = typeof newTx.date === 'string' ? newTx.date.slice(0, 7) : '';
           if (txKey === curKey) {
             let prior = 0;
-            setTransactions(prevTx => {
-              prevTx.forEach(t => {
-                if (t.type === 'expense' && typeof t.date === 'string' && t.date.slice(0, 7) === curKey) {
-                  prior += parseFloat(t.amount) || 0;
-                }
-              });
-              return prevTx; // read-only peek: state is returned unchanged
+            transactions.forEach(t => {
+              if (t.id !== newTx.id && t.type === 'expense' && typeof t.date === 'string' && t.date.slice(0, 7) === curKey) {
+                prior += parseFloat(t.amount) || 0;
+              }
             });
             const after = prior + amt;
             if (prior < budget && after >= budget) {
@@ -1387,6 +1387,7 @@ export const TransactionProvider = ({ children }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [
     transactions,
+    categories,
     subscriptions,
     accountsWithBalances,
     accounts,

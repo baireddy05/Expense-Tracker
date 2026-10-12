@@ -12,15 +12,17 @@ const AnimatedCounter = ({ value, isCurrency = true, className = "" }) => {
 
   // Format the number based on whether it's currency or not
   const rounded = useTransform(count, (latest) => {
+    const num = Number.isFinite(latest) ? latest : 0;
     if (isCurrency) {
-      return currencyFormatter.format(latest);
+      return currencyFormatter.format(num);
     }
-    return Math.round(latest).toString();
+    return Math.round(num).toString();
   });
 
   useEffect(() => {
     setIsReady(true);
-    const controls = animate(count, value, {
+    const target = Number.isFinite(Number(value)) ? Number(value) : 0;
+    const controls = animate(count, target, {
       duration: 1.0,
       ease: "easeOut",
     });

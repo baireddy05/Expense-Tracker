@@ -52,7 +52,7 @@ const SwipeableItem = ({ children, onEdit, onDelete, resetToken }) => {
   };
 
   return (
-    <div className="relative w-full overflow-hidden rounded-xl mb-3" ref={containerRef}>
+    <div className="group relative w-full overflow-hidden rounded-xl mb-3" ref={containerRef}>
       {/* Background Action Indicators */}
       <motion.div 
         className="absolute inset-0 flex items-center justify-between px-6"
@@ -81,7 +81,7 @@ const SwipeableItem = ({ children, onEdit, onDelete, resetToken }) => {
         {children}
       </motion.div>
       {/* Desktop fallback: visible edit/delete on hover */}
-      <div className="hidden sm:flex absolute right-2 top-1/2 -translate-y-1/2 z-20 gap-1.5 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity">
+      <div className="hidden sm:flex absolute right-2 top-1/2 -translate-y-1/2 z-20 gap-1.5 opacity-0 group-hover:opacity-100 hover:opacity-100 focus-within:opacity-100 transition-opacity">
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onEdit?.(); }}

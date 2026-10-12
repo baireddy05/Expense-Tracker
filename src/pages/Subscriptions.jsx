@@ -355,7 +355,15 @@ const Subscriptions = () => {
                   </label>
                   <select
                     value={formData.type}
-                    onChange={e => setFormData({ ...formData, type: e.target.value })}
+                    onChange={e => {
+                      const newType = e.target.value;
+                      const matchedCat = categories.find(c => newType === 'expense' ? c.type !== 'income' : c.type === 'income');
+                      setFormData({
+                        ...formData,
+                        type: newType,
+                        categoryId: matchedCat ? matchedCat.id : ''
+                      });
+                    }}
                     className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white focus:border-transparent outline-none transition-all text-xs text-zinc-900 dark:text-white appearance-none cursor-pointer"
                   >
                     <option value="expense">Expense</option>

@@ -25,7 +25,8 @@ import {
   faUserFriends,
   faCalendarAlt,
   faPhone,
-  faShieldAlt
+  faShieldAlt,
+  faCoins
 } from '@fortawesome/free-solid-svg-icons';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
