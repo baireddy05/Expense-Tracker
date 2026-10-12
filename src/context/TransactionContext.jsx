@@ -27,6 +27,10 @@ export const TransactionProvider = ({ children }) => {
   // snapshot; two overlapping runs would both see the same stale due date and
   // post the transaction twice. Second+ callers piggyback on the first run.
   const fetchInFlightRef = useRef(null);
+  // Background refetches (sync, post-mutation refresh) must not flip the
+  // global `loading` flag — AppShell renders a full splash screen while
+  // loading is true, so only the very first load uses it.
+  const initialLoadDoneRef = useRef(false);
 
   const fetchData = useCallback(async () => {
     if (authLoading) return;
@@ -40,7 +44,18 @@ export const TransactionProvider = ({ children }) => {
 
     const run = (async () => {
     try {
-      setLoading(true);
+      if (!initialLoadDoneRef.current) setLoading(true);
+      // Migrate any guest offline records BEFORE reading cloud, so a login
+      // that follows guest usage sees everything in a single pass.
+      // Migration lives ONLY here (never in the auth observer) so two
+      // triggers can't overlap and double-upload the same records.
+      if (userId) {
+        try {
+          await DataService.migrateLocalDataToCloud(userId);
+        } catch (migErr) {
+          console.warn("Guest migration note:", migErr);
+        }
+      }
       const [txData, catData, settingsData, lentData, borrowData, subData, accData, goalData, eventData] = await Promise.all([
         DataService.getTransactions(userId),
         DataService.getCategories(userId),
@@ -111,6 +126,7 @@ export const TransactionProvider = ({ children }) => {
       setError(err.message || 'Failed to load data');
     } finally {
       setLoading(false);
+      initialLoadDoneRef.current = true;
       fetchInFlightRef.current = null;
     }
     })();
@@ -488,8 +504,12 @@ export const TransactionProvider = ({ children }) => {
           if (t.fromAccountId === id) updates.fromAccountId = fallbackAcc.id;
           if (t.toAccountId === id) updates.toAccountId = fallbackAcc.id;
           // A transfer whose source and destination collapsed onto the same
-          // account is a no-op in the ledger — drop it entirely.
-          if (updates.fromAccountId === fallbackAcc.id && updates.toAccountId === fallbackAcc.id) {
+          // account is a no-op in the ledger — drop it entirely. Compare the
+          // FINAL sides (updates fall back to stored values), not just the
+          // changed ones, or a B→B self-transfer persists in Firestore.
+          const finalFrom = updates.fromAccountId ?? t.fromAccountId;
+          const finalTo = updates.toAccountId ?? t.toAccountId;
+          if (finalFrom === finalTo) {
             await DataService.deleteTransaction(t.id, userId);
             setTransactions(prev => prev.filter(x => x.id !== t.id));
             continue;
@@ -605,9 +625,9 @@ export const TransactionProvider = ({ children }) => {
 
       transactions.forEach(t => {
         if (t.type !== 'expense') return;
-        const note = (t.note || '').toLowerCase();
-        const tTag = (t.eventTag || t.tag || '').toLowerCase();
-        const hasTag = (tagClean && (tTag === tagClean || note.includes('#' + tagClean) || (t.tags && t.tags.some(tag => tag.toLowerCase() === tagClean))));
+        const tagRegex = tagClean ? new RegExp('#' + tagClean.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![a-z0-9])', 'i') : null;
+        const tTag = String(t.eventTag || t.tag || '').toLowerCase().replace(/^#/, '');
+        const hasTag = (tagClean && (tTag === tagClean || (tagRegex && tagRegex.test(t.note || '')) || (Array.isArray(t.tags) && t.tags.some(tag => String(tag).toLowerCase().replace(/^#/, '') === tagClean))));
         const matchesEventId = t.eventId === event.id;
 
         if (hasTag || matchesEventId) {
@@ -633,7 +653,7 @@ export const TransactionProvider = ({ children }) => {
 
   // Helper to ensure critical lending/debt system categories exist before auto-syncing
   const getOrCreateCategory = async (type, preferredName, fallbackNameMatch, defaultDef) => {
-    let cat = categories.find(c => c.name?.toLowerCase() === preferredName.toLowerCase()) ||
+    let cat = categories.find(c => c.name?.toLowerCase() === preferredName.toLowerCase() && c.type === type) ||
               categories.find(c => c.name?.toLowerCase().includes(fallbackNameMatch.toLowerCase()) && c.type === type);
     if (!cat) {
       try {
@@ -1215,10 +1235,18 @@ export const TransactionProvider = ({ children }) => {
       }
 
       report('goals', 50, 'Restoring savings goals & milestone funds...');
-      // 4. Restore Savings Goals
+      // 4. Restore Savings Goals (skip ones already present — re-restoring the
+      // same backup must not duplicate them).
+      const existingGoals = await DataService.getSavingsGoals(userId);
+      const goalSeen = new Set(existingGoals.map(g =>
+        `${String(g.name || '').trim().toLowerCase()}__${parseFloat(g.targetAmount) || 0}`
+      ));
       if (data.savingsGoals && Array.isArray(data.savingsGoals)) {
         for (const goal of data.savingsGoals) {
           if (goal.name) {
+            const fp = `${String(goal.name).trim().toLowerCase()}__${parseFloat(goal.targetAmount) || 0}`;
+            if (goalSeen.has(fp)) continue;
+            goalSeen.add(fp);
             const { id: _goalId, ...goalData } = goal;
             await DataService.addSavingsGoal(goalData, userId);
             importedCount++;
@@ -1227,10 +1255,17 @@ export const TransactionProvider = ({ children }) => {
       }
 
       report('subscriptions', 60, 'Restoring recurring subscriptions...');
-      // 5. Restore Subscriptions
+      // 5. Restore Subscriptions (same skip-if-present dedup).
+      const existingSubs = await DataService.getSubscriptions(userId);
+      const subSeen = new Set(existingSubs.map(s =>
+        `${String(s.name || '').trim().toLowerCase()}__${parseFloat(s.amount) || 0}__${s.frequency || ''}`
+      ));
       if (data.subscriptions && Array.isArray(data.subscriptions)) {
         for (const sub of data.subscriptions) {
           if (sub.name) {
+            const fp = `${String(sub.name).trim().toLowerCase()}__${parseFloat(sub.amount) || 0}__${sub.frequency || ''}`;
+            if (subSeen.has(fp)) continue;
+            subSeen.add(fp);
             const { id: _subId, ...subData } = sub;
             if (subData.categoryId && categoryIdMap[subData.categoryId]) {
               subData.categoryId = categoryIdMap[subData.categoryId];
@@ -1246,9 +1281,16 @@ export const TransactionProvider = ({ children }) => {
 
       report('lent', 70, 'Restoring peer lending records...');
       // 6. Restore Lent Records (Directly to DataService so NO duplicate transaction is auto-created!)
+      const existingLent = await DataService.getLentRecords(userId);
+      const lentSeen = new Set(existingLent.map(r =>
+        `${String(r.borrowerName || '').trim().toLowerCase()}__${parseFloat(r.amount) || 0}__${(r.dateLent || '').split('T')[0]}`
+      ));
       if (data.lentRecords && Array.isArray(data.lentRecords)) {
         for (const lr of data.lentRecords) {
           if (lr.borrowerName && lr.amount) {
+            const fp = `${String(lr.borrowerName).trim().toLowerCase()}__${parseFloat(lr.amount) || 0}__${(lr.dateLent || '').split('T')[0]}`;
+            if (lentSeen.has(fp)) continue;
+            lentSeen.add(fp);
             const { id: _lrId, ...lrData } = lr;
             await DataService.addLentRecord(lrData, userId);
             importedCount++;
@@ -1258,9 +1300,16 @@ export const TransactionProvider = ({ children }) => {
 
       report('borrowed', 80, 'Restoring debt liabilities & loans...');
       // 7. Restore Borrowed Records (Directly to DataService so NO duplicate transaction is auto-created!)
+      const existingBorrowed = await DataService.getBorrowedRecords(userId);
+      const borrowedSeen = new Set(existingBorrowed.map(r =>
+        `${String(r.lenderName || '').trim().toLowerCase()}__${parseFloat(r.amount) || 0}__${(r.dateBorrowed || '').split('T')[0]}`
+      ));
       if (data.borrowedRecords && Array.isArray(data.borrowedRecords)) {
         for (const br of data.borrowedRecords) {
           if (br.lenderName && br.amount) {
+            const fp = `${String(br.lenderName).trim().toLowerCase()}__${parseFloat(br.amount) || 0}__${(br.dateBorrowed || '').split('T')[0]}`;
+            if (borrowedSeen.has(fp)) continue;
+            borrowedSeen.add(fp);
             const { id: _brId, ...brData } = br;
             await DataService.addBorrowedRecord(brData, userId);
             importedCount++;
@@ -1401,6 +1450,7 @@ export const TransactionProvider = ({ children }) => {
     authLoading,
     error,
     isSyncing,
+    userId,
     fetchData,
     purgeLocalCache
   ]);

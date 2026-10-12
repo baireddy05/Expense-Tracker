@@ -14,6 +14,7 @@ import {
   faWallet
 } from '@fortawesome/free-solid-svg-icons';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
+import toast from 'react-hot-toast';
 
 const AuthModal = () => {
   const { 
@@ -45,23 +46,40 @@ const AuthModal = () => {
     }
   }, [authModalTab]);
 
+  // Clear stale form state every time the modal opens so a previous
+  // email/password never leaks into the next session.
+  useEffect(() => {
+    if (authModalOpen) {
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
+      setDisplayName('');
+      setShowPassword(false);
+      setFormError('');
+      setIsSubmitting(false);
+    }
+  }, [authModalOpen]);
+
   if (!authModalOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
+    // Validate the TRIMMED value — "   " must not pass the empty check only
+    // to fail later with a confusing Firebase error.
+    const cleanEmail = email.trim();
     setIsSubmitting(true);
 
     try {
       if (activeTab === 'login') {
-        if (!email || !password) {
+        if (!cleanEmail || !password) {
           setFormError('Please fill in all fields.');
           setIsSubmitting(false);
           return;
         }
-        await login(email.trim(), password);
+        await login(cleanEmail, password);
       } else if (activeTab === 'signup') {
-        if (!email || !password || !displayName) {
+        if (!cleanEmail || !password || !displayName.trim()) {
           setFormError('Please fill in all required fields.');
           setIsSubmitting(false);
           return;
@@ -76,14 +94,15 @@ const AuthModal = () => {
           setIsSubmitting(false);
           return;
         }
-        await signup(email.trim(), password, displayName.trim());
+        await signup(cleanEmail, password, displayName.trim());
       } else if (activeTab === 'forgot') {
-        if (!email) {
+        if (!cleanEmail) {
           setFormError('Please enter your account email.');
           setIsSubmitting(false);
           return;
         }
-        await resetPassword(email.trim());
+        await resetPassword(cleanEmail);
+        toast.success('Password reset email sent — check your inbox');
         setActiveTab('login');
       }
     } catch (err) {

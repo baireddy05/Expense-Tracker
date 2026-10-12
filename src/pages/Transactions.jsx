@@ -28,7 +28,7 @@ import autoTable from 'jspdf-autotable';
 import { TransactionsSkeleton } from '../components/ui/Skeleton';
 import SwipeableItem from '../components/transactions/SwipeableItem';
 import { getCategoryIcon, resolveCategory } from '../utils/categoryIcons';
-import { toLocalDate, formatDisplayDate } from '../utils/dateUtils';
+import { toLocalDate, getLocalDateString, formatDisplayDate } from '../utils/dateUtils';
 import toast from 'react-hot-toast';
 
 const Transactions = () => {
@@ -138,6 +138,8 @@ const Transactions = () => {
     const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
     startOfWeek.setDate(diff);
     startOfWeek.setHours(0, 0, 0, 0);
+    const endOfToday = new Date(now);
+    endOfToday.setHours(23, 59, 59, 999);
 
     return transactions
       .filter(t => {
@@ -145,7 +147,7 @@ const Transactions = () => {
         if (searchLower) {
           const noteMatch = t.note?.toLowerCase().includes(searchLower);
           const catMatch = cat?.name?.toLowerCase().includes(searchLower);
-          const tagMatch = t.tags && t.tags.some(tag => tag.toLowerCase().includes(searchLower.replace(/^#/, '')));
+          const tagMatch = Array.isArray(t.tags) && t.tags.some(tag => String(tag).toLowerCase().includes(searchLower.replace(/^#/, '')));
           const eventMatch = t.eventTag && t.eventTag.toLowerCase().includes(searchLower.replace(/^#/, ''));
           if (!noteMatch && !catMatch && !tagMatch && !eventMatch) return false;
         }
@@ -163,7 +165,7 @@ const Transactions = () => {
           } else if (timeFilter === 'yesterday') {
             if (txDate.toDateString() !== yesterdayStr) return false;
           } else if (timeFilter === 'week') {
-            if (txDate < startOfWeek) return false;
+            if (txDate < startOfWeek || txDate > endOfToday) return false;
           } else if (timeFilter === 'month') {
             if (txDate.getMonth() !== currentMonth || txDate.getFullYear() !== currentYear) return false;
           } else if (timeFilter === 'year') {
@@ -177,14 +179,12 @@ const Transactions = () => {
         return true;
       })
       .sort((a, b) => {
-        const bDateStr = typeof b.date === 'string' ? b.date : '';
-        const aDateStr = typeof a.date === 'string' ? a.date : '';
-        if (bDateStr !== aDateStr) {
-          return bDateStr > aDateStr ? 1 : -1;
-        }
-        const bCreated = b.createdAt || '';
-        const aCreated = a.createdAt || '';
-        return bCreated > aCreated ? 1 : (bCreated < aCreated ? -1 : 0);
+        const bTime = toLocalDate(b.date)?.getTime() ?? 0;
+        const aTime = toLocalDate(a.date)?.getTime() ?? 0;
+        if (bTime !== aTime) return bTime - aTime;
+        const bCreated = toLocalDate(b.createdAt)?.getTime() ?? 0;
+        const aCreated = toLocalDate(a.createdAt)?.getTime() ?? 0;
+        return bCreated - aCreated;
       });
   }, [transactions, search, filterType, categoryFilter, timeFilter, customDate, categories]);
 
@@ -360,7 +360,8 @@ const Transactions = () => {
     doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN', { dateStyle: 'long' })}`, 14, 32);
     const catName = categoryFilter === 'all' ? 'ALL' : (resolveCategory(categoryFilter, categories)?.name || 'UNKNOWN');
     const dateText = timeFilter === 'all' && selectedDateGroup !== 'all' ? ` | Date: ${formatDateHeader(selectedDateGroup)}` : '';
-    doc.text(`Filters: Type: ${filterType.toUpperCase()} | Cat: ${catName.toUpperCase()} | Time: ${timeFilter.toUpperCase()}${dateText} | Search: "${search || 'None'}"`, 14, 38);
+    const filterLine = `Filters: Type: ${filterType.toUpperCase()} | Cat: ${catName.toUpperCase()} | Time: ${timeFilter.toUpperCase()}${dateText} | Search: "${search || 'None'}"`;
+    doc.text(doc.splitTextToSize(filterLine, 182), 14, 38);
 
     doc.setDrawColor(229, 231, 235);
     doc.setLineWidth(0.5);
@@ -398,7 +399,7 @@ const Transactions = () => {
       startY: 48,
       theme: 'grid',
       styles: { fontSize: 10, cellPadding: 4, textColor: [55, 65, 81] },
-      headStyles: { fillColor: [99, 102, 241], textColor: 255, fontStyle: 'bold' },
+      headStyles: { fillColor: [99, 102, 241], textColor: [255, 255, 255], fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [249, 250, 251] },
       columnStyles: {
         4: { halign: 'right', fontStyle: 'bold' }
@@ -419,7 +420,7 @@ const Transactions = () => {
       }
     });
 
-    doc.save(`transactions_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`transactions_${getLocalDateString()}.pdf`);
   };
 
   const handleExportPDF = () => {
@@ -571,6 +572,7 @@ const Transactions = () => {
             <option value="all">All Types</option>
             <option value="expense">Expense</option>
             <option value="income">Income</option>
+            <option value="transfer">Transfer</option>
           </select>
         </div>
 
@@ -702,8 +704,18 @@ const Transactions = () => {
                   className="glass-card rounded-2xl overflow-hidden border border-zinc-200/80 dark:border-zinc-800/80 transition-all duration-200 shadow-sm"
                 >
                   {/* Collapsible Date Header & Quick Action Row */}
-                  <div 
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isExpanded}
+                    aria-label={`${isExpanded ? 'Collapse' : 'Expand'} transactions for ${formatDateHeader(g.dateKey)}`}
                     onClick={() => toggleDateExpand(g.dateKey)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleDateExpand(g.dateKey);
+                      }
+                    }}
                     className="w-full p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 bg-white/70 dark:bg-zinc-900/70 hover:bg-zinc-50/90 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer select-none"
                   >
                     {/* Left: Icon, Date Title & Tx Count */}

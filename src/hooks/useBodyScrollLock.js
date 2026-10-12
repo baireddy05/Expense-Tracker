@@ -7,8 +7,19 @@ export const useBodyScrollLock = (isLocked) => {
   const lockId = useId();
 
   useEffect(() => {
+    if (typeof document === 'undefined') return;
     const docEl = document.documentElement;
     const prevHtmlOverflow = docEl.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevBodyPadding = document.body.style.paddingRight;
+    const prevOverscroll = document.body.style.overscrollBehavior;
+
+    const restore = () => {
+      docEl.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
+      document.body.style.paddingRight = prevBodyPadding;
+      document.body.style.overscrollBehavior = prevOverscroll;
+    };
 
     if (isLocked) {
       activeLocks.add(lockId);
@@ -20,10 +31,7 @@ export const useBodyScrollLock = (isLocked) => {
     } else {
       activeLocks.delete(lockId);
       if (activeLocks.size === 0) {
-        docEl.style.overflow = prevHtmlOverflow || '';
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
-        document.body.style.overscrollBehavior = '';
+        restore();
       }
     }
 
@@ -31,10 +39,7 @@ export const useBodyScrollLock = (isLocked) => {
       const wasLast = activeLocks.has(lockId) && activeLocks.size === 1;
       activeLocks.delete(lockId);
       if (activeLocks.size === 0 || wasLast) {
-        docEl.style.overflow = '';
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
-        document.body.style.overscrollBehavior = '';
+        restore();
       }
     };
   }, [isLocked, lockId]);

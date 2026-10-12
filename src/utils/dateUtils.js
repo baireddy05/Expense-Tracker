@@ -4,7 +4,8 @@
  */
 
 export const getLocalDateString = (date = new Date()) => {
-  const d = new Date(date);
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d.getTime())) return '';
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
@@ -14,7 +15,11 @@ export const getLocalDateString = (date = new Date()) => {
 export const parseLocalDate = (dateStr) => {
   if (!dateStr) return new Date();
   if (dateStr instanceof Date) return dateStr;
+  if (typeof dateStr !== 'string') return new Date(NaN);
   const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    return new Date(NaN);
+  }
   return new Date(year, (month || 1) - 1, day || 1);
 };
 
@@ -40,10 +45,13 @@ export const toLocalDate = (value) => {
 export const formatDisplayDate = (dateStr, options = { day: '2-digit', month: 'short', year: 'numeric' }) => {
   if (!dateStr) return '';
   try {
-    const d = parseLocalDate(dateStr);
+    // toLocalDate handles YYYY-MM-DD strings, Date objects and Firestore
+    // { seconds } timestamps; parseLocalDate alone would throw on objects.
+    const d = toLocalDate(dateStr);
+    if (!d) return typeof dateStr === 'string' ? dateStr : '';
     return d.toLocaleDateString('en-GB', options);
   } catch {
-    return dateStr;
+    return typeof dateStr === 'string' ? dateStr : '';
   }
 };
 
@@ -56,6 +64,7 @@ export const formatDisplayDate = (dateStr, options = { day: '2-digit', month: 's
  */
 export const calculateNextDueDate = (currentDueDateStr, frequency = 'monthly') => {
   const d = parseLocalDate(currentDueDateStr);
+  if (isNaN(d.getTime())) return typeof currentDueDateStr === 'string' ? currentDueDateStr : '';
   const dayOfMonth = d.getDate();
   const daysInTargetMonth = (year, month) => new Date(year, month + 1, 0).getDate();
 

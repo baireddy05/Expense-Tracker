@@ -103,7 +103,16 @@ const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) =>
             return (
               <div
                 key={act.id}
+                role="button"
+                tabIndex={0}
+                aria-label={act.label}
                 onClick={act.onClick}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    act.onClick();
+                  }
+                }}
                 className="flex items-center gap-3 cursor-pointer group touch-feedback transition-all duration-200"
                 style={{ transitionDelay: `${delay}ms` }}
               >

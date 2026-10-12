@@ -1,6 +1,10 @@
 # Stage 1: Build stage
 FROM node:20-alpine AS builder
 
+# sqlite3 is a native module (referenced by server/): Alpine needs a compiler
+# toolchain or `npm ci` fails building it.
+RUN apk add --no-cache python3 make g++
+
 WORKDIR /app
 
 # Accept Vite environment variables as build arguments

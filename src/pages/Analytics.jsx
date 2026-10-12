@@ -17,7 +17,7 @@ import {
 import { getCategoryIcon, resolveCategory } from '../utils/categoryIcons';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
 import { useUI } from '../context/UIContext';
-import { getLocalDateString, parseLocalDate } from '../utils/dateUtils';
+import { getLocalDateString, parseLocalDate, toLocalDate } from '../utils/dateUtils';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement);
 
@@ -196,13 +196,17 @@ const Analytics = () => {
 
     // Helper to filter txns by date range. Local-timezone formatting (NOT
     // toISOString, which shifts the boundary a day in non-UTC timezones).
+    // toLocalDate handles YYYY-MM-DD strings, Date objects and Firestore
+    // { seconds } timestamps — raw .split would crash on non-strings.
     const ymdLocal = (d) => getLocalDateString(d);
     const filterTx = (start, end) => {
       const s = ymdLocal(start);
       const e = ymdLocal(end);
       return transactions.filter(t => {
-        const d = (t.date || '').split('T')[0];
-        return d >= s && d <= e;
+        const d = toLocalDate(t.date);
+        if (!d) return false;
+        const key = ymdLocal(d);
+        return key >= s && key <= e;
       });
     };
 
@@ -240,6 +244,19 @@ const Analytics = () => {
     const savingsA = incomeA - expenseA;
     const savingsB = incomeB - expenseB;
 
+    // Custom ranges must be complete and chronologically valid; otherwise the
+    // comparison below would silently compare garbage (e.g. an inverted range
+    // yields an empty set masked by Math.max(1, ...) day counts).
+    let rangeError = null;
+    if (comparisonPreset === 'custom') {
+      const missing = ['startA', 'endA', 'startB', 'endB'].filter(k => !customRange[k]);
+      if (missing.length > 0) {
+        rangeError = 'Select all four custom dates to compare two periods.';
+      } else if (pA_Start > pA_End || pB_Start > pB_End) {
+        rangeError = 'Each period\u2019s start date must be on or before its end date.';
+      }
+    }
+
     const daysA = Math.max(1, Math.ceil((pA_End - pA_Start) / (1000 * 60 * 60 * 24)) + 1);
     const daysB = Math.max(1, Math.ceil((pB_End - pB_Start) / (1000 * 60 * 60 * 24)) + 1);
 
@@ -263,7 +280,7 @@ const Analytics = () => {
       const b = catMapB[name] || 0;
       const diff = a - b;
       const pct = b > 0 ? (diff / b) * 100 : (a > 0 ? 100 : 0);
-      const catObj = categories.find(c => c.name.toLowerCase() === name.toLowerCase());
+      const catObj = categories.find(c => (c.name || '').toLowerCase() === name.toLowerCase());
       return {
         name,
         amountA: a,
@@ -278,6 +295,7 @@ const Analytics = () => {
     return {
       pA_Label,
       pB_Label,
+      rangeError,
       incomeA,
       incomeB,
       expenseA,
@@ -471,7 +489,7 @@ const Analytics = () => {
                 Income vs Expense Distribution
               </h3>
               <div className="w-full max-w-[260px] aspect-square relative my-auto min-w-0">
-                {transactions.length > 0 ? (
+                {(stats.income + stats.expense) > 0 ? (
                   <Pie 
                     data={incomeVsExpenseData}
                     options={{
@@ -663,6 +681,13 @@ const Analytics = () => {
                   />
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Invalid custom range warning */}
+          {comparisonPreset === 'custom' && comparisonData.rangeError && (
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-700 dark:text-amber-300 font-medium">
+              {comparisonData.rangeError}
             </div>
           )}
 

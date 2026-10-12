@@ -26,7 +26,7 @@ import {
   faSpinner,
   faCheckCircle
 } from '@fortawesome/free-solid-svg-icons';
-import { getCategoryIcon } from '../utils/categoryIcons';
+import { getCategoryIcon, resolveCategory } from '../utils/categoryIcons';
 import CsvImportModal from '../components/transactions/CsvImportModal';
 import toast from 'react-hot-toast';
 
@@ -99,9 +99,14 @@ const Settings = () => {
   }, [currentUser]);
 
   const handleSaveBudget = async () => {
+    const v = parseFloat(budgetInput);
+    if (!Number.isFinite(v) || v < 0) {
+      toast.error('Enter a non-negative budget amount');
+      return;
+    }
     setIsSavingBudget(true);
     try {
-      await updateSettings({ monthlyBudget: parseFloat(budgetInput) || 0 });
+      await updateSettings({ monthlyBudget: v });
       toast.success('Budget limit saved');
     } catch (e) {
       console.error(e);
@@ -112,9 +117,14 @@ const Settings = () => {
   };
 
   const handleSaveCategoryBudget = async (categoryId) => {
+    const v = parseFloat(categoryBudgetInput);
+    if (!Number.isFinite(v) || v < 0) {
+      toast.error('Enter a non-negative budget amount');
+      return;
+    }
     setIsSavingCategoryBudget(true);
     try {
-      await updateCategory(categoryId, { budgetLimit: parseFloat(categoryBudgetInput) || 0 });
+      await updateCategory(categoryId, { budgetLimit: v });
       toast.success('Category budget updated');
       setEditingCategory(null);
     } catch (e) {
@@ -130,8 +140,10 @@ const Settings = () => {
     setIsSavingName(true);
     try {
       await updateUserDisplayName(displayNameInput.trim());
+      toast.success('Display name updated');
     } catch (e) {
       console.error(e);
+      toast.error('Failed to update display name');
     } finally {
       setIsSavingName(false);
     }
@@ -142,8 +154,10 @@ const Settings = () => {
     setIsSendingReset(true);
     try {
       await resetPassword(currentUser.email);
+      toast.success('Password reset email sent');
     } catch (e) {
       console.error(e);
+      toast.error('Failed to send reset email');
     } finally {
       setIsSendingReset(false);
     }
@@ -155,13 +169,17 @@ const Settings = () => {
       return;
     }
     const csvData = transactions.map(t => {
-      const cat = categories.find(c => c.id === t.categoryId);
+      const cat = resolveCategory(t.categoryId, categories, t.note);
+      const accName = (rawAccounts || accounts).find(a => a.id === (t.accountId || t.fromAccountId))?.name || '';
       return {
-        Date: t.date,
+        Date: typeof t.date === 'string' ? t.date.split('T')[0] : (t.date || ''),
         Type: t.type,
         Category: cat ? cat.name : 'Unknown',
         Amount: t.amount,
-        Note: t.note || ''
+        Note: t.note || '',
+        Tags: Array.isArray(t.tags) ? t.tags.join('|') : (t.tags || ''),
+        Account: accName,
+        Event: t.eventTag ? `#${t.eventTag}` : ''
       };
     });
 
@@ -174,6 +192,7 @@ const Settings = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     toast.success('Transactions exported to CSV!');
   };
 
@@ -205,6 +224,7 @@ const Settings = () => {
   };
 
   const [restoreProgress, setRestoreProgress] = useState(null);
+  const restoreHiddenRef = useRef(false);
 
   const handlePickCSV = (e) => {
     const file = e.target.files?.[0];
@@ -218,6 +238,10 @@ const Settings = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Set while true, the progress modal stays hidden ("Run in Background")
+    // even as further onProgress updates arrive.
+    restoreHiddenRef.current = false;
+
     setRestoreProgress({
       percent: 5,
       message: 'Reading and parsing backup file...',
@@ -230,6 +254,7 @@ const Settings = () => {
       try {
         const data = JSON.parse(event.target.result);
         const importedCount = await restoreCompleteBackup(data, (progress) => {
+          if (restoreHiddenRef.current) return;
           setRestoreProgress({
             ...progress,
             isDone: false
@@ -669,7 +694,7 @@ const Settings = () => {
               ref={fileInputRef} 
               onChange={handleImportJSON} 
               onClick={(e) => { e.target.value = ''; }}
-              accept=".json,application/json,text/json,text/plain,*/*" 
+              accept=".json,application/json" 
               className="hidden" 
             />
             <button 
@@ -753,13 +778,25 @@ const Settings = () => {
               </div>
             </div>
 
-            {restoreProgress.isDone && (
+            {restoreProgress.isDone ? (
               <button
                 type="button"
                 onClick={() => setRestoreProgress(null)}
                 className="w-full py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold rounded-xl text-xs transition-all cursor-pointer shadow-xs touch-feedback"
               >
                 Done & View Finances
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  restoreHiddenRef.current = true;
+                  setRestoreProgress(null);
+                }}
+                title="Hide this dialog — the restore keeps running in the background"
+                className="w-full py-2.5 px-4 liquid-glass-subtle hover:bg-white/60 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-300 font-semibold rounded-xl text-xs transition-all cursor-pointer touch-feedback"
+              >
+                Run in Background
               </button>
             )}
           </div>

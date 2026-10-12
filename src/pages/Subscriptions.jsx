@@ -13,7 +13,7 @@ import {
   faWallet
 } from '@fortawesome/free-solid-svg-icons';
 import { getCategoryIcon } from '../utils/categoryIcons';
-import { getLocalDateString, formatDisplayDate } from '../utils/dateUtils';
+import { getLocalDateString, formatDisplayDate, toLocalDate } from '../utils/dateUtils';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import useBodyScrollLock from '../hooks/useBodyScrollLock';
 import toast from 'react-hot-toast';
@@ -53,12 +53,15 @@ const Subscriptions = () => {
 
   const handleOpenModal = (sub = null) => {
     if (sub) {
+      // Normalize to YYYY-MM-DD for <input type="date"> — stored values can be
+      // ISO datetimes or Firestore timestamps that the input can't display.
+      const due = toLocalDate(sub.nextDueDate);
       setFormData({
         name: sub.name,
         amount: sub.amount,
         categoryId: sub.categoryId,
         frequency: sub.frequency,
-        nextDueDate: sub.nextDueDate,
+        nextDueDate: due ? getLocalDateString(due) : '',
         active: sub.active,
         type: sub.type || 'expense'
       });
@@ -84,12 +87,17 @@ const Subscriptions = () => {
       toast.error('Please fill all required fields');
       return;
     }
+    const amt = parseFloat(formData.amount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      toast.error('Enter an amount greater than zero');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       const payload = {
         ...formData,
-        amount: parseFloat(formData.amount)
+        amount: amt
       };
 
       if (editingId) {
@@ -143,7 +151,9 @@ const Subscriptions = () => {
       }
     });
 
-    const activeCount = subscriptions.filter(s => s.active).length;
+    // activeCount matches the summed set (expense-type actives only) so the
+    // "Based on N active" label stays truthful.
+    const activeCount = subscriptions.filter(s => s.active && s.type !== 'income').length;
 
     return { activeMonthlyTotal, activeCount, totalCount: subscriptions.length };
   }, [subscriptions]);
@@ -261,7 +271,7 @@ const Subscriptions = () => {
                         {sub.type === 'income' ? '+' : '-'}{formatCurrency(sub.amount)}
                       </p>
                       <p className="text-[10px] text-zinc-500 font-medium mt-0.5">
-                        Next Due: {formatDisplayDate(sub.nextDueDate)}
+                        Next Due: {sub.nextDueDate ? formatDisplayDate(sub.nextDueDate) : 'No due date'}
                       </p>
                     </div>
 

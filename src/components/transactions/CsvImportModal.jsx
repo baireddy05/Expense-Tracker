@@ -104,7 +104,18 @@ const CsvImportModal = ({ isOpen, onClose, file }) => {
 
   // Parse the CSV whenever a new file arrives
   useEffect(() => {
-    if (!isOpen || !file) return;
+    if (!isOpen || !file) {
+      // Clear stale rows so reopening without a file never shows the
+      // previous file's data.
+      if (!isOpen) {
+        setHeaders([]);
+        setRawRows([]);
+        setResult(null);
+        setParseError('');
+        setMapping({ date: '', type: '', category: '', amount: '', note: '' });
+      }
+      return;
+    }
     setParseError('');
     setResult(null);
     setProgress({ done: 0, total: 0 });
@@ -132,13 +143,15 @@ const CsvImportModal = ({ isOpen, onClose, file }) => {
     });
   }, [isOpen, file]);
 
+  // Fingerprint deliberately excludes categoryId: the same transaction
+  // re-imported under a different category mapping must still dedupe.
   const existingFingerprints = useMemo(() => {
     const set = new Set();
     transactions.forEach(t => {
-      const dateStr = (t.date || '').split('T')[0];
+      const dateStr = String(t.date || '').split('T')[0];
       const amtStr = parseFloat(t.amount || 0).toFixed(2);
       const noteStr = (t.note || '').trim().toLowerCase();
-      set.add(`${dateStr}__${amtStr}__${t.type || 'expense'}__${noteStr}__${t.categoryId || ''}`);
+      set.add(`${dateStr}__${amtStr}__${t.type || 'expense'}__${noteStr}`);
     });
     return set;
   }, [transactions]);
@@ -152,7 +165,10 @@ const CsvImportModal = ({ isOpen, onClose, file }) => {
       const date = normalizeImportDate(row[mapping.date]);
       const rawAmtStr = String(row[mapping.amount] ?? '').trim();
       const isParenNegative = /^\(.*\)$/.test(rawAmtStr);
-      const cleanAmtStr = rawAmtStr.replace(/[()]/g, '').replace(/[,₹\s]/g, '');
+      // Strip everything except digits, dot and minus so "Rs. 1,200",
+      // "₹1,200.50" and "$1,200" all parse (the old strip left "Rs.1200"
+      // → NaN → valid rows wrongly flagged invalid).
+      const cleanAmtStr = rawAmtStr.replace(/[^0-9.-]/g, '');
       let amt = parseFloat(cleanAmtStr);
       let isNegative = isParenNegative;
       if (!isNaN(amt) && amt < 0) {
@@ -162,9 +178,8 @@ const CsvImportModal = ({ isOpen, onClose, file }) => {
 
       let type = normalizeImportType(mapping.type ? row[mapping.type] : '');
       if (!mapping.type || !row[mapping.type]) {
-        if (isNegative) {
-          type = 'expense';
-        }
+        // No Type column (typical bank/UPI statement): sign decides.
+        type = isNegative ? 'expense' : 'income';
       }
 
       const note = String(mapping.note ? (row[mapping.note] ?? '') : '').trim();
@@ -174,14 +189,15 @@ const CsvImportModal = ({ isOpen, onClose, file }) => {
         return { idx, status: 'invalid', date, amount: amt, type, note, catName, categoryId: '', reason: !date ? 'Bad date' : 'Bad amount' };
       }
 
+      // Same-type match only: an expense row must never resolve to an
+      // income category of the same name (e.g. "Salary").
       let cat = catName
         ? categories.find(c => c.name?.toLowerCase() === catName.toLowerCase() && c.type === type)
-          || categories.find(c => c.name?.toLowerCase() === catName.toLowerCase())
         : null;
       if (!cat) cat = categories.find(c => c.type === type);
-      const categoryId = cat?.id || categories[0]?.id || '';
+      const categoryId = cat?.id || '';
 
-      const fp = `${date}__${amt.toFixed(2)}__${type}__${note.toLowerCase()}__${categoryId}`;
+      const fp = `${date}__${amt.toFixed(2)}__${type}__${note.toLowerCase()}`;
       if (existingFingerprints.has(fp)) {
         return { idx, status: 'duplicate', date, amount: amt, type, note, catName: cat?.name || catName, categoryId, reason: 'Already in ledger' };
       }

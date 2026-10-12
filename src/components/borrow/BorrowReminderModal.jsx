@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faPaperPlane, faCopy, faCheck } from '@fortawesome/free-solid-svg-icons';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
-import toast from 'react-hot-toast';
 import { formatDisplayDate } from '../../utils/dateUtils';
+import { buildWhatsAppUrl, copyTextToClipboard } from '../../utils/share';
 
 const BorrowReminderModal = ({ isOpen, onClose, record }) => {
   const total = record ? parseFloat(record.amount) || 0 : 0;
@@ -17,6 +17,7 @@ const BorrowReminderModal = ({ isOpen, onClose, record }) => {
 
   const [message, setMessage] = useState(defaultMsg);
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef(null);
 
   useBodyScrollLock(isOpen);
 
@@ -24,23 +25,27 @@ const BorrowReminderModal = ({ isOpen, onClose, record }) => {
     if (record) {
       setMessage(defaultMsg);
     }
-  }, [record, defaultMsg]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [record?.id]);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   if (!isOpen || !record) return null;
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(message);
+  const handleCopy = async () => {
+    const ok = await copyTextToClipboard(message, 'Message copied to clipboard');
+    if (!ok) return;
     setCopied(true);
-    toast.success('Message copied to clipboard');
-    setTimeout(() => setCopied(false), 2500);
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => setCopied(false), 2500);
   };
 
   const handleWhatsApp = () => {
-    const cleanPhone = (record.phone || '').replace(/[^0-9]/g, '');
-    const url = cleanPhone
-      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`
-      : `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+    window.open(buildWhatsAppUrl(record.phone, message), '_blank', 'noopener');
   };
 
   return createPortal(

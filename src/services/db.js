@@ -372,7 +372,7 @@ export const DataService = {
       return updates;
     }
     if (!id) {
-      return updates;
+      throw new Error('Cannot update a category without an id');
     }
 
     const docRef = doc(db, "users", userId, "categories", id);
@@ -452,7 +452,7 @@ export const DataService = {
       }
       return updates;
     }
-    if (!id) return updates;
+    if (!id) throw new Error('Cannot update a subscription without an id');
     const docRef = doc(db, "users", userId, "subscriptions", id);
     await setDoc(docRef, updates, { merge: true });
     return updates;
@@ -881,34 +881,135 @@ export const DataService = {
 
   // Migrate guest (device-local) records into the signed-in user's cloud
   // collections, then clear ONLY the successfully migrated guest stores.
-  // Per-collection tracking guarantees no duplicate re-uploads if a later
-  // batch fails mid-migration (previously the whole guest store survived a
-  // single failed upload and everything got re-imported on the next login).
+  // Three guarantees:
+  // 1. Categories/accounts/events migrate FIRST with old→new id maps, so
+  //    migrated transactions keep their category/account/event links
+  //    (guest ids like local_cat_* don't exist in cloud).
+  // 2. Each entry is removed from the guest store as it succeeds, so a
+  //    mid-run failure never re-uploads (duplicates) what already made it.
+  // 3. Re-runs match by name+type (categories/accounts) or tag (events),
+  //    never creating duplicates.
   async migrateLocalDataToCloud(userId) {
     if (!userId || !db) return { count: 0 };
 
-    const migrateList = async (key, addFn) => {
+    const norm = (s) => String(s || '').trim().toLowerCase();
+
+    const migrateList = async (key, addFn, remapFn) => {
       const items = loadGuestList(key);
       if (items.length === 0) return 0;
       let migrated = 0;
-      for (const { id: _ignored, ...item } of items) {
-        await addFn(item, userId);
+      for (const entry of [...items]) {
+        const { id: _ignored, ...item } = entry;
+        await addFn(remapFn ? remapFn(item) : item, userId);
         migrated++;
+        saveGuestList(key, loadGuestList(key).filter(i => i.id !== entry.id));
       }
-      // This collection fully uploaded — safe to clear it so a retry
-      // (network hiccup mid-run, page close) never re-imports it.
-      // Clears both current and pre-rename (ExTrack) keys.
-      removeWithLegacy(key);
       return migrated;
     };
 
     let count = 0;
-    count += await migrateList(GUEST_KEYS.transactions, (t, uid) => this.addTransaction(t, uid));
+
+    // 1. Categories — match by name+type, create what's missing.
+    const catIdMap = {};
+    {
+      const guestCats = loadGuestList(GUEST_KEYS.categories);
+      if (guestCats.length > 0) {
+        const cloudCats = await this.getCategories(userId);
+        for (const gc of guestCats) {
+          let match = cloudCats.find(c => norm(c.name) === norm(gc.name) && c.type === gc.type);
+          if (!match) {
+            match = await this.addCategory(
+              { name: gc.name, color: gc.color, icon: gc.icon, type: gc.type },
+              userId
+            );
+            cloudCats.push(match);
+          }
+          if (gc.id && match?.id) catIdMap[gc.id] = match.id;
+        }
+        removeWithLegacy(GUEST_KEYS.categories);
+      }
+    }
+
+    // 2. Accounts — match by name+type (never mark a migrated wallet default;
+    // the cloud default stays authoritative).
+    const accIdMap = {};
+    {
+      const guestAccs = loadGuestList(GUEST_KEYS.accounts);
+      if (guestAccs.length > 0) {
+        const cloudAccs = await this.getAccounts(userId);
+        for (const ga of guestAccs) {
+          let match = cloudAccs.find(c => norm(c.name) === norm(ga.name) && (c.type || 'bank') === (ga.type || 'bank'));
+          if (!match) {
+            match = await this.addAccount(
+              {
+                name: ga.name,
+                type: ga.type,
+                initialBalance: parseFloat(ga.initialBalance) || 0,
+                color: ga.color,
+                icon: ga.icon,
+                isDefault: false
+              },
+              userId
+            );
+            cloudAccs.push(match);
+          }
+          if (ga.id && match?.id) accIdMap[ga.id] = match.id;
+        }
+        removeWithLegacy(GUEST_KEYS.accounts);
+      }
+    }
+
+    // 3. Events — match by tag slug; drop computed fields before re-creating.
+    const eventIdMap = {};
+    {
+      const guestEvents = loadGuestList(GUEST_KEYS.events);
+      if (guestEvents.length > 0) {
+        const cloudEvents = await this.getEvents(userId);
+        for (const ge of guestEvents) {
+          let match = ge.tag ? cloudEvents.find(c => norm(c.tag) === norm(ge.tag)) : null;
+          if (!match) {
+            const { id: _gid, spent: _spent, txCount: _tx, remainingBudget: _rb, percentage: _pct, isOverBudget: _ob, ...def } = ge;
+            match = await this.addEvent(def, userId);
+            cloudEvents.push(match);
+          }
+          if (ge.id && match?.id) eventIdMap[ge.id] = match.id;
+        }
+        removeWithLegacy(GUEST_KEYS.events);
+      }
+    }
+
+    // Rewrite guest-local foreign keys to their cloud counterparts.
+    const remapRefs = (item) => {
+      const out = { ...item };
+      if (out.categoryId && catIdMap[out.categoryId]) out.categoryId = catIdMap[out.categoryId];
+      if (out.accountId && accIdMap[out.accountId]) out.accountId = accIdMap[out.accountId];
+      if (out.eventId && eventIdMap[out.eventId]) out.eventId = eventIdMap[out.eventId];
+      if (out.fromAccountId && accIdMap[out.fromAccountId]) out.fromAccountId = accIdMap[out.fromAccountId];
+      if (out.toAccountId && accIdMap[out.toAccountId]) out.toAccountId = accIdMap[out.toAccountId];
+      return out;
+    };
+
+    // 4. Everything else (transactions + subscriptions carry remapped refs).
+    count += await migrateList(GUEST_KEYS.transactions, (t, uid) => this.addTransaction(t, uid), remapRefs);
     count += await migrateList(GUEST_KEYS.lentRecords, (r, uid) => this.addLentRecord(r, uid));
     count += await migrateList(GUEST_KEYS.borrowedRecords, (r, uid) => this.addBorrowedRecord(r, uid));
-    count += await migrateList(GUEST_KEYS.subscriptions, (s, uid) => this.addSubscription(s, uid));
+    count += await migrateList(GUEST_KEYS.subscriptions, (s, uid) => this.addSubscription(s, uid), remapRefs);
     count += await migrateList(GUEST_KEYS.savingsGoals, (g, uid) => this.addSavingsGoal(g, uid));
-    count += await migrateList(GUEST_KEYS.events, (e, uid) => this.addEvent(e, uid));
+
+    // 5. Settings — only when cloud has no custom budget but guest does, so
+    // another device's value is never clobbered.
+    try {
+      const guestSettings = loadGuestObject(GUEST_KEYS.settings, null);
+      const guestBudget = Number(guestSettings?.monthlyBudget) || 0;
+      if (guestBudget > 0) {
+        const cloudSettings = await this.getSettings(userId);
+        const cloudBudget = Number(cloudSettings?.monthlyBudget) || 0;
+        if (!(cloudBudget > 0)) {
+          await this.updateSettings({ monthlyBudget: guestBudget }, userId);
+        }
+      }
+      removeWithLegacy(GUEST_KEYS.settings);
+    } catch { /* ignore settings migration errors */ }
 
     return { count };
   }

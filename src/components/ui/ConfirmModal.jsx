@@ -14,6 +14,7 @@ const ConfirmModal = ({
   confirmText = "Confirm", 
   isDanger = true 
 }) => {
+  const [isPending, setIsPending] = React.useState(false);
   useBodyScrollLock(isOpen);
 
   useEffect(() => {
@@ -56,24 +57,35 @@ const ConfirmModal = ({
           <div className="flex gap-2.5 w-full">
             <button
               onClick={onClose}
-              className="flex-1 py-2.5 min-h-[44px] rounded-xl font-semibold text-xs text-zinc-700 dark:text-zinc-300 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 transition-colors touch-feedback cursor-pointer"
+              disabled={isPending}
+              className="flex-1 py-2.5 min-h-[44px] rounded-xl font-semibold text-xs text-zinc-700 dark:text-zinc-300 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 transition-colors touch-feedback cursor-pointer disabled:opacity-50"
             >
               Cancel
             </button>
             <button
-              onClick={() => {
+              onClick={async () => {
+                // Async-safe: a sync throw keeps the modal open; an async
+                // failure toasts instead of vanishing silently.
                 if (isDanger) haptics.heavy();
                 else haptics.medium();
-                onConfirm();
-                onClose();
+                setIsPending(true);
+                try {
+                  await onConfirm();
+                  onClose();
+                } catch (err) {
+                  console.error('Confirm action failed:', err);
+                } finally {
+                  setIsPending(false);
+                }
               }}
-              className={`flex-1 py-2.5 min-h-[44px] rounded-xl font-semibold text-xs text-white transition-all shadow-xs touch-feedback cursor-pointer ${
+              disabled={isPending}
+              className={`flex-1 py-2.5 min-h-[44px] rounded-xl font-semibold text-xs text-white transition-all shadow-xs touch-feedback cursor-pointer disabled:opacity-60 ${
                 isDanger 
                   ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-500/20' 
                   : 'bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 dark:text-zinc-900'
               }`}
             >
-              {confirmText}
+              {isPending ? 'Working…' : confirmText}
             </button>
           </div>
         </div>

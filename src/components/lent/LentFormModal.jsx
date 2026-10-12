@@ -51,7 +51,10 @@ const LentFormModal = ({ isOpen, onClose, initialData = null }) => {
   useBodyScrollLock(isOpen);
 
   useEffect(() => {
-    if (initialData) {
+    // Reset only on open / record switch — `initialData` gets a new object
+    // identity on every background refetch, which would wipe typed input.
+    if (!isOpen) return;
+    if (initialData?.id) {
       setBorrowerName(initialData.borrowerName || '');
       setAmount(initialData.amount ? String(initialData.amount) : '');
       setDateLent(initialData.dateLent || getLocalToday());
@@ -66,14 +69,24 @@ const LentFormModal = ({ isOpen, onClose, initialData = null }) => {
       setPhone('');
       setNote('');
     }
-  }, [initialData, isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initialData?.id]);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!borrowerName.trim() || !amount || parseFloat(amount) <= 0) {
+    const parsedAmount = parseFloat(amount);
+    if (!borrowerName.trim() || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       toast.error('Please provide borrower name and a valid amount');
+      return;
+    }
+    if (!dateLent) {
+      toast.error('Please select the date the money was lent');
+      return;
+    }
+    if (dueDate && dueDate < dateLent) {
+      toast.error('Due date cannot be before the lent date');
       return;
     }
 
@@ -81,19 +94,19 @@ const LentFormModal = ({ isOpen, onClose, initialData = null }) => {
     try {
       const recordPayload = {
         borrowerName: borrowerName.trim(),
-        amount: parseFloat(amount),
+        amount: parsedAmount,
         dateLent,
         dueDate: dueDate || null,
         phone: phone.trim() || null,
         note: note.trim() || ''
       };
 
-      if (initialData) {
+      if (initialData?.id) {
         await updateLentRecord(initialData.id, recordPayload);
         haptics.success();
         toast.success('Lent record updated');
       } else {
-        const initialAmount = parseFloat(amount);
+        const initialAmount = parsedAmount;
         await addLentRecord({
           ...recordPayload,
           returnedAmount: 0,

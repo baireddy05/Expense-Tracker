@@ -260,6 +260,25 @@ the item from this section when it gets built:
 
 ## 16. Recent change log (latest first)
 
+- 2026-10-12: Full-project bug sweep: category resolver prefers explicit id over
+  note inference (no more recategorized transactions flipping to system
+  categories); date utils hardened for Date/{seconds}/garbage inputs;
+  guest→cloud migration now covers categories/accounts/settings with old→new id
+  remapping, per-item progress and single-trigger ordering; restore skips
+  duplicates in goals/subscriptions/lent/borrowed; monthly (not lifetime) spend
+  drives category budget bars; Analytics comparison crash fixed + custom-range
+  validation; transfers filterable; credit overpayments counted in net worth;
+  CSV import parses Rs./$ amounts, infers income for unsigned credits and
+  dedupes independent of category; all lent/borrowed forms validate amounts
+  (NaN/negative rejected), due-date ordering and clearable due dates; reminder
+  composers share one WhatsApp/clipboard util; Borrowed gains its missing
+  Remind button; modals no longer wipe typed input on background refetch;
+  splash shows only on first load; ConfirmModal handles async confirm;
+  AuthModal trims/validates email, resets on open and toasts resets; bottom-nav
+  badges rendered; ErrorBoundary is theme-aware; nginx caches /assets/
+  immutably (7d elsewhere); Dockerfile installs sqlite3 build tools;
+  reference Express backend returns 404s and race-free bulk imports;
+  Firestore writes carry a field-count abuse cap.
 - 2026-09-22: Haptics consistency overhaul: attach-once global handler, per-type
   tap cooldowns, outcome-only call-site contract, correct intensity preview,
   toggle tick instead of thud; removed double-firing speed-dial buzz.

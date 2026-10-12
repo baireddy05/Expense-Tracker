@@ -40,13 +40,15 @@ const BorrowMoreModal = ({ isOpen, onClose, record }) => {
   useBodyScrollLock(isOpen);
 
   useEffect(() => {
-    if (record) {
-      setAmount('');
-      setDate(getLocalToday());
-      setDueDate(record.dueDate || '');
-      setNote('');
-    }
-  }, [record, isOpen]);
+    // Reset only on open / record switch — `record` gets a new object
+    // identity on every background refetch, which would wipe typed input.
+    if (!isOpen || !record) return;
+    setAmount('');
+    setDate(getLocalToday());
+    setDueDate(record.dueDate || '');
+    setNote('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, record?.id]);
 
   if (!isOpen || !record) return null;
 
@@ -59,7 +61,7 @@ const BorrowMoreModal = ({ isOpen, onClose, record }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!parsedNewAmount || parsedNewAmount <= 0) {
+    if (!Number.isFinite(parsedNewAmount) || parsedNewAmount <= 0) {
       toast.error('Please enter a valid amount');
       return;
     }
@@ -69,7 +71,9 @@ const BorrowMoreModal = ({ isOpen, onClose, record }) => {
       await borrowMoreMoney(record.id, {
         amount: parsedNewAmount,
         date,
-        dueDate: dueDate || record.dueDate || null,
+        // '' means the user cleared the field → null (falling back to the old
+        // value here would make clearing impossible).
+        dueDate: dueDate || null,
         note: note.trim() || 'Additional borrowed money'
       });
       toast.success(`Recorded ₹${parsedNewAmount.toLocaleString('en-IN')} borrowed from ${record.lenderName}!`);

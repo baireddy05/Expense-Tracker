@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faCheckCircle, faArrowRotateLeft } from '@fortawesome/free-solid-svg-icons';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import toast from 'react-hot-toast';
+import { haptics } from '../../utils/haptics';
 
 const RepaymentModal = ({ isOpen, onClose, record }) => {
   const { recordRepayment } = useTransactions();
@@ -29,14 +30,15 @@ const RepaymentModal = ({ isOpen, onClose, record }) => {
   useBodyScrollLock(isOpen);
 
   useEffect(() => {
-    if (record) {
-      setAmount(remainingAmount > 0 ? String(remainingAmount) : '');
-      setDate(getLocalToday());
-      setNote('');
-    }
-    // remainingAmount derives from record; included so the prefilled amount
-    // stays correct if the record's balance changes while the modal is open.
-  }, [record, isOpen, remainingAmount]);
+    // Reset only on open / record switch — depending on `record` (a new
+    // object identity every context refetch) would wipe typed input whenever
+    // background data refreshes while the modal is open.
+    if (!isOpen || !record) return;
+    setAmount(remainingAmount > 0 ? String(remainingAmount) : '');
+    setDate(getLocalToday());
+    setNote('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, record?.id]);
 
   if (!isOpen || !record) return null;
 
@@ -60,9 +62,11 @@ const RepaymentModal = ({ isOpen, onClose, record }) => {
         note: note.trim() || 'Repayment'
       });
       toast.success(`Recorded ₹${parsedAmount.toLocaleString('en-IN')} returned by ${record.borrowerName}!`);
+      haptics.success();
       onClose();
     } catch (err) {
       console.error(err);
+      haptics.error();
       toast.error('Failed to record repayment');
     } finally {
       setLoading(false);

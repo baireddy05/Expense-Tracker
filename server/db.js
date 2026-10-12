@@ -34,6 +34,10 @@ db.serialize(() => {
   
   // Insert default categories if none exist
   db.get("SELECT COUNT(*) as count FROM categories", (err, row) => {
+    if (err) {
+      console.error("Failed to check categories table:", err.message);
+      return;
+    }
     if (row && row.count === 0) {
       const defaultCategories = [
         { id: '1', name: 'Food', color: '#ef4444', icon: 'fa-utensils', type: 'expense' },

@@ -15,7 +15,7 @@ import {
   faTrash,
   faScaleBalanced
 } from '@fortawesome/free-solid-svg-icons';
-import { getLocalDateString, formatDisplayDate } from '../utils/dateUtils';
+import { getLocalDateString, formatDisplayDate, toLocalDate } from '../utils/dateUtils';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import useBodyScrollLock from '../hooks/useBodyScrollLock';
 import toast from 'react-hot-toast';
@@ -91,8 +91,10 @@ const Accounts = () => {
     accounts.forEach(acc => {
       const bal = acc.balance || 0;
       if (acc.type === 'credit') {
-        // In credit cards, positive usage is liability
+        // Credit cards: negative balance is money owed (liability),
+        // positive balance is overpayment credit (an asset).
         if (bal < 0) liabilities += Math.abs(bal);
+        else liquidAssets += bal;
       } else {
         if (bal >= 0) liquidAssets += bal;
         else liabilities += Math.abs(bal);
@@ -104,10 +106,11 @@ const Accounts = () => {
     return { liquidAssets, liabilities, netWorth };
   }, [accounts]);
 
-  // Recent Transfers
+  // Recent Transfers (most recent first)
   const recentTransfers = useMemo(() => {
     return transactions
       .filter(t => t.type === 'transfer')
+      .sort((a, b) => (toLocalDate(b.date)?.getTime() ?? 0) - (toLocalDate(a.date)?.getTime() ?? 0))
       .slice(0, 10);
   }, [transactions]);
 
@@ -639,7 +642,13 @@ const Accounts = () => {
                   <select
                     required
                     value={transferForm.fromAccountId}
-                    onChange={e => setTransferForm({ ...transferForm, fromAccountId: e.target.value })}
+                    onChange={e => setTransferForm(prev => ({
+                      ...prev,
+                      fromAccountId: e.target.value,
+                      // Clear a now-invalid destination instead of letting
+                      // submit fail with a toast.
+                      toAccountId: prev.toAccountId === e.target.value ? '' : prev.toAccountId
+                    }))}
                     className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white focus:border-transparent outline-none transition-all text-xs text-zinc-900 dark:text-white appearance-none cursor-pointer"
                   >
                     <option value="" disabled>Select Source</option>

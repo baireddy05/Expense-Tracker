@@ -134,13 +134,17 @@ const Events = () => {
     setIsEventModalOpen(true);
   };
 
-  // Name change auto-generates tag if tag not manually typed
+  // Name change auto-generates tag ONLY when creating. In edit mode the tag
+  // is left untouched: silently re-slugging on rename would orphan every
+  // transaction linked via the old #tag.
   const handleNameChange = (val) => {
     const slug = val.toLowerCase().replace(/[^a-z0-9]/g, '');
     setEventForm(prev => ({
       ...prev,
       name: val,
-      tag: prev.tag === prev.name.toLowerCase().replace(/[^a-z0-9]/g, '') || !prev.tag ? slug : prev.tag
+      tag: editingId
+        ? prev.tag
+        : (prev.tag === prev.name.toLowerCase().replace(/[^a-z0-9]/g, '') || !prev.tag ? slug : prev.tag)
     }));
   };
 
@@ -149,6 +153,15 @@ const Events = () => {
     e.preventDefault();
     if (!eventForm.name.trim()) {
       toast.error('Please enter a trip/event name');
+      return;
+    }
+    if (eventForm.startDate && eventForm.endDate && eventForm.endDate < eventForm.startDate) {
+      toast.error('End date cannot be before the start date');
+      return;
+    }
+    const budgetVal = parseFloat(eventForm.budget);
+    if (eventForm.budget !== '' && eventForm.budget !== undefined && (!Number.isFinite(budgetVal) || budgetVal < 0)) {
+      toast.error('Budget cannot be negative');
       return;
     }
 
@@ -195,11 +208,13 @@ const Events = () => {
   const getEventTransactions = (event) => {
     if (!event) return [];
     const tagClean = (event.tag || '').toLowerCase();
+    // Word-boundary match so #goa doesn't hit #goa123/#goanna; t.tags entries
+    // may carry a leading '#' — strip it before comparing.
+    const tagRegex = tagClean ? new RegExp('#' + tagClean.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![a-z0-9])', 'i') : null;
     return transactions.filter(t => {
       if (t.type !== 'expense') return false;
-      const note = (t.note || '').toLowerCase();
-      const tTag = (t.eventTag || t.tag || '').toLowerCase();
-      const hasTag = tagClean && (tTag === tagClean || note.includes('#' + tagClean) || (t.tags && t.tags.some(tag => tag.toLowerCase() === tagClean)));
+      const tTag = String(t.eventTag || t.tag || '').toLowerCase().replace(/^#/, '');
+      const hasTag = tagClean && (tTag === tagClean || (tagRegex && tagRegex.test(t.note || '')) || (Array.isArray(t.tags) && t.tags.some(tag => String(tag).toLowerCase().replace(/^#/, '') === tagClean)));
       const matchesEventId = t.eventId === event.id;
       return hasTag || matchesEventId;
     });

@@ -10,7 +10,6 @@ import {
   updateProfile,
   onAuthStateChanged 
 } from '../services/firebase';
-import { DataService } from '../services/db';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
@@ -67,12 +66,9 @@ export const AuthProvider = ({ children }) => {
         if (user) {
           setIsGuestMode(false);
           try { clearGuestModeFlag(); } catch { /* ignore */ }
-          // Migrate any guest offline records into the newly signed-in account
-          try {
-            await DataService.migrateLocalDataToCloud(user.uid);
-          } catch (migErr) {
-            console.warn("Guest migration on login note:", migErr);
-          }
+          // Guest→cloud migration runs inside TransactionContext.fetchData
+          // (triggered by the userId change below) BEFORE it reads cloud, so
+          // it is never raced by a second trigger here.
         }
         setLoading(false);
       }, (error) => {
@@ -110,11 +106,21 @@ export const AuthProvider = ({ children }) => {
 
   // Sign up with Email & Password
   const signup = async (email, password, displayName) => {
+    if (!auth) {
+      toast.error('Cloud auth is not configured. Continue as Guest to use the app offline.');
+      throw new Error('Firebase auth is not configured');
+    }
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       if (displayName && userCredential.user) {
         await updateProfile(userCredential.user, { displayName });
-        setCurrentUser({ ...userCredential.user, displayName });
+        // Preserve the Firebase User prototype (getIdToken/reload live on it —
+        // a plain {...spread} would strip every method).
+        setCurrentUser(Object.assign(
+          Object.create(Object.getPrototypeOf(userCredential.user)),
+          userCredential.user,
+          { displayName }
+        ));
       }
       setIsGuestMode(false);
       try { clearGuestModeFlag(); } catch { /* ignore */ }
@@ -134,6 +140,10 @@ export const AuthProvider = ({ children }) => {
 
   // Sign in with Email & Password
   const login = async (email, password) => {
+    if (!auth) {
+      toast.error('Cloud auth is not configured. Continue as Guest to use the app offline.');
+      throw new Error('Firebase auth is not configured');
+    }
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       setIsGuestMode(false);
@@ -156,6 +166,10 @@ export const AuthProvider = ({ children }) => {
 
   // Sign in with Google
   const loginWithGoogle = async () => {
+    if (!auth || !googleProvider) {
+      toast.error('Cloud auth is not configured. Continue as Guest to use the app offline.');
+      throw new Error('Firebase auth is not configured');
+    }
     try {
       const result = await signInWithPopup(auth, googleProvider);
       setIsGuestMode(false);
@@ -186,6 +200,10 @@ export const AuthProvider = ({ children }) => {
 
   // Password Reset
   const resetPassword = async (email) => {
+    if (!auth) {
+      toast.error('Cloud auth is not configured. Continue as Guest to use the app offline.');
+      throw new Error('Firebase auth is not configured');
+    }
     try {
       await sendPasswordResetEmail(auth, email);
       toast.success('Password reset link sent to your email!');
@@ -200,7 +218,10 @@ export const AuthProvider = ({ children }) => {
 
   // Update Display Name
   const updateUserDisplayName = async (displayName) => {
-    if (!auth.currentUser) return;
+    if (!auth?.currentUser) {
+      toast.error('You are not signed in.');
+      return;
+    }
     try {
       await updateProfile(auth.currentUser, { displayName });
       setCurrentUser({ ...auth.currentUser, displayName });

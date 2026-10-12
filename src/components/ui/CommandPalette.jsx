@@ -54,7 +54,8 @@ const CommandPalette = () => {
     if (isCommandPaletteOpen) {
       setQuery('');
       setSelectedIndex(0);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      const t = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(t);
     }
   }, [isCommandPaletteOpen]);
 
@@ -102,11 +103,11 @@ const CommandPalette = () => {
 
     // 2. Friends from Lent Records
     lentRecords.forEach(r => {
-      if (!q || r.borrowerName.toLowerCase().includes(q) || (r.note && r.note.toLowerCase().includes(q))) {
+      if (!q || r.borrowerName?.toLowerCase().includes(q) || (r.note && r.note.toLowerCase().includes(q))) {
         list.push({
           id: `lent_${r.id}`,
           category: 'Lent to Friends',
-          title: r.borrowerName,
+          title: r.borrowerName || 'Unnamed',
           subtitle: `Total Lent: ₹${(parseFloat(r.amount) || 0).toLocaleString('en-IN')} (Pending: ₹${Math.max(0, (parseFloat(r.amount) || 0) - (parseFloat(r.returnedAmount) || 0)).toLocaleString('en-IN')})`,
           icon: faHandHoldingDollar,
           action: () => navigate('/lent')
@@ -116,11 +117,11 @@ const CommandPalette = () => {
 
     // 3. Friends from Borrowed Records
     borrowedRecords.forEach(r => {
-      if (!q || r.lenderName.toLowerCase().includes(q) || (r.note && r.note.toLowerCase().includes(q))) {
+      if (!q || r.lenderName?.toLowerCase().includes(q) || (r.note && r.note.toLowerCase().includes(q))) {
         list.push({
           id: `borrow_${r.id}`,
           category: 'Borrowed Money',
-          title: r.lenderName,
+          title: r.lenderName || 'Unnamed',
           subtitle: `Total Debt: ₹${(parseFloat(r.amount) || 0).toLocaleString('en-IN')} (Remaining: ₹${Math.max(0, (parseFloat(r.amount) || 0) - (parseFloat(r.returnedAmount) || 0)).toLocaleString('en-IN')})`,
           icon: faHandHolding,
           action: () => navigate('/borrowed')
@@ -163,7 +164,7 @@ const CommandPalette = () => {
           id: `sub_${s.id}`,
           category: 'Subscriptions',
           title: s.name,
-          subtitle: `₹${parseFloat(s.amount).toLocaleString('en-IN')}/${s.frequency} • ${s.active ? 'Active' : 'Paused'}`,
+          subtitle: `₹${(parseFloat(s.amount) || 0).toLocaleString('en-IN')}/${s.frequency} • ${s.active ? 'Active' : 'Paused'}`,
           icon: faSyncAlt,
           action: () => navigate('/subscriptions')
         });
@@ -223,7 +224,10 @@ const CommandPalette = () => {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'ArrowDown') {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeCommandPalette();
+    } else if (e.key === 'ArrowDown') {
       e.preventDefault();
       setSelectedIndex(prev => (prev + 1) % (items.length || 1));
     } else if (e.key === 'ArrowUp') {

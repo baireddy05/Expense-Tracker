@@ -15,7 +15,7 @@ const TransactionForm = ({
   defaultType = 'expense',
   defaultDate = null 
 }) => {
-  const { transactions = [], categories, accounts = [], events = [], addTransaction, updateTransaction, addCategory } = useTransactions();
+  const { transactions = [], categories = [], accounts = [], events = [], addTransaction, updateTransaction, addCategory } = useTransactions();
 
   const getLocalToday = () => {
     const d = new Date();
@@ -129,7 +129,13 @@ const TransactionForm = ({
   // Lock body scroll when modal is open
   useBodyScrollLock(isOpen);
 
+  const initialRecordId = initialData?.id;
+
   useEffect(() => {
+    // Reset only when the modal opens or a different record is loaded.
+    // Depending on accounts/categories would wipe in-progress typing every
+    // time those lists refetch in the background.
+    if (!isOpen) return;
     if (initialData && initialData.id) {
       const txType = initialData.type || 'expense';
       setType(txType);
@@ -148,10 +154,10 @@ const TransactionForm = ({
       }
       setCategoryId(catId);
       setAccountId(initialData.accountId || accounts.find(a => a.isDefault)?.id || accounts[0]?.id || '');
-      setDate(initialData.date ? initialData.date.split('T')[0] : getLocalToday());
+      setDate(initialData.date ? String(initialData.date).split('T')[0] : getLocalToday());
       setNote(initialData.note || '');
       setEventId(initialData.eventId || '');
-      setTagInput(initialData.tags ? initialData.tags.join(', ') : (initialData.eventTag ? '#' + initialData.eventTag : ''));
+      setTagInput(Array.isArray(initialData.tags) ? initialData.tags.join(', ') : (initialData.eventTag ? '#' + initialData.eventTag : ''));
       setIsCreatingCategory(false);
       setNewCategoryName('');
     } else {
@@ -161,14 +167,31 @@ const TransactionForm = ({
       const defaultCat = categories.find(c => c.type === txType);
       setCategoryId(initialData?.categoryId || defaultCat?.id || '');
       setAccountId(initialData?.accountId || accounts.find(a => a.isDefault)?.id || accounts[0]?.id || '');
-      setDate(initialData?.date ? initialData.date.split('T')[0] : (defaultDate || getLocalToday()));
+      setDate(initialData?.date ? String(initialData.date).split('T')[0] : (defaultDate || getLocalToday()));
       setNote(initialData?.note || '');
       setEventId(initialData?.eventId || '');
       setTagInput('');
       setIsCreatingCategory(false);
       setNewCategoryName('');
     }
-  }, [initialData, isOpen, defaultType, defaultDate, accounts, categories]);
+    // NOTE: intentionally narrow deps (see comment above) — exhaustive-deps
+    // would reintroduce the background-wipe bug.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initialRecordId]);
+
+  // Fill in still-empty category/account selects when their lists arrive —
+  // without touching anything the user already typed or picked.
+  useEffect(() => {
+    if (!isOpen || categoryId) return;
+    const fallbackCat = categories.find(c => c.type === type);
+    if (fallbackCat) setCategoryId(fallbackCat.id);
+  }, [isOpen, categories, type, categoryId]);
+
+  useEffect(() => {
+    if (!isOpen || accountId || accounts.length === 0) return;
+    setAccountId(accounts.find(a => a.isDefault)?.id || accounts[0]?.id || '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, accounts]);
 
   const handleTypeToggle = (newType) => {
     setType(newType);
@@ -242,6 +265,7 @@ const TransactionForm = ({
         color: randomColor,
         icon: 'fa-tag'
       });
+      if (!cat?.id) throw new Error('Category creation returned no id');
       setCategoryId(cat.id);
       setIsCreatingCategory(false);
       setNewCategoryName('');

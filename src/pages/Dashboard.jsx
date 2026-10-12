@@ -24,7 +24,7 @@ import { Doughnut, Line } from 'react-chartjs-2';
 import { DashboardSkeleton } from '../components/ui/Skeleton';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
 import { getCategoryIcon, resolveCategory } from '../utils/categoryIcons';
-import { toLocalDate, formatDisplayDate } from '../utils/dateUtils';
+import { toLocalDate, getLocalDateString, formatDisplayDate } from '../utils/dateUtils';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler);
 
@@ -128,7 +128,7 @@ const Dashboard = () => {
         const due = toLocalDate(r.dueDate);
         if (!due) return;
         const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-        if (diffDays <= 7) {
+        if (diffDays <= 7 && diffDays >= -30) {
           alerts.push({
             id: `lent_${r.id}`,
             type: 'lent',
@@ -154,7 +154,7 @@ const Dashboard = () => {
         const due = toLocalDate(r.dueDate);
         if (!due) return;
         const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-        if (diffDays <= 7) {
+        if (diffDays <= 7 && diffDays >= -30) {
           alerts.push({
             id: `borrow_${r.id}`,
             type: 'borrowed',
@@ -176,7 +176,7 @@ const Dashboard = () => {
       const due = toLocalDate(s.nextDueDate);
       if (!due) return;
       const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-      if (diffDays <= 7) {
+      if (diffDays <= 7 && diffDays >= -30) {
         alerts.push({
           id: `sub_${s.id}`,
           type: 'subscription',
@@ -197,7 +197,9 @@ const Dashboard = () => {
   const hasBudget = budgetLimit > 0;
   const budgetPercentage = hasBudget ? Math.min((stats.monthlyExpense / budgetLimit) * 100, 100) : 0;
   const budgetRatio = hasBudget ? stats.monthlyExpense / budgetLimit : 0;
-  const velocityMeter = Math.min((stats.monthlyExpense / (stats.monthlyIncome || 1)) * 100, 100);
+  const velocityMeter = stats.monthlyIncome > 0
+    ? Math.min((stats.monthlyExpense / stats.monthlyIncome) * 100, 100)
+    : (stats.monthlyExpense > 0 ? 100 : 0);
 
   // Month-end spend forecast from current daily pace (local calendar month)
   const spendForecast = useMemo(() => {
@@ -208,20 +210,49 @@ const Dashboard = () => {
     return (stats.monthlyExpense / dayOfMonth) * daysInMonth;
   }, [stats.monthlyExpense]);
 
+  // Month-filter predicate shared by monthly stats and category budgets.
+  const isThisMonthTx = (t, currentMonth, currentYear) => {
+    if (typeof t.date === 'string' && /^\d{4}-\d{2}-\d{2}/.test(t.date)) {
+      return parseInt(t.date.slice(0, 4), 10) === currentYear &&
+        parseInt(t.date.slice(5, 7), 10) - 1 === currentMonth;
+    }
+    const tDate = toLocalDate(t.date);
+    return !!tDate && tDate.getFullYear() === currentYear && tDate.getMonth() === currentMonth;
+  };
+
   const expenseByCategory = useMemo(() => {
     const grouped = {};
     for (let i = 0; i < transactions.length; i++) {
       const t = transactions[i];
       if (t.type !== 'expense') continue;
       const cat = resolveCategory(t.categoryId, categories, t.note);
-      const catName = cat?.name || 'General';
-      const catColor = cat?.color || '#71717a';
-      if (!grouped[catName]) {
-        grouped[catName] = { name: catName, amount: 0, color: catColor };
+      // Key by stable id (names can collide across user categories); the
+      // display label stays the category name.
+      const key = cat?.id || `name:${cat?.name || 'General'}`;
+      if (!grouped[key]) {
+        grouped[key] = { id: cat?.id || null, name: cat?.name || 'General', amount: 0, color: cat?.color || '#71717a' };
       }
-      grouped[catName].amount += parseFloat(t.amount) || 0;
+      grouped[key].amount += parseFloat(t.amount) || 0;
     }
     return Object.values(grouped).sort((a, b) => b.amount - a.amount);
+  }, [transactions, categories]);
+
+  // Monthly per-category spend — category budget limits are monthly, so the
+  // budget bars must compare against THIS month, not lifetime totals.
+  const monthlyExpenseByCategory = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const grouped = {};
+    for (let i = 0; i < transactions.length; i++) {
+      const t = transactions[i];
+      if (t.type !== 'expense') continue;
+      if (!isThisMonthTx(t, currentMonth, currentYear)) continue;
+      const cat = resolveCategory(t.categoryId, categories, t.note);
+      const key = cat?.id || `name:${cat?.name || 'General'}`;
+      grouped[key] = (grouped[key] || 0) + (parseFloat(t.amount) || 0);
+    }
+    return grouped;
   }, [transactions, categories]);
 
   const trendData = useMemo(() => {
@@ -244,7 +275,9 @@ const Dashboard = () => {
 
     transactions.forEach(t => {
       if (!t.date) return;
-      const dateKey = typeof t.date === 'string' && t.date.length >= 10 ? t.date.slice(0, 10) : '';
+      const d = toLocalDate(t.date);
+      if (!d) return;
+      const dateKey = getLocalDateString(d);
       const index = dayMap.get(dateKey);
       if (index !== undefined) {
         const amt = parseFloat(t.amount) || 0;
@@ -593,7 +626,7 @@ const Dashboard = () => {
                         {event.name}
                       </span>
                       <span className="text-[9px] px-1 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-mono truncate max-w-[90px]">
-                        #{event.tag}
+                        {event.tag ? `#${event.tag}` : 'No tag'}
                       </span>
                     </div>
                     {isOver ? (
@@ -737,9 +770,10 @@ const Dashboard = () => {
               Category Budgets
             </h3>
             {categories.filter(c => c.budgetLimit > 0).map(cat => {
-              const spent = expenseByCategory.find(e => e.name === cat.name)?.amount || 0;
+              // Monthly spend for THIS category (budgets are monthly limits).
+              const spent = monthlyExpenseByCategory[cat.id] ?? monthlyExpenseByCategory[`name:${cat.name}`] ?? 0;
               const limit = parseFloat(cat.budgetLimit);
-              const percent = Math.min((spent / limit) * 100, 100);
+              const percent = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
               const isOver = spent > limit;
               
               return (

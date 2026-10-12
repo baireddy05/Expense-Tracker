@@ -56,8 +56,8 @@ const ICON_MAP = {
   'fa-burger': faBurger
 };
 
-const FOOD_KEYWORDS = /\b(coke|tea|chai|samosa|food|lunch|dinner|snack|campa|coffee|burger|pizza|duniya|biryani|hotel|restaurant|bakery)\b/i;
-const LEND_KEYWORDS = /\b(lent|lend|borrow|loan|friend|advance|repay|debt)\b/i;
+const FOOD_KEYWORDS = /\b(coke|tea|chai|samosa|food|lunch|dinner|snack|coffee|burger|pizza|biryani|hotel|restaurant|bakery)\b/i;
+const LEND_KEYWORDS = /\b(lent|lend|borrow|loan|repay|debt)\b/i;
 const TRAVEL_KEYWORDS = /\b(uber|ola|auto|petrol|metro|fuel|flight|train|cab|bus|toll)\b/i;
 const ENTERTAINMENT_KEYWORDS = /\b(movie|game|netflix|spotify|prime|theatre|cinema|hotstar)\b/i;
 
@@ -80,12 +80,12 @@ const updateCategoryMaps = (categories) => {
 
   for (let i = 0; i < categories.length; i++) {
     const c = categories[i];
-    if (c.id) {
+    if (c.id !== undefined && c.id !== null) {
       categoryIdMap.set(c.id, c);
-      categoryIdMap.set(c.id.toLowerCase(), c);
+      categoryIdMap.set(String(c.id).trim().toLowerCase(), c);
     }
     if (c.name) {
-      categoryNameMap.set(c.name.toLowerCase(), c);
+      categoryNameMap.set(String(c.name).toLowerCase(), c);
     }
   }
 };
@@ -101,7 +101,22 @@ export const resolveCategory = (categoryId, categories = [], note = '') => {
 
   updateCategoryMaps(categories);
 
-  // 1. Check note for system-generated / auto-synced lent & borrow transactions first
+  // 1. Direct O(1) Map lookup by ID first — an explicit user categorization
+  // always wins over note-keyword inference below. Only when the stored id
+  // is missing/stale do we fall through to note-based resolution.
+  if (categoryId) {
+    const directMatch = categoryIdMap.get(categoryId);
+    if (directMatch) return directMatch;
+
+    const lowerMatch = categoryIdMap.get(String(categoryId).trim().toLowerCase());
+    if (lowerMatch) return lowerMatch;
+
+    const nameMatch = categoryNameMap.get(String(categoryId).trim().toLowerCase());
+    if (nameMatch) return nameMatch;
+  }
+
+  // 2. Check note for system-generated / auto-synced lent & borrow transactions
+  // (only reached when there was no usable category id above)
   if (note) {
     const lowerNote = String(note).trim().toLowerCase();
 
@@ -156,18 +171,6 @@ export const resolveCategory = (categoryId, categories = [], note = '') => {
                         { id: 'cat_borrowed_money', name: 'Borrowed Money', color: '#06b6d4', icon: 'fa-hand-holding', type: 'income' };
       return borrowCat;
     }
-  }
-
-  // 2. Direct O(1) Map lookup by ID
-  if (categoryId) {
-    const directMatch = categoryIdMap.get(categoryId);
-    if (directMatch) return directMatch;
-
-    const lowerMatch = categoryIdMap.get(String(categoryId).trim().toLowerCase());
-    if (lowerMatch) return lowerMatch;
-
-    const nameMatch = categoryNameMap.get(String(categoryId).trim().toLowerCase());
-    if (nameMatch) return nameMatch;
   }
 
   // 3. High-performance Regex Note Keyword Matching

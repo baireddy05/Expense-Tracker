@@ -3,9 +3,28 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('theme') || 'system';
-  });
+  const THEME_KEY = 'kharch_theme';
+  const LEGACY_THEME_KEY = 'theme';
+
+  const readTheme = () => {
+    try {
+      const val = localStorage.getItem(THEME_KEY);
+      if (val) return val;
+      const legacy = localStorage.getItem(LEGACY_THEME_KEY);
+      if (legacy) {
+        try {
+          localStorage.setItem(THEME_KEY, legacy);
+          localStorage.removeItem(LEGACY_THEME_KEY);
+        } catch { /* ignore */ }
+        return legacy;
+      }
+      return 'system';
+    } catch {
+      return 'system';
+    }
+  };
+
+  const [theme, setTheme] = useState(() => readTheme());
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -25,7 +44,10 @@ export const ThemeProvider = ({ children }) => {
     };
 
     applyTheme();
-    localStorage.setItem('theme', theme);
+    try {
+      localStorage.setItem('kharch_theme', theme);
+      localStorage.removeItem('theme');
+    } catch { /* ignore */ }
 
     if (theme === 'system') {
       mediaQuery.addEventListener('change', applyTheme);

@@ -33,7 +33,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import toast from 'react-hot-toast';
 import { useUI } from '../context/UIContext';
-import { toLocalDate, formatDisplayDate } from '../utils/dateUtils';
+import { toLocalDate, getLocalDateString, formatDisplayDate } from '../utils/dateUtils';
 
 const LentMoney = () => {
   const { lentRecords = [], deleteLentRecord, settleLentRecord, loading } = useTransactions();
@@ -93,11 +93,15 @@ const LentMoney = () => {
     if (record.loans && Array.isArray(record.loans) && record.loans.length > 0) {
       return record.loans;
     }
+    // createdAt can be a Date object or Firestore { seconds } — never call
+    // string methods on it directly, and never emit 'N/A' as a date (it
+    // poisons timeline sorting/display below).
+    const fallbackDate = toLocalDate(record.dateLent) || toLocalDate(record.createdAt);
     return [
       {
         id: 'loan_init_' + record.id,
         amount: parseFloat(record.amount) || 0,
-        date: record.dateLent || (record.createdAt ? record.createdAt.split('T')[0] : 'N/A'),
+        date: fallbackDate ? getLocalDateString(fallbackDate) : '',
         note: record.note || 'Initial loan'
       }
     ];
@@ -158,9 +162,15 @@ const LentMoney = () => {
           (r.loans && r.loans.some(l => l.note?.toLowerCase().includes(q)));
 
         const currentStatus = getRecordStatus(r);
-        const matchesStatus = 
-          statusFilter === 'all' || 
+        // 'partial' matches any record with money returned but a balance
+        // still pending — including overdue ones (status engine reports those
+        // as 'overdue', but users expect them under Partial too).
+        const isPartialMatch = (parseFloat(r.returnedAmount) || 0) > 0 &&
+          Math.max(0, (parseFloat(r.amount) || 0) - (parseFloat(r.returnedAmount) || 0)) > 0;
+        const matchesStatus =
+          statusFilter === 'all' ||
           (statusFilter === 'active' && currentStatus !== 'settled') ||
+          (statusFilter === 'partial' && isPartialMatch) ||
           currentStatus === statusFilter;
 
         return matchesSearch && matchesStatus;
@@ -172,14 +182,14 @@ const LentMoney = () => {
         const pendingB = Math.max(0, totalB - (parseFloat(b.returnedAmount) || 0));
 
         if (sortBy === 'date-desc') {
-          const dateA = a.dateLent || a.createdAt || '';
-          const dateB = b.dateLent || b.createdAt || '';
-          return dateB > dateA ? 1 : dateB < dateA ? -1 : 0;
+          const dateA = toLocalDate(a.dateLent || a.createdAt)?.getTime() ?? 0;
+          const dateB = toLocalDate(b.dateLent || b.createdAt)?.getTime() ?? 0;
+          return dateB - dateA;
         }
         if (sortBy === 'date-asc') {
-          const dateA = a.dateLent || a.createdAt || '';
-          const dateB = b.dateLent || b.createdAt || '';
-          return dateA > dateB ? 1 : dateA < dateB ? -1 : 0;
+          const dateA = toLocalDate(a.dateLent || a.createdAt)?.getTime() ?? 0;
+          const dateB = toLocalDate(b.dateLent || b.createdAt)?.getTime() ?? 0;
+          return dateA - dateB;
         }
         if (sortBy === 'amount-desc') {
           return totalB - totalA;
@@ -262,15 +272,15 @@ const LentMoney = () => {
     const doc = new jsPDF();
     
     // Nice Header
-    doc.setFontSize(22);
+    doc.setFontSize(16);
     doc.setTextColor(31, 41, 55); // gray-800
-    doc.text("Lent Money Report (Money Lent to Friends)", 14, 22);
+    doc.text(doc.splitTextToSize("Lent Money Report (Money Lent to Friends)", 182), 14, 22);
     
     // Subtext
     doc.setFontSize(11);
     doc.setTextColor(107, 114, 128); // gray-500
     doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN', { dateStyle: 'long' })}`, 14, 32);
-    doc.text(`Filters: Status: ${statusFilter.toUpperCase()} | Sort: ${sortBy} | Search: "${search || 'None'}"`, 14, 38);
+    doc.text(doc.splitTextToSize(`Filters: Status: ${statusFilter.toUpperCase()} | Sort: ${sortBy} | Search: "${search || 'None'}"`, 182), 14, 38);
 
     // Separator line
     doc.setDrawColor(229, 231, 235); // gray-200
@@ -313,7 +323,7 @@ const LentMoney = () => {
       startY: 48,
       theme: 'grid',
       styles: { fontSize: 9, cellPadding: 3, textColor: [55, 65, 81] },
-      headStyles: { fillColor: [245, 158, 11], textColor: 255, fontStyle: 'bold' }, // amber-500
+      headStyles: { fillColor: [245, 158, 11], textColor: [255, 255, 255], fontStyle: 'bold' }, // amber-500
       alternateRowStyles: { fillColor: [254, 252, 232] }, // amber-50/bg
       columnStyles: {
         2: { halign: 'right' },
@@ -332,7 +342,7 @@ const LentMoney = () => {
       }
     });
 
-    doc.save(`lent_money_report_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`lent_money_report_${getLocalDateString()}.pdf`);
   };
 
   const handleExportPDF = () => {
@@ -371,19 +381,22 @@ const LentMoney = () => {
     const isExpanded = !!expandedHistories[record.id];
     const currentTab = cardActivityTabs[record.id] || 'all';
 
-    // Combined chronological ledger events
+    // Combined chronological ledger events. toLocalDate parses date-only
+    // strings as local midnight (raw new Date() shifts the day in IST) and
+    // null-guards garbage so sorting never produces NaN ordering.
+    const toTime = (v) => toLocalDate(v)?.getTime() ?? 0;
     const combinedTimeline = [
       ...loans.map((l, idx) => ({
         ...l,
         eventType: 'loan',
         eventTitle: idx === 0 ? 'Initial Loan' : `Top-up #${idx + 1}`,
-        sortDate: new Date(l.date || record.dateLent || 0)
+        sortDate: toTime(l.date || record.dateLent)
       })),
       ...repayments.map((rep, idx) => ({
         ...rep,
         eventType: 'repayment',
         eventTitle: `Repayment #${idx + 1}`,
-        sortDate: new Date(rep.date || 0)
+        sortDate: toTime(rep.date)
       }))
     ].sort((a, b) => b.sortDate - a.sortDate);
 
@@ -614,7 +627,7 @@ const LentMoney = () => {
                               {item.eventTitle}
                             </span>
                             <span className="text-[10px] text-zinc-400 shrink-0">
-                              &bull; {new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                              &bull; {formatDisplayDate(item.date, { day: '2-digit', month: 'short' })}
                             </span>
                           </div>
                           {item.note && (
@@ -653,7 +666,7 @@ const LentMoney = () => {
                               {idx === 0 ? 'Initial Loan' : `Disbursement #${idx + 1}`}
                             </span>
                             <span className="text-[10px] text-zinc-400 shrink-0">
-                              &bull; {new Date(l.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                              &bull; {formatDisplayDate(l.date, { day: '2-digit', month: 'short' })}
                             </span>
                           </div>
                           {l.note && (
@@ -689,7 +702,7 @@ const LentMoney = () => {
                                 Repayment #{idx + 1}
                               </span>
                               <span className="text-[10px] text-zinc-400 shrink-0">
-                                &bull; {new Date(rep.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                                &bull; {formatDisplayDate(rep.date, { day: '2-digit', month: 'short' })}
                               </span>
                             </div>
                             {rep.note && (

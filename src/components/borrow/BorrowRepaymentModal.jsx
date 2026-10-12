@@ -29,14 +29,17 @@ const BorrowRepaymentModal = ({ isOpen, onClose, record }) => {
   useBodyScrollLock(isOpen);
 
   useEffect(() => {
-    if (record) {
-      setAmount(remainingAmount > 0 ? String(remainingAmount) : '');
-      setDate(getLocalToday());
-      setNote('UPI / GPay / Paid back');
-    }
-    // remainingAmount derives from record; included so the prefilled amount
-    // stays correct if the record's balance changes while the modal is open.
-  }, [record, isOpen, remainingAmount]);
+    // Reset only on open / record switch — depending on `record` (a new
+    // object identity every context refetch) would wipe typed input whenever
+    // background data refreshes while the modal is open.
+    if (!isOpen || !record) return;
+    setAmount(remainingAmount > 0 ? String(remainingAmount) : '');
+    setDate(getLocalToday());
+    // Empty by default: a prefilled placeholder-looking string would otherwise
+    // be saved literally when the user submits untouched.
+    setNote('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, record?.id]);
 
   if (!isOpen || !record) return null;
 

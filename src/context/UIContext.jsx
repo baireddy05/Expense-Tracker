@@ -54,13 +54,13 @@ export const UIProvider = ({ children }) => {
   }, []);
 
   const toggleHaptics = useCallback(() => {
-    setIsHapticsOn(prev => {
-      const next = !prev;
-      setHapticsEnabled(next);
-      if (next) triggerHaptic('success');
-      return next;
-    });
-  }, []);
+    // Side effects stay OUTSIDE the updater: StrictMode double-invokes
+    // updaters, which would double-write storage and double-buzz.
+    const next = !isHapticsOn;
+    setIsHapticsOn(next);
+    setHapticsEnabled(next);
+    if (next) triggerHaptic('success');
+  }, [isHapticsOn]);
 
   const updateHapticIntensity = useCallback((level) => {
     setIntensityState(level);
@@ -76,10 +76,8 @@ export const UIProvider = ({ children }) => {
 
   const closeCommandPalette = useCallback(() => setIsCommandPaletteOpen(false), []);
   const toggleCommandPalette = useCallback(() => {
-    setIsCommandPaletteOpen(prev => {
-      triggerHaptic('light');
-      return !prev;
-    });
+    setIsCommandPaletteOpen(prev => !prev);
+    triggerHaptic('light');
   }, []);
 
   const openQuickAdd = useCallback(() => {

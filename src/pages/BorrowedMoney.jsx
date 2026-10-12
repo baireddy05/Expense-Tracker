@@ -25,6 +25,7 @@ import {
   faUserFriends,
   faCalendarAlt,
   faPhone,
+  faPaperPlane,
   faShieldAlt,
   faCoins
 } from '@fortawesome/free-solid-svg-icons';
@@ -32,7 +33,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import toast from 'react-hot-toast';
 import { useUI } from '../context/UIContext';
-import { toLocalDate, formatDisplayDate } from '../utils/dateUtils';
+import { toLocalDate, getLocalDateString, formatDisplayDate } from '../utils/dateUtils';
 
 const BorrowedMoney = () => {
   const { borrowedRecords = [], deleteBorrowedRecord, settleBorrowedRecord, loading } = useTransactions();
@@ -92,11 +93,12 @@ const BorrowedMoney = () => {
     if (record.borrows && Array.isArray(record.borrows) && record.borrows.length > 0) {
       return record.borrows;
     }
+    const fallbackDate = toLocalDate(record.dateBorrowed) || toLocalDate(record.createdAt);
     return [
       {
         id: 'borrow_init_' + record.id,
         amount: parseFloat(record.amount) || 0,
-        date: record.dateBorrowed || (record.createdAt ? record.createdAt.split('T')[0] : 'N/A'),
+        date: fallbackDate ? getLocalDateString(fallbackDate) : '',
         note: record.note || 'Initial borrowed money'
       }
     ];
@@ -157,9 +159,12 @@ const BorrowedMoney = () => {
           (r.borrows && r.borrows.some(b => b.note?.toLowerCase().includes(q)));
 
         const currentStatus = getRecordStatus(r);
-        const matchesStatus = 
-          statusFilter === 'all' || 
+        const isPartialMatch = (parseFloat(r.returnedAmount) || 0) > 0 &&
+          Math.max(0, (parseFloat(r.amount) || 0) - (parseFloat(r.returnedAmount) || 0)) > 0;
+        const matchesStatus =
+          statusFilter === 'all' ||
           (statusFilter === 'active' && currentStatus !== 'settled') ||
+          (statusFilter === 'partial' && isPartialMatch) ||
           currentStatus === statusFilter;
 
         return matchesSearch && matchesStatus;
@@ -171,14 +176,14 @@ const BorrowedMoney = () => {
         const pendingB = Math.max(0, totalB - (parseFloat(b.returnedAmount) || 0));
 
         if (sortBy === 'date-desc') {
-          const dateA = a.dateBorrowed || a.createdAt || '';
-          const dateB = b.dateBorrowed || b.createdAt || '';
-          return dateB > dateA ? 1 : dateB < dateA ? -1 : 0;
+          const dateA = toLocalDate(a.dateBorrowed || a.createdAt)?.getTime() ?? 0;
+          const dateB = toLocalDate(b.dateBorrowed || b.createdAt)?.getTime() ?? 0;
+          return dateB - dateA;
         }
         if (sortBy === 'date-asc') {
-          const dateA = a.dateBorrowed || a.createdAt || '';
-          const dateB = b.dateBorrowed || b.createdAt || '';
-          return dateA > dateB ? 1 : dateA < dateB ? -1 : 0;
+          const dateA = toLocalDate(a.dateBorrowed || a.createdAt)?.getTime() ?? 0;
+          const dateB = toLocalDate(b.dateBorrowed || b.createdAt)?.getTime() ?? 0;
+          return dateA - dateB;
         }
         if (sortBy === 'amount-desc') {
           return totalB - totalA;
@@ -261,15 +266,15 @@ const BorrowedMoney = () => {
     const doc = new jsPDF();
     
     // Nice Header
-    doc.setFontSize(22);
+    doc.setFontSize(16);
     doc.setTextColor(31, 41, 55); // gray-800
-    doc.text("Borrowed Money Report (Debts Owed to Friends)", 14, 22);
+    doc.text(doc.splitTextToSize("Borrowed Money Report (Debts Owed to Friends)", 182), 14, 22);
     
     // Subtext
     doc.setFontSize(11);
     doc.setTextColor(107, 114, 128); // gray-500
     doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN', { dateStyle: 'long' })}`, 14, 32);
-    doc.text(`Filters: Status: ${statusFilter.toUpperCase()} | Sort: ${sortBy} | Search: "${search || 'None'}"`, 14, 38);
+    doc.text(doc.splitTextToSize(`Filters: Status: ${statusFilter.toUpperCase()} | Sort: ${sortBy} | Search: "${search || 'None'}"`, 182), 14, 38);
 
     // Separator line
     doc.setDrawColor(229, 231, 235); // gray-200
@@ -312,7 +317,7 @@ const BorrowedMoney = () => {
       startY: 48,
       theme: 'grid',
       styles: { fontSize: 9, cellPadding: 3, textColor: [55, 65, 81] },
-      headStyles: { fillColor: [147, 51, 234], textColor: 255, fontStyle: 'bold' }, // purple-600
+      headStyles: { fillColor: [147, 51, 234], textColor: [255, 255, 255], fontStyle: 'bold' }, // purple-600
       alternateRowStyles: { fillColor: [250, 245, 255] }, // purple-50/bg
       columnStyles: {
         2: { halign: 'right' },
@@ -331,7 +336,7 @@ const BorrowedMoney = () => {
       }
     });
 
-    doc.save(`borrowed_money_report_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`borrowed_money_report_${getLocalDateString()}.pdf`);
   };
 
   const handleExportPDF = () => {
@@ -370,19 +375,22 @@ const BorrowedMoney = () => {
     const isExpanded = !!expandedHistories[record.id];
     const currentTab = cardActivityTabs[record.id] || 'all';
 
-    // Combined chronological ledger events
+    // Combined chronological ledger events (toLocalDate: local-midnight
+    // parsing, null-safe — raw new Date() day-shifts in IST and NaNs on
+    // garbage, breaking the sort).
+    const toTime = (v) => toLocalDate(v)?.getTime() ?? 0;
     const combinedTimeline = [
       ...borrows.map((b, idx) => ({
         ...b,
         eventType: 'borrow',
         eventTitle: idx === 0 ? 'Initial Borrow' : `Top-up #${idx + 1}`,
-        sortDate: new Date(b.date || record.dateBorrowed || 0)
+        sortDate: toTime(b.date || record.dateBorrowed)
       })),
       ...repayments.map((rep, idx) => ({
         ...rep,
         eventType: 'repayment',
         eventTitle: `Repayment #${idx + 1}`,
-        sortDate: new Date(rep.date || 0)
+        sortDate: toTime(rep.date)
       }))
     ].sort((a, b) => b.sortDate - a.sortDate);
 
@@ -613,7 +621,7 @@ const BorrowedMoney = () => {
                               {item.eventTitle}
                             </span>
                             <span className="text-[10px] text-zinc-400 shrink-0">
-                              &bull; {new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                              &bull; {formatDisplayDate(item.date, { day: '2-digit', month: 'short' })}
                             </span>
                           </div>
                           {item.note && (
@@ -688,7 +696,7 @@ const BorrowedMoney = () => {
                                 Repayment #{idx + 1}
                               </span>
                               <span className="text-[10px] text-zinc-400 shrink-0">
-                                &bull; {new Date(rep.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                                &bull; {formatDisplayDate(rep.date, { day: '2-digit', month: 'short' })}
                               </span>
                             </div>
                             {rep.note && (
@@ -748,6 +756,16 @@ const BorrowedMoney = () => {
                 >
                   <FontAwesomeIcon icon={faCheckCircle} className="text-emerald-500 text-[10px]" />
                   <span className="hidden min-[400px]:inline">Settle</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setReminderTarget(record)}
+                  title="Message lender about this debt"
+                  className="px-2.5 py-1.5 liquid-glass-subtle text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer touch-feedback"
+                >
+                  <FontAwesomeIcon icon={faPaperPlane} className="text-[10px]" />
+                  <span>Remind</span>
                 </button>
               </>
             )}

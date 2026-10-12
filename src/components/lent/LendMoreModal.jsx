@@ -40,13 +40,15 @@ const LendMoreModal = ({ isOpen, onClose, record }) => {
   useBodyScrollLock(isOpen);
 
   useEffect(() => {
-    if (record) {
-      setAmount('');
-      setDate(getLocalToday());
-      setDueDate(record.dueDate || '');
-      setNote('');
-    }
-  }, [record, isOpen]);
+    // Reset only on open / record switch — `record` gets a new object
+    // identity on every background refetch, which would wipe typed input.
+    if (!isOpen || !record) return;
+    setAmount('');
+    setDate(getLocalToday());
+    setDueDate(record.dueDate || '');
+    setNote('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, record?.id]);
 
   if (!isOpen || !record) return null;
 
@@ -59,7 +61,11 @@ const LendMoreModal = ({ isOpen, onClose, record }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!amount || parseFloat(amount) <= 0) {
+    // parsedNewAmount is derived above: use it (with a NaN guard) instead of
+    // re-parsing, so "abc" can't slip through (NaN <= 0 is false).
+    // dueDate: '' means cleared → null (clearing is allowed, unlike prefilling
+    // the old value which would make clearing impossible).
+    if (!Number.isFinite(parsedNewAmount) || parsedNewAmount <= 0) {
       toast.error('Please enter a valid loan amount');
       return;
     }
@@ -67,12 +73,12 @@ const LendMoreModal = ({ isOpen, onClose, record }) => {
     setLoading(true);
     try {
       await lendMoreMoney(record.id, {
-        amount: parseFloat(amount),
+        amount: parsedNewAmount,
         date,
         dueDate: dueDate || null,
         note: note.trim() || 'Additional loan'
       });
-      toast.success(`Logged ₹${parseFloat(amount).toLocaleString('en-IN')} additional loan for ${record.borrowerName}`);
+      toast.success(`Logged ₹${parsedNewAmount.toLocaleString('en-IN')} additional loan for ${record.borrowerName}`);
       onClose();
     } catch (err) {
       console.error(err);

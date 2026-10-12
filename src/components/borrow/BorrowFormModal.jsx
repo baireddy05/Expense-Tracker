@@ -51,7 +51,10 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
   useBodyScrollLock(isOpen);
 
   useEffect(() => {
-    if (initialData) {
+    // Reset only on open / record switch — `initialData` gets a new object
+    // identity on every background refetch, which would wipe typed input.
+    if (!isOpen) return;
+    if (initialData?.id) {
       setLenderName(initialData.lenderName || '');
       setAmount(initialData.amount ? String(initialData.amount) : '');
       setDateBorrowed(initialData.dateBorrowed || getLocalToday());
@@ -66,14 +69,20 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
       setPhone('');
       setNote('');
     }
-  }, [initialData, isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initialData?.id]);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!lenderName.trim() || !amount || !dateBorrowed) {
-      toast.error('Please fill all required fields');
+    const parsedAmount = parseFloat(amount);
+    if (!lenderName.trim() || !Number.isFinite(parsedAmount) || parsedAmount <= 0 || !dateBorrowed) {
+      toast.error('Please provide lender name, a valid amount and the borrowed date');
+      return;
+    }
+    if (dueDate && dueDate < dateBorrowed) {
+      toast.error('Due date cannot be before the borrowed date');
       return;
     }
 
@@ -81,19 +90,19 @@ const BorrowFormModal = ({ isOpen, onClose, initialData = null }) => {
     try {
       const recordPayload = {
         lenderName: lenderName.trim(),
-        amount: parseFloat(amount),
+        amount: parsedAmount,
         dateBorrowed,
         dueDate: dueDate || null,
-        phone: phone.trim(),
-        note: note.trim()
+        phone: phone.trim() || null,
+        note: note.trim() || ''
       };
 
-      if (initialData) {
+      if (initialData?.id) {
         await updateBorrowedRecord(initialData.id, recordPayload);
         haptics.success();
         toast.success('Borrowed record updated');
       } else {
-        const initialAmount = parseFloat(amount);
+        const initialAmount = parsedAmount;
         await addBorrowedRecord({
           ...recordPayload,
           returnedAmount: 0,

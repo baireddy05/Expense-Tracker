@@ -3,9 +3,13 @@ service cloud.firestore {
   match /databases/{database}/documents {
     
     // STRICT DATA ISOLATION:
-    // A user can ONLY read and write their own documents inside users/{userId}
+    // A user can ONLY read and write their own documents inside users/{userId}.
+    // Writes additionally carry a generous per-document field-count cap as a
+    // storage-abuse guard (legitimate records hold < 30 fields).
     match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId
+        && request.resource.data.size() < 200;
     }
 
     // DENY ALL OTHER ACCESS:

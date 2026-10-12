@@ -19,7 +19,7 @@ import {
   faHeartPulse,
   faCheckCircle
 } from '@fortawesome/free-solid-svg-icons';
-import { formatDisplayDate } from '../utils/dateUtils';
+import { formatDisplayDate, parseLocalDate } from '../utils/dateUtils';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import useBodyScrollLock from '../hooks/useBodyScrollLock';
 import toast from 'react-hot-toast';
@@ -141,8 +141,12 @@ const SavingsGoals = () => {
     const targetVal = parseFloat(goalForm.targetAmount);
     const savedVal = parseFloat(goalForm.savedAmount) || 0;
 
-    if (targetVal <= 0) {
+    if (!Number.isFinite(targetVal) || targetVal <= 0) {
       toast.error('Target amount must be greater than zero');
+      return;
+    }
+    if (savedVal < 0) {
+      toast.error('Already-saved amount cannot be negative');
       return;
     }
 
@@ -196,14 +200,23 @@ const SavingsGoals = () => {
   // Submit Deposit
   const handleDepositSubmit = async (e) => {
     e.preventDefault();
-    if (!depositAmount || parseFloat(depositAmount) <= 0) {
+    const amt = parseFloat(depositAmount);
+    if (!Number.isFinite(amt) || amt <= 0) {
       toast.error('Please enter a valid deposit amount');
+      return;
+    }
+    // Resolve the goal fresh at submit time — the modal's snapshot can go
+    // stale if the list refetches while it is open.
+    const freshGoal = savingsGoals.find(g => g.id === selectedGoal?.id);
+    if (!freshGoal) {
+      toast.error('That goal no longer exists');
+      setIsDepositModalOpen(false);
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await contributeToGoal(selectedGoal.id, depositAmount, depositNote);
+      await contributeToGoal(freshGoal.id, amt, depositNote);
       setIsDepositModalOpen(false);
     } catch {
       // Toast handled in context
@@ -212,12 +225,15 @@ const SavingsGoals = () => {
     }
   };
 
-  // Helper for days remaining
+  // Helper for days remaining (local-midnight parsing — raw new Date() on a
+  // YYYY-MM-DD string parses as UTC and shifts the day in IST)
   const getDaysRemaining = (targetDate) => {
     if (!targetDate) return null;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const target = new Date(targetDate);
+    const target = parseLocalDate(targetDate);
+    if (isNaN(target.getTime())) return null;
+    target.setHours(0, 0, 0, 0);
     const diffTime = target - today;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
