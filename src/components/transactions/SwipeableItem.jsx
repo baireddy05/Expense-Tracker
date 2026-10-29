@@ -8,6 +8,7 @@ const SwipeableItem = ({ children, onEdit, onDelete, resetToken }) => {
   const containerRef = useRef(null);
   const controls = useAnimation();
   const x = useMotionValue(0);
+  const isDraggingRef = useRef(false);
 
   // Reset to original position when resetToken changes
   useEffect(() => {
@@ -26,7 +27,15 @@ const SwipeableItem = ({ children, onEdit, onDelete, resetToken }) => {
 
   const opacity = useTransform(x, [-actionThreshold, 0, actionThreshold], [1, 0, 1]);
 
+  const handleDragStart = () => {
+    isDraggingRef.current = true;
+  };
+
   const handleDragEnd = (event, info) => {
+    setTimeout(() => {
+      isDraggingRef.current = false;
+    }, 120);
+
     const offset = info.offset.x;
     const velocity = info.velocity.x;
 
@@ -37,13 +46,13 @@ const SwipeableItem = ({ children, onEdit, onDelete, resetToken }) => {
     if (isDelete) {
       haptics.heavy();
       controls.start({ x: -100, transition: { duration: 0.2 } });
-      onDelete();
+      onDelete?.();
     } 
-    // Swipe right (edit) - Trigger immediately without delay
+    // Swipe right (edit)
     else if (isEdit) {
       haptics.medium();
       controls.start({ x: 0, transition: { duration: 0.2 } });
-      onEdit();
+      onEdit?.();
     } 
     // Snap back cleanly when swipe cancelled or halfway
     else {
@@ -51,11 +60,19 @@ const SwipeableItem = ({ children, onEdit, onDelete, resetToken }) => {
     }
   };
 
+  const handleItemClick = (e) => {
+    if (isDraggingRef.current) return;
+    const target = e.target;
+    // Don't intercept if user tapped an explicit action button
+    if (target.closest('button, a, input, select')) return;
+    onEdit?.();
+  };
+
   return (
-    <div className="group relative w-full overflow-hidden rounded-xl mb-3" ref={containerRef}>
-      {/* Background Action Indicators */}
+    <div className="group relative w-full overflow-hidden rounded-xl mb-3 select-none" ref={containerRef}>
+      {/* Background Action Indicators for Swipe Gestures */}
       <motion.div 
-        className="absolute inset-0 flex items-center justify-between px-6"
+        className="absolute inset-0 flex items-center justify-between px-6 pointer-events-none"
         style={{ backgroundColor, opacity }}
       >
         <div className="flex items-center gap-2 text-white font-medium">
@@ -72,33 +89,16 @@ const SwipeableItem = ({ children, onEdit, onDelete, resetToken }) => {
       <motion.div
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.7}
+        dragElastic={0.6}
+        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         animate={controls}
         style={{ x }}
-        className="relative z-10 w-full bg-white dark:bg-zinc-900 shadow-sm rounded-xl touch-pan-y select-none"
+        onClick={handleItemClick}
+        className="relative z-10 w-full bg-white dark:bg-zinc-900 shadow-sm rounded-xl touch-pan-y cursor-pointer"
       >
         {children}
       </motion.div>
-      {/* Desktop fallback: visible edit/delete on hover */}
-      <div className="hidden sm:flex absolute right-2 top-1/2 -translate-y-1/2 z-20 gap-1.5 opacity-0 group-hover:opacity-100 hover:opacity-100 focus-within:opacity-100 transition-opacity">
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onEdit?.(); }}
-          aria-label="Edit"
-          className="w-9 h-9 rounded-lg bg-blue-500/90 text-white flex items-center justify-center text-xs shadow hover:bg-blue-600"
-        >
-          <FontAwesomeIcon icon={faEdit} />
-        </button>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onDelete?.(); }}
-          aria-label="Delete"
-          className="w-9 h-9 rounded-lg bg-rose-500/90 text-white flex items-center justify-center text-xs shadow hover:bg-rose-600"
-        >
-          <FontAwesomeIcon icon={faTrash} />
-        </button>
-      </div>
     </div>
   );
 };

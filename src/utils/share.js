@@ -23,6 +23,39 @@ export const buildWhatsAppUrl = (phone, message) => {
 };
 
 /**
+ * Mobile-friendly WhatsApp navigation.
+ * On mobile devices, window.location.href or direct navigation reliably opens
+ * the WhatsApp app without getting blocked by mobile popup blockers or opening
+ * blank dead tabs. On desktop, opens a new tab.
+ */
+export const openWhatsApp = (phone, message) => {
+  const url = buildWhatsAppUrl(phone, message);
+  const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    window.location.href = url;
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+};
+
+/**
+ * Native web share helper if available on device (especially mobile phones),
+ * falling back to WhatsApp if native share fails or is unavailable.
+ */
+export const shareOrWhatsApp = async (title, text, phone) => {
+  if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+    try {
+      await navigator.share({ title, text });
+      return true;
+    } catch (err) {
+      if (err.name === 'AbortError') return false; // user cancelled sheet
+    }
+  }
+  openWhatsApp(phone, text);
+  return true;
+};
+
+/**
  * Clipboard copy with fallback for insecure contexts / denied permissions.
  * Resolves true on success, false on failure (and toasts accordingly).
  */

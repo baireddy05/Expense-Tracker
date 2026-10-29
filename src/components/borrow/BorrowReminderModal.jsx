@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faPaperPlane, faCopy, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faPaperPlane, faCopy, faCheck, faShareNodes } from '@fortawesome/free-solid-svg-icons';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import { formatDisplayDate } from '../../utils/dateUtils';
-import { buildWhatsAppUrl, copyTextToClipboard } from '../../utils/share';
+import { openWhatsApp, copyTextToClipboard } from '../../utils/share';
 
 const BorrowReminderModal = ({ isOpen, onClose, record }) => {
   const total = record ? parseFloat(record.amount) || 0 : 0;
@@ -45,8 +45,25 @@ const BorrowReminderModal = ({ isOpen, onClose, record }) => {
   };
 
   const handleWhatsApp = () => {
-    window.open(buildWhatsAppUrl(record.phone, message), '_blank', 'noopener');
+    openWhatsApp(record.phone, message);
   };
+
+  const handleNativeShare = async () => {
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title: `Update for ${record.lenderName}`,
+          text: message
+        });
+      } catch {
+        // user cancelled or failed
+      }
+    } else {
+      handleWhatsApp();
+    }
+  };
+
+  const hasNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
   return createPortal(
     <div 
@@ -107,10 +124,21 @@ const BorrowReminderModal = ({ isOpen, onClose, record }) => {
               <span>{copied ? 'Copied!' : 'Copy Text'}</span>
             </button>
 
+            {hasNativeShare && (
+              <button
+                type="button"
+                onClick={handleNativeShare}
+                className="py-2.5 min-h-[44px] px-3.5 liquid-glass-subtle hover:bg-white/60 dark:hover:bg-white/10 text-indigo-600 dark:text-indigo-400 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer touch-feedback"
+              >
+                <FontAwesomeIcon icon={faShareNodes} className="text-xs" />
+                <span>Share via Device</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={handleWhatsApp}
-              className="py-2.5 min-h-[44px] px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 text-xs cursor-pointer touch-feedback"
+              className={`py-2.5 min-h-[44px] px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 text-xs cursor-pointer touch-feedback ${hasNativeShare ? 'sm:col-span-2' : ''}`}
             >
               <FontAwesomeIcon icon={faPaperPlane} className="text-xs" />
               <span>Send WhatsApp</span>

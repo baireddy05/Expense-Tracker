@@ -343,7 +343,7 @@ const Dashboard = () => {
   if (loading) return <DashboardSkeleton />;
 
   return (
-    <div className="space-y-6 pb-20 md:pb-8">
+    <div className="space-y-6 pb-32 md:pb-8">
       {/* Header & Quick Action Pills */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -813,7 +813,7 @@ const Dashboard = () => {
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Weekly Cash Flow Trend</h3>
           <span className="text-xs text-zinc-400">Past 7 Days</span>
         </div>
-        <div className="w-full h-[200px] sm:h-[230px] min-h-0 min-w-0">
+        <div className="w-full h-[200px] sm:h-[230px] min-h-0 min-w-0 relative">
           <Line 
             data={lineChartData}
             options={{

@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faPaperPlane, faCopy, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faPaperPlane, faCopy, faCheck, faShareNodes } from '@fortawesome/free-solid-svg-icons';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import { formatDisplayDate } from '../../utils/dateUtils';
-import { buildWhatsAppUrl, copyTextToClipboard } from '../../utils/share';
+import { openWhatsApp, copyTextToClipboard } from '../../utils/share';
 
 const ReminderModal = ({ isOpen, onClose, record }) => {
   const [copied, setCopied] = useState(false);
@@ -41,8 +41,25 @@ const ReminderModal = ({ isOpen, onClose, record }) => {
   };
 
   const handleWhatsApp = () => {
-    window.open(buildWhatsAppUrl(record.phone, message), '_blank', 'noopener');
+    openWhatsApp(record.phone, message);
   };
+
+  const handleNativeShare = async () => {
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title: `Reminder for ${record.borrowerName}`,
+          text: message
+        });
+      } catch {
+        // user cancelled or share failed
+      }
+    } else {
+      handleWhatsApp();
+    }
+  };
+
+  const hasNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
   return createPortal(
     <div 
@@ -97,6 +114,18 @@ const ReminderModal = ({ isOpen, onClose, record }) => {
               <FontAwesomeIcon icon={copied ? faCheck : faCopy} className={copied ? 'text-emerald-500' : ''} />
               <span>{copied ? 'Copied!' : 'Copy Message'}</span>
             </button>
+
+            {hasNativeShare && (
+              <button
+                type="button"
+                onClick={handleNativeShare}
+                className="py-2.5 min-h-[48px] px-4 liquid-glass-subtle hover:bg-white/60 dark:hover:bg-white/10 text-indigo-600 dark:text-indigo-400 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer touch-feedback"
+                title="Share via device apps"
+              >
+                <FontAwesomeIcon icon={faShareNodes} className="text-xs" />
+                <span>Share</span>
+              </button>
+            )}
 
             <button
               type="button"

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useTransactions } from '../context/TransactionContext';
 import { useTheme } from '../context/ThemeContext';
 import { useUI } from '../context/UIContext';
@@ -28,6 +29,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { getCategoryIcon, resolveCategory } from '../utils/categoryIcons';
 import CsvImportModal from '../components/transactions/CsvImportModal';
+import useBodyScrollLock from '../hooks/useBodyScrollLock';
 import toast from 'react-hot-toast';
 
 const Settings = () => {
@@ -80,6 +82,8 @@ const Settings = () => {
   const csvInputRef = useRef(null);
   const [csvFile, setCsvFile] = useState(null);
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+
+  useBodyScrollLock(!!restoreProgress);
 
   // Category Budgets State
   const [editingCategory, setEditingCategory] = useState(null);
@@ -192,7 +196,7 @@ const Settings = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
     toast.success('Transactions exported to CSV!');
   };
 
@@ -219,7 +223,7 @@ const Settings = () => {
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
     toast.success('Complete system backup downloaded!');
   };
 
@@ -280,7 +284,7 @@ const Settings = () => {
   };
 
   return (
-    <div className="space-y-6 pb-20 md:pb-8">
+    <div className="space-y-6 pb-32 md:pb-8">
       <header className="mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">Settings</h1>
         <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
@@ -695,7 +699,7 @@ const Settings = () => {
               onChange={handleImportJSON} 
               onClick={(e) => { e.target.value = ''; }}
               accept=".json,application/json" 
-              className="hidden" 
+              className="sr-only" 
             />
             <button 
               onClick={() => fileInputRef.current?.click()}
@@ -721,7 +725,7 @@ const Settings = () => {
               onChange={handlePickCSV}
               onClick={(e) => { e.target.value = ''; }}
               accept=".csv,text/csv"
-              className="hidden"
+              className="sr-only"
             />
             <button
               onClick={() => csvInputRef.current?.click()}
@@ -745,8 +749,8 @@ const Settings = () => {
       />
 
       {/* Interactive Restore Progress Modal */}
-      {restoreProgress && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+      {restoreProgress && createPortal(
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
           <div className="liquid-glass-dock max-w-md w-full rounded-3xl p-6 shadow-2xl border border-white/60 dark:border-white/10 space-y-5 animate-scale-in">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-base shrink-0 ${
@@ -800,7 +804,8 @@ const Settings = () => {
               </button>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

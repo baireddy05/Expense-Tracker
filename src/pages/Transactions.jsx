@@ -425,7 +425,7 @@ const Transactions = () => {
 
   const handleExportPDF = () => {
     if (displayedTransactions.length === 0) {
-      alert("No transactions to export for the selected filters.");
+      toast.error("No transactions to export for the selected filters.");
       return;
     }
     
@@ -435,7 +435,7 @@ const Transactions = () => {
   if (loading) return <TransactionsSkeleton />;
 
   return (
-    <div className="space-y-6 relative h-full pb-20 md:pb-8">
+    <div className="space-y-6 relative h-full pb-32 md:pb-8">
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">Transactions</h1>
@@ -931,7 +931,10 @@ const Transactions = () => {
                               onDelete={() => requestDelete(t.id)}
                               resetToken={swipeResetToken}
                             >
-                              <div className="liquid-glass-card p-3.5 flex items-center gap-3 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60">
+                              <div 
+                                onClick={() => handleEdit(t)}
+                                className="liquid-glass-card p-3.5 flex items-center gap-3 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60 cursor-pointer touch-feedback"
+                              >
                                 {/* Category Icon */}
                                 <div 
                                   className="w-11 h-11 shrink-0 rounded-full flex items-center justify-center text-white shadow-sm" 
@@ -964,6 +967,34 @@ const Transactions = () => {
                                   <p className={`font-bold text-sm whitespace-nowrap ${t.type === 'income' ? 'text-emerald-500' : 'text-zinc-900 dark:text-white'}`}>
                                     {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                                   </p>
+                                </div>
+
+                                {/* Quick Action Buttons on Mobile */}
+                                <div className="flex items-center gap-1 shrink-0 ml-1" onClick={e => e.stopPropagation()}>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEdit(t);
+                                    }}
+                                    className="w-7 h-7 rounded-lg liquid-glass-subtle text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center justify-center transition-colors cursor-pointer touch-feedback"
+                                    title="Edit transaction"
+                                    aria-label="Edit transaction"
+                                  >
+                                    <FontAwesomeIcon icon={faEdit} className="text-[10px]" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      requestDelete(t.id);
+                                    }}
+                                    className="w-7 h-7 rounded-lg liquid-glass-subtle text-zinc-400 hover:text-rose-500 flex items-center justify-center transition-colors cursor-pointer touch-feedback"
+                                    title="Delete transaction"
+                                    aria-label="Delete transaction"
+                                  >
+                                    <FontAwesomeIcon icon={faTrash} className="text-[10px]" />
+                                  </button>
                                 </div>
                               </div>
                             </SwipeableItem>
@@ -1157,7 +1188,10 @@ const Transactions = () => {
                   onDelete={() => requestDelete(t.id)}
                   resetToken={swipeResetToken}
                 >
-                  <div className="liquid-glass-card p-4 flex items-center gap-3.5">
+                  <div 
+                    onClick={() => handleEdit(t)}
+                    className="liquid-glass-card p-4 flex items-center gap-3.5 cursor-pointer touch-feedback"
+                  >
                     {/* Category Icon Circle */}
                     <div 
                       className="w-12 h-12 shrink-0 rounded-full flex items-center justify-center text-white shadow-md" 
@@ -1196,6 +1230,34 @@ const Transactions = () => {
                       <p className={`font-bold text-sm tabular-nums whitespace-nowrap ${t.type === 'income' ? 'text-emerald-500' : 'text-zinc-900 dark:text-white'}`}>
                         {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                       </p>
+                    </div>
+
+                    {/* Quick Action Buttons on Mobile */}
+                    <div className="flex items-center gap-1 shrink-0 ml-1" onClick={e => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(t);
+                        }}
+                        className="w-8 h-8 rounded-xl liquid-glass-subtle text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center justify-center transition-colors cursor-pointer touch-feedback"
+                        title="Edit transaction"
+                        aria-label="Edit transaction"
+                      >
+                        <FontAwesomeIcon icon={faEdit} className="text-xs" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          requestDelete(t.id);
+                        }}
+                        className="w-8 h-8 rounded-xl liquid-glass-subtle text-zinc-400 hover:text-rose-500 flex items-center justify-center transition-colors cursor-pointer touch-feedback"
+                        title="Delete transaction"
+                        aria-label="Delete transaction"
+                      >
+                        <FontAwesomeIcon icon={faTrash} className="text-xs" />
+                      </button>
                     </div>
                   </div>
                 </SwipeableItem>

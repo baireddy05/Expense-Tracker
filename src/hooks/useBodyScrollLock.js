@@ -2,6 +2,7 @@ import { useEffect, useId } from 'react';
 
 // Use a Set of active modal IDs to guarantee 100% reliable lock tracking
 const activeLocks = new Set();
+let originalStyles = null;
 
 export const useBodyScrollLock = (isLocked) => {
   const lockId = useId();
@@ -9,25 +10,32 @@ export const useBodyScrollLock = (isLocked) => {
   useEffect(() => {
     if (typeof document === 'undefined') return;
     const docEl = document.documentElement;
-    const prevHtmlOverflow = docEl.style.overflow;
-    const prevBodyOverflow = document.body.style.overflow;
-    const prevBodyPadding = document.body.style.paddingRight;
-    const prevOverscroll = document.body.style.overscrollBehavior;
 
     const restore = () => {
-      docEl.style.overflow = prevHtmlOverflow;
-      document.body.style.overflow = prevBodyOverflow;
-      document.body.style.paddingRight = prevBodyPadding;
-      document.body.style.overscrollBehavior = prevOverscroll;
+      if (originalStyles) {
+        docEl.style.overflow = originalStyles.htmlOverflow;
+        document.body.style.overflow = originalStyles.bodyOverflow;
+        document.body.style.paddingRight = originalStyles.bodyPaddingRight;
+        document.body.style.overscrollBehavior = originalStyles.overscroll;
+        originalStyles = null;
+      }
     };
 
     if (isLocked) {
+      if (activeLocks.size === 0) {
+        originalStyles = {
+          htmlOverflow: docEl.style.overflow,
+          bodyOverflow: document.body.style.overflow,
+          bodyPaddingRight: document.body.style.paddingRight,
+          overscroll: document.body.style.overscrollBehavior,
+        };
+        const sb = window.innerWidth - docEl.clientWidth;
+        docEl.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
+        if (sb > 0) document.body.style.paddingRight = `${sb}px`;
+        document.body.style.overscrollBehavior = 'contain';
+      }
       activeLocks.add(lockId);
-      const sb = window.innerWidth - docEl.clientWidth;
-      docEl.style.overflow = 'hidden';
-      document.body.style.overflow = 'hidden';
-      if (sb > 0) document.body.style.paddingRight = `${sb}px`;
-      document.body.style.overscrollBehavior = 'contain';
     } else {
       activeLocks.delete(lockId);
       if (activeLocks.size === 0) {
@@ -36,9 +44,8 @@ export const useBodyScrollLock = (isLocked) => {
     }
 
     return () => {
-      const wasLast = activeLocks.has(lockId) && activeLocks.size === 1;
       activeLocks.delete(lockId);
-      if (activeLocks.size === 0 || wasLast) {
+      if (activeLocks.size === 0) {
         restore();
       }
     };

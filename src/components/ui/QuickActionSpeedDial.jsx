@@ -84,12 +84,12 @@ const QuickActionSpeedDial = ({ onAddTransaction, onAddLent, onAddBorrowed }) =>
       {/* Backdrop overlay to click outside */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-30 animate-fade-in"
+          className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-40 animate-fade-in"
           onClick={() => setIsOpen(false)}
         />
       )}
 
-      <div className="fixed bottom-[calc(7rem+env(safe-area-inset-bottom,0px))] md:bottom-8 right-5 md:right-8 z-40 flex flex-col items-end">
+      <div className="fixed bottom-[calc(7rem+env(safe-area-inset-bottom,0px))] md:bottom-8 right-5 md:right-8 z-50 flex flex-col items-end">
         {/* Expanded Speed-Dial items with smooth origin-bottom-right spring expand/collapse */}
         <div 
           className={`mb-3 space-y-2.5 flex flex-col items-end origin-bottom-right transition-all duration-300 ease-out ${

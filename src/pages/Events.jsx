@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useTransactions } from '../context/TransactionContext';
 import { useUI } from '../context/UIContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -221,7 +222,7 @@ const Events = () => {
   };
 
   return (
-    <div className="space-y-6 pb-20 md:pb-8">
+    <div className="space-y-6 pb-32 md:pb-8">
       {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -461,9 +462,9 @@ const Events = () => {
       </div>
 
       {/* Add / Edit Event Modal */}
-      {isEventModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/60 dark:bg-black/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-md shadow-2xl border border-zinc-200/50 dark:border-zinc-800/50 overflow-hidden max-h-[90vh] flex flex-col my-auto" onClick={e => e.stopPropagation()}>
+      {isEventModalOpen && createPortal(
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-zinc-900/60 dark:bg-black/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div className="bg-white dark:bg-zinc-900 rounded-t-2xl sm:rounded-2xl w-full max-w-md shadow-2xl border border-zinc-200/50 dark:border-zinc-800/50 overflow-hidden max-h-[90dvh] flex flex-col my-0 sm:my-auto" onClick={e => e.stopPropagation()}>
             <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/50">
               <h3 className="font-bold text-sm text-zinc-900 dark:text-white flex items-center gap-2">
                 <FontAwesomeIcon icon={editingId ? faEdit : faPlus} className="text-zinc-400" />
@@ -618,17 +619,18 @@ const Events = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* View Event Expenses Slide-Out / Modal */}
-      {viewingEvent && (
+      {viewingEvent && createPortal(
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/60 dark:bg-black/80 backdrop-blur-sm animate-fade-in overflow-y-auto"
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-zinc-900/60 dark:bg-black/80 backdrop-blur-sm animate-fade-in overflow-y-auto"
           onClick={() => setViewingEvent(null)}
         >
           <div 
-            className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-lg shadow-2xl border border-zinc-200/50 dark:border-zinc-800/50 overflow-hidden max-h-[85vh] flex flex-col my-auto"
+            className="bg-white dark:bg-zinc-900 rounded-t-2xl sm:rounded-2xl w-full max-w-lg shadow-2xl border border-zinc-200/50 dark:border-zinc-800/50 overflow-hidden max-h-[90dvh] flex flex-col my-0 sm:my-auto"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
@@ -710,7 +712,8 @@ const Events = () => {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete Confirmation Modal */}

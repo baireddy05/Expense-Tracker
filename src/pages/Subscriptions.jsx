@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useTransactions } from '../context/TransactionContext';
 import { useUI } from '../context/UIContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -159,7 +160,7 @@ const Subscriptions = () => {
   }, [subscriptions]);
 
   return (
-    <div className="space-y-6 pb-20 md:pb-8">
+    <div className="space-y-6 pb-32 md:pb-8">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
@@ -308,10 +309,10 @@ const Subscriptions = () => {
       </div>
 
       {/* Add/Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/60 dark:bg-black/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-md shadow-2xl border border-zinc-200/50 dark:border-zinc-800/50 overflow-hidden max-h-[90vh] flex flex-col my-auto" onClick={e => e.stopPropagation()}>
-            <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/50">
+      {isModalOpen && createPortal(
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md animate-fade-in" onClick={() => setIsModalOpen(false)}>
+          <div className="bg-white dark:bg-zinc-900 rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl border border-zinc-200/80 dark:border-white/10 overflow-hidden max-h-[90dvh] flex flex-col mt-auto sm:my-auto animate-slide-up sm:animate-fade-in" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/50 shrink-0">
               <h3 className="font-bold text-sm text-zinc-900 dark:text-white flex items-center gap-2">
                 <FontAwesomeIcon icon={faSyncAlt} className="text-zinc-400" />
                 {editingId ? 'Edit Subscription' : 'New Subscription'}
@@ -324,7 +325,7 @@ const Subscriptions = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto">
+            <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto overscroll-contain pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-5">
               <div>
                 <label className="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">
                   Name (e.g. Netflix, Gym) <span className="text-rose-500">*</span>
@@ -458,7 +459,8 @@ const Subscriptions = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Custom Confirmation Modal for Deletion */}

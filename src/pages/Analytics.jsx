@@ -337,7 +337,7 @@ const Analytics = () => {
   }, [comparisonData]);
 
   return (
-    <div className="space-y-6 pb-20 md:pb-8">
+    <div className="space-y-6 pb-32 md:pb-8">
       {/* Header & View Switcher */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -520,7 +520,7 @@ const Analytics = () => {
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-white mb-4">
                 Expenses by Category (₹)
               </h3>
-              <div className="flex-1 w-full h-[260px] sm:h-[300px] min-w-0">
+              <div className="flex-1 w-full h-[260px] sm:h-[300px] min-w-0 relative">
                 {expenseByCategory.length > 0 ? (
                   <Bar 
                     data={categoryChartData}
@@ -648,36 +648,36 @@ const Analytics = () => {
             <div className="glass-card p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <p className="text-xs font-bold text-zinc-900 dark:text-white">Period A (Primary)</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
                   <input
                     type="date"
                     value={customRange.startA}
                     onChange={e => setCustomRange({ ...customRange, startA: e.target.value })}
-                    className="px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs text-zinc-900 dark:text-white"
+                    className="px-2.5 py-1.5 min-h-[38px] bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs text-zinc-900 dark:text-white [color-scheme:light] dark:[color-scheme:dark] w-full min-w-0"
                   />
                   <input
                     type="date"
                     value={customRange.endA}
                     onChange={e => setCustomRange({ ...customRange, endA: e.target.value })}
-                    className="px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs text-zinc-900 dark:text-white"
+                    className="px-2.5 py-1.5 min-h-[38px] bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs text-zinc-900 dark:text-white [color-scheme:light] dark:[color-scheme:dark] w-full min-w-0"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <p className="text-xs font-bold text-zinc-900 dark:text-white">Period B (Comparison)</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
                   <input
                     type="date"
                     value={customRange.startB}
                     onChange={e => setCustomRange({ ...customRange, startB: e.target.value })}
-                    className="px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs text-zinc-900 dark:text-white"
+                    className="px-2.5 py-1.5 min-h-[38px] bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs text-zinc-900 dark:text-white [color-scheme:light] dark:[color-scheme:dark] w-full min-w-0"
                   />
                   <input
                     type="date"
                     value={customRange.endB}
                     onChange={e => setCustomRange({ ...customRange, endB: e.target.value })}
-                    className="px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs text-zinc-900 dark:text-white"
+                    className="px-2.5 py-1.5 min-h-[38px] bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs text-zinc-900 dark:text-white [color-scheme:light] dark:[color-scheme:dark] w-full min-w-0"
                   />
                 </div>
               </div>
@@ -780,7 +780,7 @@ const Analytics = () => {
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-white mb-4">
               Side-by-Side Category Spending Comparison
             </h3>
-            <div className="w-full h-[260px] sm:h-[300px]">
+            <div className="w-full h-[260px] sm:h-[300px] relative min-w-0">
               {comparisonData.topCategories.length > 0 ? (
                 <Bar 
                   data={comparativeChartData}
