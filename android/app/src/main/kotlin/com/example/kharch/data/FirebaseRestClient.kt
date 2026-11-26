@@ -192,9 +192,14 @@ class FirebaseRestClient {
     }
 
     private fun parseAuthResponse(res: JsonObject, fallbackEmail: String): AuthSession {
+        if (res["needConfirmation"]?.jsonPrimitive?.booleanOrNull == true) {
+            throw Exception("An account with this email already uses another sign-in method. Please sign in with Email/Password.")
+        }
         val uid = res["localId"]?.jsonPrimitive?.content ?: throw Exception("Missing user id")
         val email = res["email"]?.jsonPrimitive?.contentOrNull ?: fallbackEmail
-        val displayName = res["displayName"]?.jsonPrimitive?.contentOrNull ?: email.substringBefore('@')
+        val displayName = res["displayName"]?.jsonPrimitive?.contentOrNull
+            ?: res["fullName"]?.jsonPrimitive?.contentOrNull
+            ?: email.substringBefore('@')
         val idToken = res["idToken"]?.jsonPrimitive?.content ?: throw Exception("Missing idToken")
         val refreshToken = res["refreshToken"]?.jsonPrimitive?.content ?: ""
         val expiresSec = res["expiresIn"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 3600L

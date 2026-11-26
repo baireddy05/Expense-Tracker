@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "611669328733",
+    "firebase_url": "https://expense-tracker-321ba-default-rtdb.firebaseio.com",
+    "project_id": "expense-tracker-321ba",
+    "storage_bucket": "expense-tracker-321ba.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:611669328733:android:5bff24f5b32abfcdff1eb4",
+        "android_client_info": {
+          "package_name": "com.kharch.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "611669328733-a31ut80feabdob2nikrslq4i5ho613rk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCx_7S7wqfNddjpAbw8xrx9e4aCTEN67cs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "611669328733-a31ut80feabdob2nikrslq4i5ho613rk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

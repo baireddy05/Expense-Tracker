@@ -1,7 +1,9 @@
 package com.example.kharch.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -19,11 +21,13 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.FrameRateCategory
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.preferredFrameRate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -117,7 +121,7 @@ fun LentMoneyScreen(
     val settledList = remember(filtered) { filtered.filter { lentStatusOf(it) == "settled" } }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp).preferredFrameRate(FrameRateCategory.High),
         contentPadding = PaddingValues(top = 8.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -234,7 +238,11 @@ fun LentMoneyScreen(
 
         if (settledList.isNotEmpty()) {
             item {
-                val archiveChev by animateFloatAsState(targetValue = if (settledExpanded) 180f else 0f, label = "lent_arch")
+                val archiveChevState = animateFloatAsState(
+                    targetValue = if (settledExpanded) 180f else 0f,
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 500f),
+                    label = "lent_arch"
+                )
                 Surface(
                     onClick = { settledExpanded = !settledExpanded },
                     shape = RoundedCornerShape(14.dp),
@@ -243,7 +251,7 @@ fun LentMoneyScreen(
                 ) {
                     Row(Modifier.padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text("Settled Records Archive (${settledList.size})", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = kc.textPrimary)
-                        Icon(Icons.Rounded.ExpandMore, contentDescription = null, modifier = Modifier.rotate(archiveChev))
+                        Icon(Icons.Rounded.ExpandMore, contentDescription = null, modifier = Modifier.graphicsLayer { rotationZ = archiveChevState.value })
                     }
                 }
             }

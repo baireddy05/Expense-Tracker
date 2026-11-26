@@ -4,9 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
@@ -15,9 +15,11 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.FrameRateCategory
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.preferredFrameRate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -207,15 +209,16 @@ fun DashboardScreen(
         map.entries.sortedByDescending { it.value.first }.map { DonutSlice(it.key, it.value.first, it.value.second) }
     }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
-            .padding(top = 8.dp, bottom = 120.dp),
+            .preferredFrameRate(FrameRateCategory.High),
+        contentPadding = PaddingValues(top = 8.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // Header & Quick Shortcuts
+        item(key = "dash_header") {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Dashboard", style = MaterialTheme.typography.headlineLarge, color = kc.textPrimary)
             Text("Financial position, cash flow & debts", style = MaterialTheme.typography.bodySmall, color = kc.textMuted)
@@ -237,9 +240,11 @@ fun DashboardScreen(
                 }
             }
         }
+        }
 
         // Guest Sign-In Banner
         if (state.session == null) {
+            item(key = "dash_guest") {
             Surface(
                 shape = RoundedCornerShape(18.dp),
                 color = kc.primaryButtonBg,
@@ -274,9 +279,11 @@ fun DashboardScreen(
                     }
                 }
             }
+            }
         }
 
         // 4 KPI Cards (2x2 Grid)
+        item(key = "dash_kpi1") {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             KpiCard(
                 title = "Total Balance",
@@ -301,6 +308,8 @@ fun DashboardScreen(
                 modifier = Modifier.weight(1f)
             )
         }
+        }
+        item(key = "dash_kpi2") {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             KpiCard(
                 title = "Monthly Expense",
@@ -323,9 +332,11 @@ fun DashboardScreen(
                 modifier = Modifier.weight(1f)
             )
         }
+        }
 
         // Accounts & Wallets Quick Glance
         if (state.accountsWithBalances.isNotEmpty()) {
+            item(key = "dash_accounts") {
             KharchCard {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("Accounts & Wallets", style = MaterialTheme.typography.titleSmall, color = kc.textPrimary)
@@ -364,10 +375,12 @@ fun DashboardScreen(
                     }
                 }
             }
+            }
         }
 
         // Savings Goals Quick Glance
         if (state.savingsGoals.isNotEmpty()) {
+            item(key = "dash_goals") {
             KharchCard {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("Savings Goals", style = MaterialTheme.typography.titleSmall, color = kc.textPrimary)
@@ -400,10 +413,12 @@ fun DashboardScreen(
                     }
                 }
             }
+            }
         }
 
         // Active Trips & Events Quick Glance
         if (state.eventsWithStats.isNotEmpty()) {
+            item(key = "dash_events") {
             KharchCard {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("Active Trips & Event Budgets", style = MaterialTheme.typography.titleSmall, color = kc.textPrimary)
@@ -439,10 +454,12 @@ fun DashboardScreen(
                     }
                 }
             }
+            }
         }
 
         // Upcoming Bills & Due Dates Attention Center
         if (dueAlerts.isNotEmpty()) {
+            item(key = "dash_alerts") {
             KharchCard(borderColor = KharchAmber.copy(alpha = 0.45f)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -473,9 +490,11 @@ fun DashboardScreen(
                     }
                 }
             }
+            }
         }
 
         // Global Monthly Budget + Category Envelope Bars
+        item(key = "dash_budget") {
         KharchCard {
             if (hasBudget && budgetRatio >= 0.9) {
                 Surface(
@@ -560,8 +579,10 @@ fun DashboardScreen(
                 }
             }
         }
+        }
 
         // Weekly Cash Flow Line Chart
+        item(key = "dash_cashflow") {
         KharchCard {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Weekly Cash Flow Trend", style = MaterialTheme.typography.titleSmall, color = kc.textPrimary)
@@ -575,8 +596,10 @@ fun DashboardScreen(
                 isPrivacyMode = state.isPrivacyMode
             )
         }
+        }
 
         // Expenses by Category Donut Chart
+        item(key = "dash_donut") {
         KharchCard {
             Text("Expenses by Category", style = MaterialTheme.typography.titleSmall, color = kc.textPrimary)
             Spacer(Modifier.height(12.dp))
@@ -586,8 +609,10 @@ fun DashboardScreen(
                 centerValue = CurrencyUtils.formatCompactInr(allExpense, state.isPrivacyMode)
             )
         }
+        }
 
         // Recent Transactions (5 most recent)
+        item(key = "dash_recent") {
         KharchCard {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Recent Transactions", style = MaterialTheme.typography.titleSmall, color = kc.textPrimary)
@@ -643,6 +668,7 @@ fun DashboardScreen(
                     }
                 }
             }
+        }
         }
     }
 }

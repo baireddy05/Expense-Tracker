@@ -1,16 +1,11 @@
 package com.example.kharch.ui.screens
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
@@ -18,9 +13,11 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.FrameRateCategory
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.preferredFrameRate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -168,54 +165,56 @@ fun AnalyticsScreen(state: KharchUiState) {
         )
     }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
-            .padding(top = 8.dp, bottom = 120.dp),
+            .preferredFrameRate(FrameRateCategory.High),
+        contentPadding = PaddingValues(top = 8.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-            if (activeTab == "overview") "Financial Analytics" else "Period Comparison",
-            style = MaterialTheme.typography.headlineLarge,
-            color = kc.textPrimary
-        )
+        item(key = "ana_header") {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    if (activeTab == "overview") "Financial Analytics" else "Period Comparison",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = kc.textPrimary
+                )
 
-        // Tab Switcher
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .background(kc.subtleSurface)
-                .padding(4.dp)
-        ) {
-            listOf("overview" to "Overview", "comparison" to "Period Comparison").forEach { (k, lbl) ->
-                val sel = activeTab == k
-                Surface(
-                    onClick = { activeTab = k },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp),
-                    color = if (sel) kc.primaryButtonBg else Color.Transparent
+                // Tab Switcher
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(kc.subtleSurface)
+                        .padding(4.dp)
                 ) {
-                    Box(Modifier.padding(vertical = 9.dp), contentAlignment = Alignment.Center) {
-                        Text(lbl, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (sel) kc.primaryButtonFg else kc.textMuted)
+                    listOf("overview" to "Overview", "comparison" to "Period Comparison").forEach { (k, lbl) ->
+                        val sel = activeTab == k
+                        Surface(
+                            onClick = { activeTab = k },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (sel) kc.primaryButtonBg else Color.Transparent
+                        ) {
+                            Box(Modifier.padding(vertical = 9.dp), contentAlignment = Alignment.Center) {
+                                Text(lbl, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (sel) kc.primaryButtonFg else kc.textMuted)
+                            }
+                        }
                     }
                 }
             }
         }
 
-        AnimatedContent(
-            targetState = activeTab == "overview",
-            transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(180)) },
-            label = "analytics_tab"
-        ) { isOverview ->
-        if (isOverview) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        if (activeTab == "overview") {
+            item(key = "ov_kpi1") {
+            Row(Modifier.fillMaxWidth().animateItem(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 KpiCard("Total Income", overviewStats[0], "All time logged", Icons.AutoMirrored.Rounded.TrendingUp, KharchEmerald, KharchEmeraldSoft, state.isPrivacyMode, Modifier.weight(1f), KharchEmerald)
                 KpiCard("Total Expense", overviewStats[1], "All time spent", Icons.AutoMirrored.Rounded.TrendingDown, KharchRose, KharchRoseSoft, state.isPrivacyMode, Modifier.weight(1f))
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            }
+            item(key = "ov_kpi2") {
+            Row(Modifier.fillMaxWidth().animateItem(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 KpiCard(
                     title = "Savings Rate",
                     value = overviewStats[3],
@@ -240,7 +239,10 @@ fun AnalyticsScreen(state: KharchUiState) {
                     modifier = Modifier.weight(1f)
                 )
             }
+            }
 
+            item(key = "ov_ratio") {
+            Box(Modifier.animateItem()) {
             KharchCard {
                 Text("Income vs Expense Ratio", style = MaterialTheme.typography.titleSmall, color = kc.textPrimary)
                 Spacer(Modifier.height(10.dp))
@@ -254,7 +256,11 @@ fun AnalyticsScreen(state: KharchUiState) {
                     isPie = true
                 )
             }
+            }
+            }
 
+            item(key = "ov_bar") {
+            Box(Modifier.animateItem()) {
             KharchCard {
                 Text("Expenses by Category", style = MaterialTheme.typography.titleSmall, color = kc.textPrimary)
                 Spacer(Modifier.height(10.dp))
@@ -263,8 +269,12 @@ fun AnalyticsScreen(state: KharchUiState) {
                     isPrivacyMode = state.isPrivacyMode
                 )
             }
+            }
+            }
 
             if (categoryBreakdown.isNotEmpty()) {
+                item(key = "ov_share") {
+                Box(Modifier.animateItem()) {
                 KharchCard {
                     Text("Category Breakdown Share", style = MaterialTheme.typography.titleSmall, color = kc.textPrimary)
                     Spacer(Modifier.height(10.dp))
@@ -281,16 +291,22 @@ fun AnalyticsScreen(state: KharchUiState) {
                         }
                     }
                 }
+                }
+                }
             }
         } else {
             // Comparison Tab
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            item(key = "cmp_presets") {
+            Row(Modifier.horizontalScroll(rememberScrollState()).animateItem(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("month" to "Month vs Last", "quarter" to "Quarter vs Last", "year" to "Year vs Last", "custom" to "Custom Range").forEach { (k, lbl) ->
                     FilterChip(selected = comparisonPreset == k, onClick = { comparisonPreset = k }, label = { Text(lbl, fontSize = 11.sp) })
                 }
             }
+            }
 
             if (comparisonPreset == "custom") {
+                item(key = "cmp_custom") {
+                Box(Modifier.animateItem()) {
                 KharchCard(contentPadding = 12.dp) {
                     Text("Period A (Primary)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = kc.textPrimary)
                     Spacer(Modifier.height(6.dp))
@@ -306,14 +322,20 @@ fun AnalyticsScreen(state: KharchUiState) {
                         DatePickerField("End B", endB, { endB = it }, modifier = Modifier.weight(1f))
                     }
                 }
-            }
-
-            comparison.rangeError?.let { err ->
-                Surface(shape = RoundedCornerShape(12.dp), color = KharchAmberSoft, modifier = Modifier.fillMaxWidth()) {
-                    Text(err, color = KharchAmber, fontSize = 12.sp, modifier = Modifier.padding(10.dp))
+                }
                 }
             }
 
+            comparison.rangeError?.let { err ->
+                item(key = "cmp_err") {
+                Surface(shape = RoundedCornerShape(12.dp), color = KharchAmberSoft, modifier = Modifier.fillMaxWidth().animateItem()) {
+                    Text(err, color = KharchAmber, fontSize = 12.sp, modifier = Modifier.padding(10.dp))
+                }
+                }
+            }
+
+            item(key = "cmp_kpis") {
+            Column(Modifier.animateItem(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             val expDiff = comparison.expA - comparison.expB
             val expPct = if (comparison.expB > 0) (expDiff / comparison.expB) * 100.0 else if (comparison.expA > 0) 100.0 else 0.0
             val incDiff = comparison.incA - comparison.incB
@@ -346,7 +368,11 @@ fun AnalyticsScreen(state: KharchUiState) {
                 KpiCard("Net Savings", comparison.savA, "vs ${CurrencyUtils.formatCompactInr(comparison.savB, state.isPrivacyMode)}", Icons.Rounded.Savings, KharchIndigo, KharchIndigoSoft, state.isPrivacyMode, Modifier.weight(1f))
                 KpiCard("Daily Burn Rate", comparison.dailyA, "vs ${CurrencyUtils.formatCompactInr(comparison.dailyB, state.isPrivacyMode)}/d", Icons.Rounded.Speed, KharchAmber, KharchAmberSoft, state.isPrivacyMode, Modifier.weight(1f), suffix = "/d")
             }
+            }
+            }
 
+            item(key = "cmp_chart") {
+            Box(Modifier.animateItem()) {
             KharchCard {
                 Text("Side-by-Side Category Comparison", style = MaterialTheme.typography.titleSmall, color = kc.textPrimary)
                 Spacer(Modifier.height(10.dp))
@@ -360,8 +386,12 @@ fun AnalyticsScreen(state: KharchUiState) {
                     isPrivacyMode = state.isPrivacyMode
                 )
             }
+            }
+            }
 
             if (comparison.categoryShifts.isNotEmpty()) {
+                item(key = "cmp_shifts") {
+                Box(Modifier.animateItem()) {
                 KharchCard {
                     Text("Per-Category Variance", style = MaterialTheme.typography.titleSmall, color = kc.textPrimary)
                     Spacer(Modifier.height(10.dp))
@@ -385,8 +415,9 @@ fun AnalyticsScreen(state: KharchUiState) {
                         }
                     }
                 }
+                }
+                }
             }
-        }
         }
     }
 }

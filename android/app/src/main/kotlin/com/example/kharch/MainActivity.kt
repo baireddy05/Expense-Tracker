@@ -1,7 +1,9 @@
 package com.example.kharch
 
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -20,6 +22,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        configureHighRefreshRateDisplay()
         setContent {
             val vm: KharchViewModel = viewModel()
             val state by vm.state.collectAsState()
@@ -46,6 +49,34 @@ class MainActivity : ComponentActivity() {
             }
             KharchTheme(themeMode = state.themeMode) {
                 KharchAppShell(vm = vm)
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        configureHighRefreshRateDisplay()
+    }
+
+    private fun configureHighRefreshRateDisplay() {
+        runCatching {
+            val activeDisplay = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) display else @Suppress("DEPRECATION") windowManager.defaultDisplay
+            val currentMode = activeDisplay?.mode
+            val bestMode = activeDisplay?.supportedModes
+                ?.filter { m ->
+                    currentMode == null ||
+                        (m.physicalWidth == currentMode.physicalWidth && m.physicalHeight == currentMode.physicalHeight)
+                }
+                ?.maxByOrNull { it.refreshRate }
+            if (bestMode != null) {
+                window.attributes = window.attributes.apply {
+                    preferredDisplayModeId = bestMode.modeId
+                    preferredRefreshRate = bestMode.refreshRate
+                }
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                window.setFrameRateBoostOnTouchEnabled(true)
+                window.decorView.requestedFrameRate = View.REQUESTED_FRAME_RATE_CATEGORY_HIGH
             }
         }
     }

@@ -1,11 +1,9 @@
 package com.example.kharch.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -19,11 +17,13 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.FrameRateCategory
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.preferredFrameRate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -143,9 +143,10 @@ fun TransactionsScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp)
+            .preferredFrameRate(FrameRateCategory.High),
         contentPadding = PaddingValues(top = 8.dp, bottom = 120.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -289,158 +290,165 @@ fun TransactionsScreen(
                 }
             }
         } else {
-            items(dateGroups, key = { it.dateKey }) { group ->
+            dateGroups.forEach { group ->
                 val isExpanded = expandedDates[group.dateKey] ?: expandAllState
-                val chevronRot by animateFloatAsState(targetValue = if (isExpanded) 180f else 0f, label = "group_chev")
-                KharchCard(contentPadding = 12.dp) {
-                    // Date Header Row
-                    Row(
+                item(key = "hdr_${group.dateKey}", contentType = "date_header") {
+                    val chevronRotState = animateFloatAsState(
+                        targetValue = if (isExpanded) 180f else 0f,
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 500f),
+                        label = "group_chev"
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = kc.card,
+                        border = BorderStroke(1.dp, kc.cardBorder),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { expandedDates = expandedDates + (group.dateKey to !isExpanded) },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .animateItem()
                     ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(DateUtils.formatDateGroupHeader(group.dateKey), fontWeight = FontWeight.Bold, fontSize = 13.sp, color = kc.textPrimary)
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                if (group.totalIncome > 0) Text("+${CurrencyUtils.formatCompactInr(group.totalIncome, state.isPrivacyMode)}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = KharchEmerald)
-                                if (group.totalExpense > 0) Text("-${CurrencyUtils.formatCompactInr(group.totalExpense, state.isPrivacyMode)}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = KharchRose)
-                                Text("${group.items.size} tx", fontSize = 10.sp, color = kc.textMuted)
+                        // Date Header Row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { expandedDates = expandedDates + (group.dateKey to !isExpanded) }
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(DateUtils.formatDateGroupHeader(group.dateKey), fontWeight = FontWeight.Bold, fontSize = 13.sp, color = kc.textPrimary)
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    if (group.totalIncome > 0) Text("+${CurrencyUtils.formatCompactInr(group.totalIncome, state.isPrivacyMode)}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = KharchEmerald)
+                                    if (group.totalExpense > 0) Text("-${CurrencyUtils.formatCompactInr(group.totalExpense, state.isPrivacyMode)}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = KharchRose)
+                                    Text("${group.items.size} tx", fontSize = 10.sp, color = kc.textMuted)
+                                }
                             }
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(
-                                onClick = {
-                                    editingTx = null
-                                    formDefaultType = "expense"
-                                    formDefaultDate = group.dateKey.takeIf { it != "Unknown Date" }
-                                    isFormOpen = true
-                                },
-                                modifier = Modifier.size(30.dp)
-                            ) {
-                                Icon(Icons.Rounded.AddCircleOutline, contentDescription = "Add for date", tint = KharchIndigo, modifier = Modifier.size(18.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(
+                                    onClick = {
+                                        editingTx = null
+                                        formDefaultType = "expense"
+                                        formDefaultDate = group.dateKey.takeIf { it != "Unknown Date" }
+                                        isFormOpen = true
+                                    },
+                                    modifier = Modifier.size(30.dp)
+                                ) {
+                                    Icon(Icons.Rounded.AddCircleOutline, contentDescription = "Add for date", tint = KharchIndigo, modifier = Modifier.size(18.dp))
+                                }
+                                Icon(
+                                    Icons.Rounded.ExpandMore,
+                                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                                    tint = kc.textMuted,
+                                    modifier = Modifier.graphicsLayer { rotationZ = chevronRotState.value }
+                                )
                             }
-                            Icon(
-                                Icons.Rounded.ExpandMore,
-                                contentDescription = if (isExpanded) "Collapse" else "Expand",
-                                tint = kc.textMuted,
-                                modifier = Modifier.rotate(chevronRot)
-                            )
                         }
                     }
+                }
 
-                    AnimatedVisibility(
-                        visible = isExpanded,
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
-                    ) {
-                        Column {
-                            Spacer(Modifier.height(8.dp))
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                group.items.forEach { tx ->
-                                    val cat = CategoryEngine.resolveCategory(tx.categoryId, state.categories, tx.note)
-                                    val dismissState = rememberSwipeToDismissBoxState()
-                                    LaunchedEffect(dismissState.currentValue) {
-                                        when (dismissState.currentValue) {
-                                            SwipeToDismissBoxValue.StartToEnd -> {
-                                                editingTx = tx
-                                                isFormOpen = true
-                                                dismissState.reset()
-                                            }
-                                            SwipeToDismissBoxValue.EndToStart -> {
-                                                deleteTargetId = tx.id
-                                                dismissState.reset()
-                                            }
-                                            SwipeToDismissBoxValue.Settled -> Unit
+                if (isExpanded) {
+                    items(group.items, key = { it.id }, contentType = { "tx_row" }) { tx ->
+                        val cat = CategoryEngine.resolveCategory(tx.categoryId, state.categories, tx.note)
+                        val dismissState = rememberSwipeToDismissBoxState()
+                        LaunchedEffect(dismissState.currentValue) {
+                            when (dismissState.currentValue) {
+                                SwipeToDismissBoxValue.StartToEnd -> {
+                                    editingTx = tx
+                                    isFormOpen = true
+                                    dismissState.reset()
+                                }
+                                SwipeToDismissBoxValue.EndToStart -> {
+                                    deleteTargetId = tx.id
+                                    dismissState.reset()
+                                }
+                                SwipeToDismissBoxValue.Settled -> Unit
+                            }
+                        }
+
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            modifier = Modifier.animateItem(),
+                            backgroundContent = {
+                                val isRight = dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(if (isRight) KharchIndigo else KharchRose)
+                                        .padding(horizontal = 16.dp),
+                                    contentAlignment = if (isRight) Alignment.CenterStart else Alignment.CenterEnd
+                                ) {
+                                    Icon(
+                                        imageVector = if (isRight) Icons.Rounded.Edit else Icons.Rounded.Delete,
+                                        contentDescription = null,
+                                        tint = Color.White
+                                    )
+                                }
+                            }
+                        ) {
+                            Surface(
+                                onClick = {
+                                    editingTx = tx
+                                    isFormOpen = true
+                                },
+                                shape = RoundedCornerShape(14.dp),
+                                color = kc.card,
+                                border = BorderStroke(1.dp, kc.cardBorder),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CategoryIconBadge(cat?.icon ?: "fa-receipt", cat?.color, size = 34.dp)
+                                    Spacer(Modifier.width(10.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(
+                                            text = tx.note.ifBlank { cat?.name ?: tx.type.replaceFirstChar { it.uppercase() } },
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = kc.textPrimary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        val accName = state.accounts.firstOrNull { it.id == (tx.accountId ?: tx.fromAccountId) }?.name
+                                        val sub = buildString {
+                                            append(cat?.name ?: if (tx.type == "transfer") "Transfer" else tx.type)
+                                            if (!accName.isNullOrBlank()) append(" • $accName")
+                                            if (!tx.eventTag.isNullOrBlank()) append(" #${tx.eventTag}")
                                         }
+                                        Text(sub, fontSize = 10.sp, color = kc.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
-
-                                    SwipeToDismissBox(
-                                        state = dismissState,
-                                        backgroundContent = {
-                                            val isRight = dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .clip(RoundedCornerShape(12.dp))
-                                                    .background(if (isRight) KharchIndigo else KharchRose)
-                                                    .padding(horizontal = 16.dp),
-                                                contentAlignment = if (isRight) Alignment.CenterStart else Alignment.CenterEnd
-                                            ) {
-                                                Icon(
-                                                    imageVector = if (isRight) Icons.Rounded.Edit else Icons.Rounded.Delete,
-                                                    contentDescription = null,
-                                                    tint = Color.White
-                                                )
-                                            }
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        val prefix = if (tx.type == "income") "+" else if (tx.type == "expense") "-" else ""
+                                        val amtCol = when (tx.type) {
+                                            "income" -> KharchEmerald
+                                            "expense" -> KharchRose
+                                            else -> KharchIndigo
                                         }
-                                    ) {
-                                    Surface(
-                                        onClick = {
-                                            editingTx = tx
-                                            isFormOpen = true
-                                        },
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = kc.subtleSurface,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(10.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            CategoryIconBadge(cat?.icon ?: "fa-receipt", cat?.color, size = 34.dp)
-                                            Spacer(Modifier.width(10.dp))
-                                            Column(Modifier.weight(1f)) {
-                                                Text(
-                                                    text = tx.note.ifBlank { cat?.name ?: tx.type.replaceFirstChar { it.uppercase() } },
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 12.sp,
-                                                    color = kc.textPrimary,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                                val accName = state.accounts.firstOrNull { it.id == (tx.accountId ?: tx.fromAccountId) }?.name
-                                                val sub = buildString {
-                                                    append(cat?.name ?: if (tx.type == "transfer") "Transfer" else tx.type)
-                                                    if (!accName.isNullOrBlank()) append(" • $accName")
-                                                    if (!tx.eventTag.isNullOrBlank()) append(" #${tx.eventTag}")
-                                                }
-                                                Text(sub, fontSize = 10.sp, color = kc.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                            }
-                                            Column(horizontalAlignment = Alignment.End) {
-                                                val prefix = if (tx.type == "income") "+" else if (tx.type == "expense") "-" else ""
-                                                val amtCol = when (tx.type) {
-                                                    "income" -> KharchEmerald
-                                                    "expense" -> KharchRose
-                                                    else -> KharchIndigo
-                                                }
-                                                Text(
-                                                    text = "$prefix${CurrencyUtils.formatInr(tx.amount, state.isPrivacyMode)}",
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 12.sp,
-                                                    color = amtCol
-                                                )
-                                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                    Icon(
-                                                        Icons.Rounded.Edit,
-                                                        contentDescription = "Edit",
-                                                        tint = kc.textMuted,
-                                                        modifier = Modifier.size(15.dp).clickable { editingTx = tx; isFormOpen = true }
-                                                    )
-                                                    Icon(
-                                                        Icons.Rounded.DeleteOutline,
-                                                        contentDescription = "Delete",
-                                                        tint = KharchRose,
-                                                        modifier = Modifier.size(15.dp).clickable { deleteTargetId = tx.id }
-                                                    )
-                                                }
-                                            }
+                                        Text(
+                                            text = "$prefix${CurrencyUtils.formatInr(tx.amount, state.isPrivacyMode)}",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = amtCol
+                                        )
+                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Icon(
+                                                Icons.Rounded.Edit,
+                                                contentDescription = "Edit",
+                                                tint = kc.textMuted,
+                                                modifier = Modifier.size(15.dp).clickable { editingTx = tx; isFormOpen = true }
+                                            )
+                                            Icon(
+                                                Icons.Rounded.DeleteOutline,
+                                                contentDescription = "Delete",
+                                                tint = KharchRose,
+                                                modifier = Modifier.size(15.dp).clickable { deleteTargetId = tx.id }
+                                            )
                                         }
                                     }
                                 }
                             }
-                        }
                         }
                     }
                 }

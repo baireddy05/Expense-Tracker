@@ -7,20 +7,48 @@ import kotlin.math.abs
 object CurrencyUtils {
     private val inrLocale = Locale.Builder().setLanguage("en").setRegion("IN").build()
 
+    // Cached per-thread formatters prevent heavy DecimalFormat/Locale allocations on every 120Hz frame
+    private val intCurrencyFmt: ThreadLocal<NumberFormat> = ThreadLocal.withInitial {
+        NumberFormat.getCurrencyInstance(inrLocale).apply {
+            maximumFractionDigits = 0
+            minimumFractionDigits = 0
+        }
+    }
+
+    private val decCurrencyFmt: ThreadLocal<NumberFormat> = ThreadLocal.withInitial {
+        NumberFormat.getCurrencyInstance(inrLocale).apply {
+            maximumFractionDigits = 2
+            minimumFractionDigits = 2
+        }
+    }
+
+    private val intNumFmt: ThreadLocal<NumberFormat> = ThreadLocal.withInitial {
+        NumberFormat.getNumberInstance(inrLocale).apply {
+            maximumFractionDigits = 0
+            minimumFractionDigits = 0
+        }
+    }
+
+    private val decNumFmt: ThreadLocal<NumberFormat> = ThreadLocal.withInitial {
+        NumberFormat.getNumberInstance(inrLocale).apply {
+            maximumFractionDigits = 2
+            minimumFractionDigits = 0
+        }
+    }
+
     fun formatInr(amount: Double, isPrivacyMode: Boolean = false, includeDecimals: Boolean = true): String {
         if (isPrivacyMode) return "₹••••••"
-        val formatter = NumberFormat.getCurrencyInstance(inrLocale).apply {
-            maximumFractionDigits = if (includeDecimals) 2 else 0
-            minimumFractionDigits = if (includeDecimals && amount % 1.0 != 0.0) 2 else 0
-        }
+        val hasFraction = includeDecimals && abs(amount % 1.0) > 0.001
+        val formatter = (if (hasFraction) decCurrencyFmt.get() else intCurrencyFmt.get())
+            ?: return "₹${amount.toLong()}"
         return formatter.format(amount)
     }
 
     fun formatInrNumber(amount: Double, isPrivacyMode: Boolean = false): String {
         if (isPrivacyMode) return "₹••••••"
-        val formatter = NumberFormat.getNumberInstance(inrLocale).apply {
-            maximumFractionDigits = if (abs(amount % 1.0) > 0.001) 2 else 0
-        }
+        val hasFraction = abs(amount % 1.0) > 0.001
+        val formatter = (if (hasFraction) decNumFmt.get() else intNumFmt.get())
+            ?: return "₹${amount.toLong()}"
         return "₹${formatter.format(amount)}"
     }
 

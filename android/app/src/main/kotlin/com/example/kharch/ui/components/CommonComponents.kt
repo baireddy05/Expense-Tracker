@@ -49,7 +49,7 @@ fun KharchCard(
         shape = RoundedCornerShape(20.dp),
         color = backgroundColor ?: kc.card,
         border = BorderStroke(1.dp, borderColor ?: kc.cardBorder),
-        shadowElevation = if (kc.isDark) 0.dp else 2.dp
+        shadowElevation = 0.dp
     ) {
         Column(modifier = Modifier.padding(contentPadding), content = content)
     }
@@ -67,7 +67,7 @@ fun AnimatedCurrencyText(
 ) {
     val animValue by animateFloatAsState(
         targetValue = amount.toFloat(),
-        animationSpec = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
         label = "kpi_counter"
     )
     val formatted = when {

@@ -1,6 +1,9 @@
 package com.example.kharch.ui.components
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -13,15 +16,15 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.FrameRateCategory
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.preferredFrameRate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.animation.core.animateFloatAsState
 import com.example.kharch.ui.theme.*
 
 private data class DialAction(
@@ -44,7 +47,11 @@ fun QuickActionSpeedDial(
     modifier: Modifier = Modifier
 ) {
     val kc = LocalKharchColors.current
-    val rotation by animateFloatAsState(targetValue = if (isOpen) 45f else 0f, label = "fab_rot")
+    val rotationState = animateFloatAsState(
+        targetValue = if (isOpen) 45f else 0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "fab_rot"
+    )
 
     val actions = remember(onAddExpense, onAddIncome, onAddLent, onAddBorrowed, onOpenSearch) {
         listOf(
@@ -66,7 +73,7 @@ fun QuickActionSpeedDial(
         )
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(modifier = modifier.fillMaxSize().preferredFrameRate(FrameRateCategory.High)) {
         AnimatedVisibility(
             visible = isOpen,
             enter = fadeIn(),
@@ -146,7 +153,7 @@ fun QuickActionSpeedDial(
                 Icon(
                     imageVector = Icons.Rounded.Add,
                     contentDescription = if (isOpen) "Close Quick Actions" else "Quick Actions",
-                    modifier = Modifier.size(24.dp).rotate(rotation)
+                    modifier = Modifier.size(24.dp).graphicsLayer { rotationZ = rotationState.value }
                 )
             }
         }

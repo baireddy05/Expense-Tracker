@@ -1,5 +1,8 @@
 package com.example.kharch.ui.components
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -12,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -85,7 +89,7 @@ fun WeeklyCashFlowLineChart(
 
         Box(modifier = Modifier.fillMaxWidth().height(170.dp)) {
             val gridColor = kc.textMuted.copy(alpha = 0.14f)
-            Canvas(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .pointerInput(labels.size) {
@@ -97,69 +101,80 @@ fun WeeklyCashFlowLineChart(
                             }
                         }
                     }
-            ) {
-                val padTop = 10.dp.toPx()
-                val padBottom = 10.dp.toPx()
-                val padSide = 10.dp.toPx()
-                val chartW = (size.width - padSide * 2).coerceAtLeast(1f)
-                val chartH = (size.height - padTop - padBottom).coerceAtLeast(1f)
+                    .drawWithCache {
+                        val padTop = 10.dp.toPx()
+                        val padBottom = 10.dp.toPx()
+                        val padSide = 10.dp.toPx()
+                        val chartW = (size.width - padSide * 2).coerceAtLeast(1f)
+                        val chartH = (size.height - padTop - padBottom).coerceAtLeast(1f)
+                        val gridStroke = 1.dp.toPx()
+                        val lineStroke = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
+                        val dotNormal = 3.dp.toPx()
+                        val dotSelected = 5.dp.toPx()
+                        val count = labels.size
 
-                // Horizontal grid lines
-                for (i in 0..3) {
-                    val y = padTop + chartH * (i / 3f)
-                    drawLine(gridColor, Offset(padSide, y), Offset(size.width - padSide, y), strokeWidth = 1.dp.toPx())
-                }
+                        data class CachedSeries(
+                            val pts: List<Offset>,
+                            val linePath: Path,
+                            val fillPath: Path,
+                            val fillBrush: Brush,
+                            val color: Color
+                        )
 
-                val count = labels.size
-                if (count < 2) return@Canvas
-                val stepX = chartW / (count - 1).toFloat()
+                        fun buildSeries(data: List<Double>, strokeColor: Color): CachedSeries? {
+                            if (count < 2) return null
+                            val stepX = chartW / (count - 1).toFloat()
+                            val pts = List(count) { i ->
+                                val x = padSide + i * stepX
+                                val ratio = (data.getOrElse(i) { 0.0 } / maxVal).toFloat().coerceIn(0f, 1f)
+                                val y = padTop + chartH * (1f - ratio)
+                                Offset(x, y)
+                            }
+                            val linePath = Path().apply {
+                                moveTo(pts.first().x, pts.first().y)
+                                for (i in 1 until pts.size) {
+                                    val prev = pts[i - 1]
+                                    val cur = pts[i]
+                                    val midX = (prev.x + cur.x) / 2f
+                                    cubicTo(midX, prev.y, midX, cur.y, cur.x, cur.y)
+                                }
+                            }
+                            val fillPath = Path().apply {
+                                addPath(linePath)
+                                lineTo(pts.last().x, padTop + chartH)
+                                lineTo(pts.first().x, padTop + chartH)
+                                close()
+                            }
+                            val fillBrush = Brush.verticalGradient(
+                                colors = listOf(strokeColor.copy(alpha = 0.20f), strokeColor.copy(alpha = 0.0f)),
+                                startY = padTop,
+                                endY = padTop + chartH
+                            )
+                            return CachedSeries(pts, linePath, fillPath, fillBrush, strokeColor)
+                        }
 
-                fun pointFor(i: Int, value: Double): Offset {
-                    val x = padSide + i * stepX
-                    val ratio = (value / maxVal).toFloat().coerceIn(0f, 1f)
-                    val y = padTop + chartH * (1f - ratio)
-                    return Offset(x, y)
-                }
+                        val incSeries = buildSeries(incomeData, KharchEmerald)
+                        val expSeries = buildSeries(expenseData, KharchRose)
 
-                fun drawSeries(data: List<Double>, strokeColor: Color) {
-                    val pts = (0 until count).map { pointFor(it, data.getOrElse(it) { 0.0 }) }
-                    val linePath = Path().apply {
-                        moveTo(pts.first().x, pts.first().y)
-                        for (i in 1 until pts.size) {
-                            val prev = pts[i - 1]
-                            val cur = pts[i]
-                            val midX = (prev.x + cur.x) / 2f
-                            cubicTo(midX, prev.y, midX, cur.y, cur.x, cur.y)
+                        onDrawBehind {
+                            for (i in 0..3) {
+                                val y = padTop + chartH * (i / 3f)
+                                drawLine(gridColor, Offset(padSide, y), Offset(size.width - padSide, y), strokeWidth = gridStroke)
+                            }
+                            listOfNotNull(incSeries, expSeries).forEach { s ->
+                                drawPath(path = s.fillPath, brush = s.fillBrush)
+                                drawPath(path = s.linePath, color = s.color, style = lineStroke)
+                                s.pts.forEachIndexed { idx, p ->
+                                    drawCircle(
+                                        color = s.color,
+                                        radius = if (selectedIdx == idx) dotSelected else dotNormal,
+                                        center = p
+                                    )
+                                }
+                            }
                         }
                     }
-                    val fillPath = Path().apply {
-                        addPath(linePath)
-                        lineTo(pts.last().x, padTop + chartH)
-                        lineTo(pts.first().x, padTop + chartH)
-                        close()
-                    }
-                    drawPath(
-                        path = fillPath,
-                        brush = Brush.verticalGradient(
-                            colors = listOf(strokeColor.copy(alpha = 0.20f), strokeColor.copy(alpha = 0.0f)),
-                            startY = padTop,
-                            endY = padTop + chartH
-                        )
-                    )
-                    drawPath(
-                        path = linePath,
-                        color = strokeColor,
-                        style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
-                    )
-                    pts.forEachIndexed { idx, p ->
-                        val r = if (selectedIdx == idx) 5.dp.toPx() else 3.dp.toPx()
-                        drawCircle(color = strokeColor, radius = r, center = p)
-                    }
-                }
-
-                drawSeries(incomeData, KharchEmerald)
-                drawSeries(expenseData, KharchRose)
-            }
+            )
         }
 
         Spacer(Modifier.height(6.dp))

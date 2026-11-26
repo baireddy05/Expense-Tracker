@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -31,14 +32,17 @@ import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.FrameRateCategory
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.preferredFrameRate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation3.runtime.NavEntry
@@ -83,6 +87,41 @@ fun KharchAppShell(vm: KharchViewModel) {
             }
         )
     ) { mutableStateOf(null).let { mutableStateListOf(AppRoute.DASHBOARD) } }
+
+    val dockOrder = remember {
+        mapOf(
+            AppRoute.DASHBOARD to 0,
+            AppRoute.ACCOUNTS to 1,
+            AppRoute.TRANSACTIONS to 2,
+            AppRoute.GOALS to 3
+        )
+    }
+    var navDirection by remember { mutableIntStateOf(1) }
+
+    val navigateToRoute: (AppRoute, String) -> Unit = remember(backStack, vm) {
+        { target, searchPrefill ->
+            val current = backStack.lastOrNull() ?: state.currentRoute
+            if (current != target) {
+                val curDock = dockOrder[current]
+                val tgtDock = dockOrder[target]
+                navDirection = if (curDock != null && tgtDock != null) {
+                    if (tgtDock >= curDock) 1 else -1
+                } else if (target == AppRoute.DASHBOARD) {
+                    -1
+                } else {
+                    1
+                }
+                if (target == AppRoute.DASHBOARD) {
+                    backStack.clear()
+                    backStack.add(AppRoute.DASHBOARD)
+                } else {
+                    backStack.remove(target)
+                    backStack.add(target)
+                }
+            }
+            vm.navigateTo(target, searchPrefill)
+        }
+    }
 
     LaunchedEffect(state.currentRoute) {
         val target = state.currentRoute
@@ -155,7 +194,16 @@ fun KharchAppShell(vm: KharchViewModel) {
         return
     }
 
-    val allRoutes = remember(state) {
+    val activeSubCount = remember(state.subscriptions) { state.subscriptions.count { it.active } }
+    val allRoutes = remember(
+        state.transactions.size,
+        state.accounts.size,
+        state.savingsGoals.size,
+        state.events.size,
+        activeSubCount,
+        state.lentRecords.size,
+        state.borrowedRecords.size
+    ) {
         listOf(
             NavMeta(AppRoute.DASHBOARD, "Dashboard", Icons.Rounded.Home),
             NavMeta(AppRoute.TRANSACTIONS, "Transactions", Icons.AutoMirrored.Rounded.List, state.transactions.size, "${state.transactions.size} logged entries"),
@@ -209,7 +257,7 @@ fun KharchAppShell(vm: KharchViewModel) {
                                 icon = { Icon(item.icon, contentDescription = null, modifier = Modifier.size(18.dp)) },
                                 selected = active,
                                 onClick = {
-                                    vm.navigateTo(item.route)
+                                    navigateToRoute(item.route, "")
                                     scope.launch { drawerState.close() }
                                 },
                                 shape = RoundedCornerShape(12.dp)
@@ -241,7 +289,12 @@ fun KharchAppShell(vm: KharchViewModel) {
             }
         }
     ) {
-        Box(modifier = Modifier.fillMaxSize().background(kc.background)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(kc.background)
+                .preferredFrameRate(FrameRateCategory.High)
+        ) {
             Scaffold(
                 containerColor = kc.background,
                 topBar = {
@@ -295,7 +348,7 @@ fun KharchAppShell(vm: KharchViewModel) {
                                 )
                             }
                             IconButton(onClick = {
-                                if (state.session != null) vm.navigateTo(AppRoute.SETTINGS)
+                                if (state.session != null) navigateToRoute(AppRoute.SETTINGS, "")
                                 else {
                                     authModalTab = "login"
                                     isAuthModalOpen = true
@@ -339,32 +392,49 @@ fun KharchAppShell(vm: KharchViewModel) {
                     }
                     Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     NavDisplay(
+                        modifier = Modifier.fillMaxSize().preferredFrameRate(FrameRateCategory.High),
                         backStack = backStack,
                         onBack = {
                             if (backStack.size > 1) {
+                                navDirection = -1
                                 backStack.removeLastOrNull()
                                 vm.navigateTo(backStack.lastOrNull() ?: AppRoute.DASHBOARD)
                             }
                         },
                         entryDecorators = listOf(rememberSaveableStateHolderNavEntryDecorator()),
                         transitionSpec = {
-                            (slideInHorizontally(tween(260, easing = FastOutSlowInEasing)) { it / 6 } + fadeIn(tween(220))) togetherWith
-                                (slideOutHorizontally(tween(260, easing = FastOutSlowInEasing)) { -it / 10 } + fadeOut(tween(180)))
+                            val slideSpec = spring<IntOffset>(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = 480f
+                            )
+                            (slideInHorizontally(slideSpec) { w -> navDirection * (w / 7) } +
+                                fadeIn(tween(180, easing = FastOutSlowInEasing))) togetherWith
+                                (slideOutHorizontally(slideSpec) { w -> -navDirection * (w / 10) } +
+                                    fadeOut(tween(130, easing = FastOutSlowInEasing)))
                         },
                         popTransitionSpec = {
-                            (slideInHorizontally(tween(240, easing = FastOutSlowInEasing)) { -it / 10 } + fadeIn(tween(220))) togetherWith
-                                (slideOutHorizontally(tween(240, easing = FastOutSlowInEasing)) { it / 5 } + fadeOut(tween(180)))
+                            val popSlideSpec = spring<IntOffset>(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = 480f
+                            )
+                            (slideInHorizontally(popSlideSpec) { w -> -w / 10 } +
+                                fadeIn(tween(180, easing = FastOutSlowInEasing))) togetherWith
+                                (slideOutHorizontally(popSlideSpec) { w -> w / 6 } +
+                                    fadeOut(tween(130, easing = FastOutSlowInEasing)))
                         },
                         predictivePopTransitionSpec = {
-                            (slideInHorizontally(tween(240)) { -it / 6 } + fadeIn(tween(200))) togetherWith
-                                (slideOutHorizontally(tween(240)) { it / 3 } + scaleOut(targetScale = 0.94f, animationSpec = tween(240)) + fadeOut(tween(200)))
+                            (slideInHorizontally(tween(220, easing = LinearOutSlowInEasing)) { -it / 6 } +
+                                fadeIn(tween(180))) togetherWith
+                                (slideOutHorizontally(tween(220, easing = LinearOutSlowInEasing)) { it / 3 } +
+                                    scaleOut(targetScale = 0.94f, animationSpec = tween(220)) +
+                                    fadeOut(tween(180)))
                         }
                     ) { route ->
                         NavEntry(route) {
                             when (route) {
                         AppRoute.DASHBOARD -> DashboardScreen(
                             state = state,
-                            onNavigate = { vm.navigateTo(it) },
+                            onNavigate = { navigateToRoute(it, "") },
                             onOpenAuth = { authModalTab = "login"; isAuthModalOpen = true }
                         )
                         AppRoute.TRANSACTIONS -> TransactionsScreen(
@@ -487,11 +557,12 @@ fun KharchAppShell(vm: KharchViewModel) {
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
                     .padding(horizontal = 12.dp, vertical = 10.dp)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .preferredFrameRate(FrameRateCategory.High),
                 shape = RoundedCornerShape(24.dp),
                 color = kc.dockBg,
                 border = BorderStroke(1.dp, kc.cardBorder),
-                shadowElevation = 10.dp
+                shadowElevation = 2.dp
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 6.dp),
@@ -501,15 +572,19 @@ fun KharchAppShell(vm: KharchViewModel) {
                     val shortLabels = listOf("Home", "Accounts", "Txns", "Goals")
                     primaryTabs.forEachIndexed { idx, tab ->
                         val active = state.currentRoute == tab.route
-                        val tabBg by animateColorAsState(if (active) kc.subtleSurface else Color.Transparent, tween(200), label = "dock_bg_$idx")
-                        val tabFg by animateColorAsState(if (active) kc.textPrimary else kc.textMuted, tween(200), label = "dock_fg_$idx")
-                        val tabScale by animateFloatAsState(if (active) 1.08f else 1f, spring(stiffness = Spring.StiffnessMediumLow), label = "dock_sc_$idx")
+                        val tabBg by animateColorAsState(if (active) kc.subtleSurface else Color.Transparent, tween(160), label = "dock_bg_$idx")
+                        val tabFg by animateColorAsState(if (active) kc.textPrimary else kc.textMuted, tween(160), label = "dock_fg_$idx")
+                        val tabScaleState = animateFloatAsState(
+                            targetValue = if (active) 1.08f else 1f,
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 500f),
+                            label = "dock_sc_$idx"
+                        )
                         Column(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(tabBg)
-                                .clickable { vm.navigateTo(tab.route) }
+                                .clickable { navigateToRoute(tab.route, "") }
                                 .padding(vertical = 6.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
@@ -517,7 +592,13 @@ fun KharchAppShell(vm: KharchViewModel) {
                                 imageVector = tab.icon,
                                 contentDescription = tab.label,
                                 tint = tabFg,
-                                modifier = Modifier.size(19.dp).scale(tabScale)
+                                modifier = Modifier
+                                    .size(19.dp)
+                                    .graphicsLayer {
+                                        val s = tabScaleState.value
+                                        scaleX = s
+                                        scaleY = s
+                                    }
                             )
                             Spacer(Modifier.height(2.dp))
                             Text(
@@ -588,7 +669,8 @@ fun KharchAppShell(vm: KharchViewModel) {
                     .navigationBarsPadding()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 18.dp)
-                    .padding(bottom = 28.dp),
+                    .padding(bottom = 28.dp)
+                    .preferredFrameRate(FrameRateCategory.High),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -603,7 +685,7 @@ fun KharchAppShell(vm: KharchViewModel) {
                     val active = state.currentRoute == item.route
                     Surface(
                         onClick = {
-                            vm.navigateTo(item.route)
+                            navigateToRoute(item.route, "")
                             isMoreSheetOpen = false
                         },
                         shape = RoundedCornerShape(14.dp),
@@ -631,7 +713,7 @@ fun KharchAppShell(vm: KharchViewModel) {
         isOpen = isSpotlightOpen,
         state = state,
         onDismiss = { isSpotlightOpen = false },
-        onNavigate = { route, searchPref -> vm.navigateTo(route, searchPref) },
+        onNavigate = { route, searchPref -> navigateToRoute(route, searchPref) },
         onToggleTheme = vm::toggleThemeLightDark,
         onTogglePrivacy = vm::togglePrivacyMode
     )

@@ -51,66 +51,88 @@ data class KharchUiState(
     val borrowedRecords: List<BorrowedRecord> = emptyList(),
     val settings: UserSettings = UserSettings(),
     val restoreProgress: RestoreProgress? = null,
-    val txSearchPrefill: String = ""
-) {
-    val accountsWithBalances: List<AccountWithBalance>
-        get() {
-            val defaultAcc = accounts.firstOrNull { it.isDefault } ?: accounts.firstOrNull()
-            val defaultId = defaultAcc?.id
-            val knownIds = accounts.map { it.id }.toSet()
+    val txSearchPrefill: String = "",
+    val accountsWithBalances: List<AccountWithBalance> = emptyList(),
+    val eventsWithStats: List<EventWithStats> = emptyList()
+)
 
-            return accounts.map { acc ->
-                var balance = acc.initialBalance
-                transactions.forEach { t ->
-                    var txAccId = t.accountId ?: defaultId
-                    if (txAccId != null && txAccId !in knownIds) {
-                        txAccId = defaultId
-                    }
-                    when (t.type) {
-                        "transfer" -> {
-                            if (t.fromAccountId == acc.id) balance -= t.amount
-                            if (t.toAccountId == acc.id) balance += t.amount
-                        }
-                        "income" -> if (txAccId == acc.id) balance += t.amount
-                        "expense" -> if (txAccId == acc.id) balance -= t.amount
-                    }
-                }
-                AccountWithBalance(acc, balance)
+private fun computeAccountsWithBalances(
+    accounts: List<Account>,
+    transactions: List<Transaction>
+): List<AccountWithBalance> {
+    if (accounts.isEmpty()) return emptyList()
+    val defaultAcc = accounts.firstOrNull { it.isDefault } ?: accounts.firstOrNull()
+    val defaultId = defaultAcc?.id
+    val knownIds = HashSet<String>(accounts.size * 2).apply { accounts.forEach { add(it.id) } }
+    val deltas = HashMap<String, Double>(accounts.size * 2)
+
+    transactions.forEach { t ->
+        when (t.type) {
+            "transfer" -> {
+                t.fromAccountId?.let { id -> deltas[id] = (deltas[id] ?: 0.0) - t.amount }
+                t.toAccountId?.let { id -> deltas[id] = (deltas[id] ?: 0.0) + t.amount }
+            }
+            "income" -> {
+                val accId = (t.accountId ?: defaultId)?.let { if (it in knownIds) it else defaultId }
+                if (accId != null) deltas[accId] = (deltas[accId] ?: 0.0) + t.amount
+            }
+            "expense" -> {
+                val accId = (t.accountId ?: defaultId)?.let { if (it in knownIds) it else defaultId }
+                if (accId != null) deltas[accId] = (deltas[accId] ?: 0.0) - t.amount
             }
         }
+    }
 
-    val eventsWithStats: List<EventWithStats>
-        get() = events.map { ev ->
-            val tagClean = ev.tag.trim().lowercase()
-            val tagRegex = if (tagClean.isNotBlank()) {
-                Regex("#" + Regex.escape(tagClean) + "(?![a-z0-9])", RegexOption.IGNORE_CASE)
-            } else null
+    return accounts.map { acc ->
+        AccountWithBalance(acc, acc.initialBalance + (deltas[acc.id] ?: 0.0))
+    }
+}
 
-            var spent = 0.0
-            var count = 0
-            transactions.forEach { t ->
-                if (t.type != "expense") return@forEach
-                val tTag = (t.eventTag ?: "").trim().lowercase().removePrefix("#")
-                val hasTag = tagClean.isNotBlank() && (
-                    tTag == tagClean ||
-                        (tagRegex != null && tagRegex.containsMatchIn(t.note)) ||
-                        t.tags.any { it.trim().lowercase().removePrefix("#") == tagClean }
-                    )
-                if (hasTag || t.eventId == ev.id) {
-                    spent += t.amount
-                    count++
-                }
+private fun computeEventsWithStats(
+    events: List<EventBudget>,
+    transactions: List<Transaction>
+): List<EventWithStats> {
+    if (events.isEmpty()) return emptyList()
+    val specs = events.map { ev ->
+        val tagClean = ev.tag.trim().lowercase()
+        val tagRegex = if (tagClean.isNotBlank()) {
+            Regex("#" + Regex.escape(tagClean) + "(?![a-z0-9])", RegexOption.IGNORE_CASE)
+        } else null
+        Triple(ev, tagClean, tagRegex)
+    }
+
+    val spentByEvent = DoubleArray(specs.size)
+    val countByEvent = IntArray(specs.size)
+
+    transactions.forEach { t ->
+        if (t.type != "expense") return@forEach
+        val tTag = (t.eventTag ?: "").trim().lowercase().removePrefix("#")
+        for (i in specs.indices) {
+            val (ev, tagClean, tagRegex) = specs[i]
+            val hasTag = tagClean.isNotBlank() && (
+                tTag == tagClean ||
+                    (tagRegex != null && tagRegex.containsMatchIn(t.note)) ||
+                    t.tags.any { it.trim().lowercase().removePrefix("#") == tagClean }
+                )
+            if (hasTag || t.eventId == ev.id) {
+                spentByEvent[i] += t.amount
+                countByEvent[i]++
             }
-            val pct = if (ev.budget > 0.0) (spent / ev.budget) * 100.0 else 0.0
-            EventWithStats(
-                event = ev,
-                spent = spent,
-                remainingBudget = (ev.budget - spent).coerceAtLeast(0.0),
-                percentage = pct,
-                isOverBudget = ev.budget > 0.0 && spent > ev.budget,
-                txCount = count
-            )
         }
+    }
+
+    return specs.mapIndexed { i, (ev, _, _) ->
+        val spent = spentByEvent[i]
+        val pct = if (ev.budget > 0.0) (spent / ev.budget) * 100.0 else 0.0
+        EventWithStats(
+            event = ev,
+            spent = spent,
+            remainingBudget = (ev.budget - spent).coerceAtLeast(0.0),
+            percentage = pct,
+            isOverBudget = ev.budget > 0.0 && spent > ev.budget,
+            txCount = countByEvent[i]
+        )
+    }
 }
 
 class KharchViewModel(app: Application) : AndroidViewModel(app) {
@@ -122,7 +144,25 @@ class KharchViewModel(app: Application) : AndroidViewModel(app) {
         intensity = localStore.hapticIntensity
     }
 
-    private val _state = MutableStateFlow(
+    private class DerivedUiStateFlow(initial: KharchUiState) {
+        private val flow = MutableStateFlow(initial)
+        val value: KharchUiState get() = flow.value
+        fun asStateFlow(): StateFlow<KharchUiState> = flow.asStateFlow()
+        inline fun update(crossinline transform: (KharchUiState) -> KharchUiState) {
+            flow.update { prev ->
+                val next = transform(prev)
+                val accsChanged = next.transactions !== prev.transactions || next.accounts !== prev.accounts
+                val evsChanged = next.transactions !== prev.transactions || next.events !== prev.events
+                if (!accsChanged && !evsChanged) next
+                else next.copy(
+                    accountsWithBalances = if (accsChanged) computeAccountsWithBalances(next.accounts, next.transactions) else prev.accountsWithBalances,
+                    eventsWithStats = if (evsChanged) computeEventsWithStats(next.events, next.transactions) else prev.eventsWithStats
+                )
+            }
+        }
+    }
+
+    private val _state = DerivedUiStateFlow(
         KharchUiState(
             session = localStore.getAuthSession(),
             isGuestMode = localStore.isGuestMode,

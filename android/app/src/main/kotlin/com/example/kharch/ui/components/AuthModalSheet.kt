@@ -1,8 +1,11 @@
 package com.example.kharch.ui.components
 
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
+import androidx.activity.ComponentActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -48,6 +51,7 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.security.MessageDigest
 
@@ -68,6 +72,8 @@ fun AuthModalSheet(
     val kc = LocalKharchColors.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val activityContext = remember(context) { context.findActivity() ?: context }
+    val scrollState = rememberScrollState()
     val focusManager = LocalFocusManager.current
 
     var activeTab by remember(isOpen, initialTab) { mutableStateOf(initialTab) }
@@ -141,15 +147,15 @@ fun AuthModalSheet(
         isGoogleSubmitting = true
 
         scope.launch {
-            val credentialManager = CredentialManager.create(context)
+            val credentialManager = CredentialManager.create(activityContext)
             try {
                 val result = try {
                     val signInOption = GetSignInWithGoogleOption.Builder(webClientId).build()
                     val req = GetCredentialRequest.Builder()
                         .addCredentialOption(signInOption)
                         .build()
-                    credentialManager.getCredential(request = req, context = context)
-                } catch (primaryErr: NoCredentialException) {
+                    credentialManager.getCredential(request = req, context = activityContext)
+                } catch (_: NoCredentialException) {
                     val googleIdOption = GetGoogleIdOption.Builder()
                         .setFilterByAuthorizedAccounts(false)
                         .setServerClientId(webClientId)
@@ -157,7 +163,7 @@ fun AuthModalSheet(
                     val fallbackReq = GetCredentialRequest.Builder()
                         .addCredentialOption(googleIdOption)
                         .build()
-                    credentialManager.getCredential(request = fallbackReq, context = context)
+                    credentialManager.getCredential(request = fallbackReq, context = activityContext)
                 }
 
                 val credential = result.credential
@@ -174,29 +180,45 @@ fun AuthModalSheet(
                     }
                 } else {
                     isGoogleSubmitting = false
-                    errorMsg = "Unexpected Google credential type received."
+                    errorMsg = "Unexpected Google credential type received (${credential.type})."
                 }
-            } catch (_: GetCredentialCancellationException) {
+            } catch (e: GetCredentialCancellationException) {
                 isGoogleSubmitting = false
+                Log.w("KharchAuth", "Google Sign-In canceled/aborted by Play Services: ${e.message}", e)
+                val sha1 = rememberAppFingerprint(activityContext, "SHA-1")
+                errorMsg = "Google Sign-In did not complete (${e.message?.takeIf { it.isNotBlank() } ?: "canceled"})."
+                googleConfigHint = buildString {
+                    append("If you selected your account and returned here, Google Play Services blocked the token because Android package '${activityContext.packageName}'")
+                    if (sha1 != null) append(" with SHA-1 '$sha1'")
+                    append(" is not registered in Firebase Console → Project Settings yet. Add it once, or tap 'Set Gmail Password' below to set a password for your Gmail right away.")
+                }
+                scope.launch { scrollState.animateScrollTo(0) }
             } catch (e: GoogleIdTokenParsingException) {
                 isGoogleSubmitting = false
+                Log.e("KharchAuth", "GoogleIdTokenParsingException", e)
                 errorMsg = "Invalid Google ID token response (${e.message})."
             } catch (e: GetCredentialException) {
                 isGoogleSubmitting = false
+                Log.e("KharchAuth", "GetCredentialException [${e.type}]: ${e.message}", e)
                 val detail = e.message.orEmpty()
-                val sha1 = rememberAppSha1(context)
-                if (e is NoCredentialException || detail.contains("28444") || detail.contains("Developer console", ignoreCase = true) || detail.contains("Cannot find a matching credential", ignoreCase = true)) {
+                val sha1 = rememberAppFingerprint(activityContext, "SHA-1")
+                if (e is NoCredentialException || detail.contains("28444") || detail.contains("Developer console", ignoreCase = true) || detail.contains("Cannot find a matching credential", ignoreCase = true) || detail.contains("reauth", ignoreCase = true)) {
                     errorMsg = "Google Sign-In isn't active on this device build yet."
                     googleConfigHint = buildString {
-                        append("To enable 1-tap Google Sign-In on Android, ensure a Google account is signed in on this device AND add Android app '${context.packageName}'")
+                        append("Ensure a Google account is signed in on this device AND add Android app '${activityContext.packageName}'")
                         if (sha1 != null) append(" with SHA-1 '$sha1'")
-                        append(" in Firebase Console → Project Settings. Or use Forgot Password below with your Gmail to sign in via Email/Password right away.")
+                        append(" in Firebase Console → Project Settings. Or tap 'Set Gmail Password' below to set a password for your Gmail right away.")
                     }
                 } else {
                     errorMsg = detail.ifBlank { "Google Sign-In failed (${e.type})." }
                 }
+                scope.launch { scrollState.animateScrollTo(0) }
+            } catch (e: CancellationException) {
+                isGoogleSubmitting = false
+                throw e
             } catch (e: Exception) {
                 isGoogleSubmitting = false
+                Log.e("KharchAuth", "Unexpected Google Sign-In failure", e)
                 errorMsg = e.message ?: "Google Sign-In failed."
             }
         }
@@ -212,7 +234,7 @@ fun AuthModalSheet(
                 .fillMaxWidth()
                 .imePadding()
                 .navigationBarsPadding()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -360,18 +382,45 @@ fun AuthModalSheet(
                         }
                         googleConfigHint?.let { hint ->
                             Text(hint, color = kc.textPrimary, fontSize = 11.sp)
-                            val sha1 = rememberAppSha1(context)
-                            if (sha1 != null) {
-                                TextButton(
+                            val sha1 = rememberAppFingerprint(activityContext, "SHA-1")
+                            val sha256 = rememberAppFingerprint(activityContext, "SHA-256")
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (sha1 != null) {
+                                    OutlinedButton(
+                                        onClick = {
+                                            val clip = buildString {
+                                                appendLine("Package: ${activityContext.packageName}")
+                                                appendLine("SHA-1: $sha1")
+                                                if (sha256 != null) append("SHA-256: $sha256")
+                                            }
+                                            ShareAndPdfUtils.copyToClipboard(activityContext, clip)
+                                            successMsg = "Copied Package, SHA-1 & SHA-256!"
+                                        },
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(Icons.Rounded.ContentCopy, contentDescription = null, modifier = Modifier.size(13.dp))
+                                        Spacer(Modifier.width(5.dp))
+                                        Text("Copy SHA-1", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                                Button(
                                     onClick = {
-                                        ShareAndPdfUtils.copyToClipboard(context, "Package: ${context.packageName}\nSHA-1: $sha1")
-                                        successMsg = "Copied Package & SHA-1 to clipboard!"
+                                        activeTab = "forgot"
+                                        errorMsg = ""
+                                        googleConfigHint = null
                                     },
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                    colors = ButtonDefaults.buttonColors(containerColor = KharchIndigo, contentColor = Color.White),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    modifier = Modifier.weight(1f)
                                 ) {
-                                    Icon(Icons.Rounded.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("Copy Package & SHA-1", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text("Set Gmail Password", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -501,8 +550,14 @@ fun AuthModalSheet(
     }
 }
 
+private tailrec fun Context.findActivity(): ComponentActivity? = when (this) {
+    is ComponentActivity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
 @Suppress("DEPRECATION")
-private fun rememberAppSha1(context: Context): String? {
+private fun rememberAppFingerprint(context: Context, algorithm: String): String? {
     return runCatching {
         val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             val info = context.packageManager.getPackageInfo(
@@ -518,7 +573,7 @@ private fun rememberAppSha1(context: Context): String? {
             info.signatures
         }
         val cert = signatures?.firstOrNull()?.toByteArray() ?: return null
-        val digest = MessageDigest.getInstance("SHA-1").digest(cert)
+        val digest = MessageDigest.getInstance(algorithm).digest(cert)
         digest.joinToString(":") { "%02X".format(it) }
     }.getOrNull()
 }
