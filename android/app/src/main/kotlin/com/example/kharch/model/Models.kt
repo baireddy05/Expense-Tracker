@@ -1,7 +1,9 @@
 package com.example.kharch.model
 
+import androidx.compose.runtime.Immutable
 import kotlinx.serialization.Serializable
 
+@Immutable
 @Serializable
 data class Transaction(
     val id: String = "",
@@ -19,6 +21,7 @@ data class Transaction(
     val createdAt: String = ""
 )
 
+@Immutable
 @Serializable
 data class Category(
     val id: String = "",
@@ -29,6 +32,7 @@ data class Category(
     val budgetLimit: Double = 0.0
 )
 
+@Immutable
 @Serializable
 data class Account(
     val id: String = "",
@@ -40,6 +44,7 @@ data class Account(
     val isDefault: Boolean = false
 )
 
+@Immutable
 data class AccountWithBalance(
     val account: Account,
     val balance: Double
@@ -53,6 +58,7 @@ data class AccountWithBalance(
     val isDefault: Boolean get() = account.isDefault
 }
 
+@Immutable
 @Serializable
 data class GoalContribution(
     val id: String = "",
@@ -61,6 +67,7 @@ data class GoalContribution(
     val note: String = ""
 )
 
+@Immutable
 @Serializable
 data class SavingsGoal(
     val id: String = "",
@@ -74,6 +81,7 @@ data class SavingsGoal(
     val contributions: List<GoalContribution> = emptyList()
 )
 
+@Immutable
 @Serializable
 data class EventBudget(
     val id: String = "",
@@ -87,6 +95,7 @@ data class EventBudget(
     val description: String? = null
 )
 
+@Immutable
 data class EventWithStats(
     val event: EventBudget,
     val spent: Double,
@@ -106,6 +115,7 @@ data class EventWithStats(
     val description: String? get() = event.description
 }
 
+@Immutable
 @Serializable
 data class Subscription(
     val id: String = "",
@@ -119,6 +129,7 @@ data class Subscription(
     val accountId: String? = null
 )
 
+@Immutable
 @Serializable
 data class LoanEntry(
     val id: String = "",
@@ -127,6 +138,7 @@ data class LoanEntry(
     val note: String = ""
 )
 
+@Immutable
 @Serializable
 data class RepaymentEntry(
     val id: String = "",
@@ -135,6 +147,7 @@ data class RepaymentEntry(
     val note: String = ""
 )
 
+@Immutable
 @Serializable
 data class LentRecord(
     val id: String = "",
@@ -151,6 +164,7 @@ data class LentRecord(
     val createdAt: String = ""
 )
 
+@Immutable
 @Serializable
 data class BorrowEntry(
     val id: String = "",
@@ -159,6 +173,7 @@ data class BorrowEntry(
     val note: String = ""
 )
 
+@Immutable
 @Serializable
 data class BorrowedRecord(
     val id: String = "",
@@ -175,11 +190,13 @@ data class BorrowedRecord(
     val createdAt: String = ""
 )
 
+@Immutable
 @Serializable
 data class UserSettings(
     val monthlyBudget: Double = 0.0
 )
 
+@Immutable
 @Serializable
 data class FullBackupV3(
     val version: String = "3.0",
@@ -195,6 +212,7 @@ data class FullBackupV3(
     val settings: UserSettings = UserSettings()
 )
 
+@Immutable
 @Serializable
 data class AuthSession(
     val uid: String,
@@ -215,6 +233,7 @@ enum class HapticIntensity {
     SUBTLE, MEDIUM, STRONG
 }
 
+@Immutable
 data class RestoreProgress(
     val step: String,
     val percent: Int,

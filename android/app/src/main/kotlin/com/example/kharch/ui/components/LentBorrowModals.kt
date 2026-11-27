@@ -400,6 +400,8 @@ fun ReminderSheet(
                     onClick = {
                         if (ShareAndPdfUtils.copyToClipboard(context, messageText)) onCopiedToast()
                     },
+                    border = androidx.compose.foundation.BorderStroke(1.dp, kc.cardBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = kc.textPrimary),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.weight(1f).height(46.dp)
                 ) {
@@ -410,6 +412,8 @@ fun ReminderSheet(
 
                 OutlinedButton(
                     onClick = { ShareAndPdfUtils.shareText(context, "Kharch Reminder", messageText) },
+                    border = androidx.compose.foundation.BorderStroke(1.dp, kc.cardBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = kc.textPrimary),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.weight(1f).height(46.dp)
                 ) {

@@ -3,7 +3,7 @@
 > **Purpose:** This file persists exact project state across sessions and Gemini Pro accounts.
 > **Rule:** Read this file at the start of any resumed session (enforced via `GEMINI.md`) and update it after every completed milestone.
 
-**Last Updated:** 2026-11-26T19:07:00+05:30
+**Last Updated:** 2026-11-28T02:12:00+05:30
 
 ---
 
@@ -104,6 +104,40 @@ Eliminated frame drops, transition lag, and per-frame allocations across the ent
   - Live `Virtual_Phone` (`android-37.0`) check before final dock elevation tweak: `dumpsys window windows` confirmed `frameRateBoostOnTouch=true` active on `com.kharch.app`; interactive tab switching + Dashboard scrolling `dumpsys gfxinfo` (after `reset`, 142 frames rendered) measured `Janky frames: 7 (4.93%)`, `50th percentile: 17ms` (`GPU: 11ms`), `90th percentile: 34ms`, zero `AndroidRuntime:E` crashes; clean Dashboard visual check confirmed via screenshot (`EMU_display_0` virtual display reports 60.0Hz physical vsync; physical 120Hz hardware exercises full 120Hz display mode selection and ARR high frame-rate category).
   - **Firebase Android OAuth & SHA Fingerprints Registered (`2026-11-26`):** Signed in to Firebase CLI (`firebase-tools` `15.37.0`) and registered both debug **SHA-1** (`c3081adc66e34a12d28455bd23074afbbb3bccc8`) and **SHA-256** (`e337c1ba21637f57e25a35addba6c7560ba57bd7bb41e65443f95f963836922d`) on Android app `1:611669328733:android:5bff24f5b32abfcdff1eb4` (`com.kharch.app`) in project `expense-tracker-321ba`. Confirmed via `apps:sdkconfig ANDROID` that Android OAuth client (`client_type: 1`) and Web OAuth client (`client_type: 3`: `611669328733-a31ut80feabdob2nikrslq4i5ho613rk.apps.googleusercontent.com`) match `BuildConfig.GOOGLE_WEB_CLIENT_ID`.
 
+### Milestone E — Apple iOS Motion Physics, Retained Tab Architecture, Explicit 120Hz Voting & R8 + Baseline Profile Build (Completed & Verified)
+Eliminated Compose frame-1 screen teardown/recreation lag, debug-mode JIT/Compose overhead, ARR 90Hz fallback, and layout-thrashing animations across the app:
+- **Explicit 120Hz Refresh Voting & Power-Savings Override (`MainActivity.kt`, `Theme.kt`):**
+  - Called `configureHighRefreshRateDisplay()` across `onCreate()`, `onResume()`, `onAttachedToWindow()`, and `onWindowFocusChanged(true)`.
+  - On `API 35+` (`VANILLA_ICE_CREAM`+), disabled `window.setFrameRatePowerSavingsBalanced(false)`, kept `setFrameRateBoostOnTouchEnabled(true)`, and requested explicit `bestMode.refreshRate` (`120f` when supported `>= 90f`) on `window.decorView.requestedFrameRate`.
+  - Added `LocalTargetRefreshRate` and `Modifier.kharchHighFrameRate(targetHz)` in `Theme.kt` (applied across all 10 screens and overlays) so Compose votes the exact detected display Hz (`120f` on 120Hz displays) rather than letting ARR step `FrameRateCategory.High` down to `90f`.
+- **Apple iOS Fluid Navigation, Retained Primary Tabs & Sliding Capsule Dock (`KharchAppShell.kt`):**
+  - Replaced single-layer `NavDisplay` tab teardown with `PrimaryTabsViewport` (`PRIMARY_ROOT_KEY` + custom `Layout` + `SaveableStateHolder`) so visited primary tabs (`Home`, `Accounts`, `Txns`, `Goals`) stay warm with preserved scroll state and render transitions purely on GPU layers (`placeRelativeWithLayer` + critically damped iOS `spring(1.0f, 430f)` glide, zero idle measure/draw/touch cost when settled).
+  - Configured secondary screen transitions (`Analytics`, `Lent`, `Borrowed`, `Events`, `Subscriptions`, `Settings`) with authentic iOS `UINavigationController` full-width parallax push/pop (`100% -> 0` over `-28%` dim parallax with explicit `targetContentZIndex = 1f` on push and `-1f` on pop/predictive back) over opaque `kc.background` layers.
+  - Added a GPU `graphicsLayer { translationX = ... }` sliding capsule pill (`spring(0.84f, 460f)`) inside the flat `0.dp`-shadow Bottom Dock (`Home`, `Accounts`, `Txns`, `Goals`, `More`) with spring press-scale (`0.92f`), iOS vertical spring TopAppBar title transitions, and guarded modal composition (`if (isOpen)`) so closed sheets allocate zero suggestion lists during normal browsing.
+- **Zero-Relayout `QuickActionSpeedDial`, `@Immutable` Models & Chart Draw Caching (`QuickActionSpeedDial.kt`, `Models.kt`, `KharchViewModel.kt`, `CommonComponents.kt`, `ChartComponents.kt`):**
+  - Replaced `AnimatedVisibility(expandVertically())` and heavy `6.dp` multi-pass shadows in `QuickActionSpeedDial` with staggered iOS SpringBoard `graphicsLayer { alpha; scaleX; scaleY; translationY }` animation anchored to the FAB.
+  - Annotated all domain models, `ToastMessage`, `KharchColors`, and `KharchUiState` with `@Immutable`; added iOS press-scale (`0.975f`) on interactive `KharchCard`s; cached `CategoryIconBadge` color/icon lookups; converted `AnimatedCurrencyText` to critically-damped `spring(1.0f, 440f)` with `0.5f` visibility threshold; converted `CategoryDonutChart` and `PeriodComparisonBarChart` Canvas blocks to `drawWithCache`.
+- **R8 Release Optimization & Embedded Baseline Profile (`build.gradle.kts`, `libs.versions.toml`, `proguard-rules.pro`, `src/main/baseline-prof.txt`):**
+  - Added `androidx.profileinstaller:profileinstaller:1.4.1` and HRF rules in `baseline-prof.txt` compiled into `assets/dexopt/baseline.prof`.
+  - Enabled `isMinifyEnabled = true`, `isShrinkResources = true`, and `proguard-rules.pro` (`kotlinx.serialization`, `CredentialManager`, `GoogleId`, `BuildConfig`) on `release`, signed with `signingConfigs.getByName("debug")` so local `app-release.apk` builds retain the registered Firebase debug SHA-1.
+- **Verification (`2026-11-28`):**
+  - `.\gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease --console=plain`: **BUILD SUCCESSFUL** (0 errors, 0 Kotlin warnings, `:app:lintVitalRelease` & `:app:compileReleaseArtProfile` passed); `KharchCoreUnitTest` **6/6 tests passed** (`0` skipped, `0` failures). APK size dropped from `21.18 MB` (`app-debug.apk`) to `2.65 MB` (`app-release.apk`).
+  - Live `Virtual_Phone` (`android-37.0`) verification of `app-release.apk`: `603ms` cold launch (`ActivityTaskManager: Displayed`), `dumpsys window windows` showed `frameRateBoostOnTouch=true` & `dvrrWindowFrameRateHint=true`, warm tab switching + Dashboard scroll + Analytics push/pop (`249` frames) measured `90th percentile: 32ms`, `95th percentile: 34ms`, `GPU 50th: 14ms`, `Missed Vsync: 1`; SpeedDial FAB & More sheet screenshots confirmed crisp layout and `0` `AndroidRuntime:E` / crash-buffer errors.
+
+### Milestone F — Cross-Page Theme Consistency Audit & Fix (Completed & Verified)
+Fixed Material 3 baseline color leaks and dark/light theme mismatches across pages, drawers, pickers, and modals:
+- **Complete Material 3 `ColorScheme` Tokens (`Theme.kt`):** Added explicit `primaryContainer`, `onPrimaryContainer`, `secondaryContainer`, `onSecondaryContainer`, `tertiary`, `onTertiary`, `tertiaryContainer`, `onTertiaryContainer`, `surfaceContainerLowest`, `surfaceContainerLow`, `surfaceContainer`, `surfaceContainerHigh`, `surfaceContainerHighest`, and `outlineVariant` in both `LightScheme` and `DarkScheme` matching Kharch's Zinc/Slate + Indigo palette — eliminating default Material 3 lavender/purple highlights across `FilterChip`, `AssistChip`, `DropdownMenu`, `Switch`, `AlertDialog`, and `ModalBottomSheet` on all screens.
+- **System Window Background & Edge-to-Edge Bars (`res/values/themes.xml`, `res/values-night/themes.xml`, `MainActivity.kt`):** Added `values-night/themes.xml` (`#FF070709` window backing) and `#FFF8FAFC` light backing to stop white startup flash in Dark Mode; updated `navigationBarStyle` in `MainActivity.kt` to `Color.TRANSPARENT`.
+- **Screen & Modal Theme Parity:**
+  - **`DashboardScreen.kt`:** Replaced the `kc.primaryButtonBg` Guest Sign-In banner (which turned glaring `#F4F4F5` near-white in Dark Mode) with a consistent dark charcoal/obsidian banner (`KharchDarkElevated` + subtle indigo border in dark mode, `#18181B` in light mode) and crisp white Sign In CTA.
+  - **`AuthModalSheet.kt`:** Unified `Sign In | Sign Up | Forgot` segmented tabs to `kc.primaryButtonBg` / `kc.primaryButtonFg` (fixing illegible dark-on-dark `#121218`/`#181820` active state in Dark Mode and matching `AnalyticsScreen` & `SettingsScreen`).
+  - **`KharchAppShell.kt`:** Styled `NavigationDrawerItem` selected/unselected colors cleanly (`kc.primaryButtonBg` / `kc.primaryButtonFg`) to match `More` sheet and tabs.
+  - **`CommonComponents.kt`:** Passed explicit Kharch `DatePickerDefaults.colors(...)` and button text tints into `DatePickerDialog` & `DatePicker`.
+  - **`TransactionsScreen.kt`, `AccountsScreen.kt`, `SettingsScreen.kt`, `LentBorrowModals.kt`, `AuthModalSheet.kt`:** Unified `OutlinedButton` borders (`BorderStroke(1.dp, kc.cardBorder)`) and `contentColor`, plus explicit `containerColor = kc.card` on `DropdownMenu`.
+- **Verification (`2026-11-28`):**
+  - `.\gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease --console=plain`: **BUILD SUCCESSFUL** (0 errors, 0 warnings); `KharchCoreUnitTest` **6/6 tests passed**.
+  - Live `Virtual_Phone` verification of updated `app-release.apk`: visually inspected Light & Dark `Dashboard`, `Transactions` (`FilterChip` + `OutlinedButton`), `AuthModalSheet` (`Sign In / Sign Up / Forgot` tabs), and `NavigationDrawer`, confirming zero Material purple leaks, high contrast in both modes, and `0` `AndroidRuntime:E` crashes.
+
 ---
 
 ## 3. Environment & Quick Commands
@@ -113,7 +147,8 @@ Eliminated frame drops, transition lag, and per-frame allocations across the ent
   - `npm run build` (`vite build`)
   - `npm run dev`
 - **Android App (run from `android/`):**
-  - `.\gradlew :app:testDebugUnitTest :app:assembleDebug`
+  - `.\gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease`
+  - **Recommended smooth APK for physical 120Hz phones:** `android/app/build/outputs/apk/release/app-release.apk` (R8 + AOT Baseline Profile, 2.65 MB, signed with debug SHA-1 so Google Sign-In works directly)
   - Emulators available on machine: `Medium_Phone_API_36.1`, `Virtual_Phone` (`android emulator start Medium_Phone_API_36.1` then `android run`)
 
 ---

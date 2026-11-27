@@ -1,0 +1,5 @@
+HSPLcom/example/kharch/MainActivity;->**(**)**
+HSPLcom/example/kharch/ui/**;->**(**)**
+HSPLcom/example/kharch/util/**;->**(**)**
+Lcom/example/kharch/**;
+Landroidx/navigation3/**;

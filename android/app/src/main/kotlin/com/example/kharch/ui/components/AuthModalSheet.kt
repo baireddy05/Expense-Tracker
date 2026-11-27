@@ -298,15 +298,15 @@ fun AuthModalSheet(
                         },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp),
-                        color = if (sel) kc.card else Color.Transparent,
-                        shadowElevation = if (sel) 1.dp else 0.dp
+                        color = if (sel) kc.primaryButtonBg else Color.Transparent,
+                        shadowElevation = 0.dp
                     ) {
                         Box(Modifier.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
                             Text(
                                 lbl,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (sel) kc.textPrimary else kc.textMuted
+                                color = if (sel) kc.primaryButtonFg else kc.textMuted
                             )
                         }
                     }
@@ -401,6 +401,8 @@ fun AuthModalSheet(
                                             successMsg = "Copied Package, SHA-1 & SHA-256!"
                                         },
                                         shape = RoundedCornerShape(10.dp),
+                                        border = BorderStroke(1.dp, kc.cardBorder),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = kc.textPrimary),
                                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                                         modifier = Modifier.weight(1f)
                                     ) {

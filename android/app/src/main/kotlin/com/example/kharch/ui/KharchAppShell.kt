@@ -3,7 +3,7 @@ package com.example.kharch.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -11,13 +11,17 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -30,16 +34,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.FrameRateCategory
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.preferredFrameRate
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -65,28 +71,19 @@ private data class NavMeta(
     val subtitle: String = ""
 )
 
+private const val PRIMARY_ROOT_KEY = "__PRIMARY_TABS__"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KharchAppShell(vm: KharchViewModel) {
     val state by vm.state.collectAsState()
     val kc = LocalKharchColors.current
+    val targetHz = LocalTargetRefreshRate.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val snackbarHostState = remember { SnackbarHostState() }
     var lastToastIsError by remember { mutableStateOf(false) }
-
-    val backStack = rememberSaveable(
-        saver = listSaver<SnapshotStateList<AppRoute>, String>(
-            save = { list -> list.map { it.name } },
-            restore = { saved ->
-                mutableStateListOf<AppRoute>().apply {
-                    val restored = saved.mapNotNull { name -> AppRoute.entries.firstOrNull { it.name == name } }
-                    addAll(restored.ifEmpty { listOf(AppRoute.DASHBOARD) })
-                }
-            }
-        )
-    ) { mutableStateOf(null).let { mutableStateListOf(AppRoute.DASHBOARD) } }
 
     val dockOrder = remember {
         mapOf(
@@ -96,28 +93,54 @@ fun KharchAppShell(vm: KharchViewModel) {
             AppRoute.GOALS to 3
         )
     }
-    var navDirection by remember { mutableIntStateOf(1) }
 
-    val navigateToRoute: (AppRoute, String) -> Unit = remember(backStack, vm) {
+    val backStack = rememberSaveable(
+        saver = listSaver<SnapshotStateList<String>, String>(
+            save = { it.toList() },
+            restore = { saved ->
+                mutableStateListOf<String>().apply {
+                    addAll(saved.ifEmpty { listOf(PRIMARY_ROOT_KEY) })
+                }
+            }
+        )
+    ) { mutableStateListOf(PRIMARY_ROOT_KEY) }
+
+    var activePrimaryTab by rememberSaveable { mutableStateOf(AppRoute.DASHBOARD) }
+    val primaryTabHistory = rememberSaveable(
+        saver = listSaver<SnapshotStateList<AppRoute>, String>(
+            save = { list -> list.map { it.name } },
+            restore = { saved ->
+                mutableStateListOf<AppRoute>().apply {
+                    val restored = saved.mapNotNull { name -> AppRoute.entries.firstOrNull { it.name == name } }
+                    addAll(restored.ifEmpty { listOf(AppRoute.DASHBOARD) })
+                }
+            }
+        )
+    ) { mutableStateListOf(AppRoute.DASHBOARD) }
+    var primaryTabDir by remember { mutableIntStateOf(1) }
+
+    val navigateToRoute: (AppRoute, String) -> Unit = remember(backStack, primaryTabHistory, vm) {
         { target, searchPrefill ->
-            val current = backStack.lastOrNull() ?: state.currentRoute
-            if (current != target) {
-                val curDock = dockOrder[current]
-                val tgtDock = dockOrder[target]
-                navDirection = if (curDock != null && tgtDock != null) {
-                    if (tgtDock >= curDock) 1 else -1
-                } else if (target == AppRoute.DASHBOARD) {
-                    -1
-                } else {
-                    1
+            val tgtDock = dockOrder[target]
+            if (tgtDock != null) {
+                val curDock = dockOrder[activePrimaryTab] ?: 0
+                if (activePrimaryTab != target) {
+                    primaryTabDir = if (tgtDock >= curDock) 1 else -1
+                    activePrimaryTab = target
+                    if (target == AppRoute.DASHBOARD) {
+                        primaryTabHistory.clear()
+                        primaryTabHistory.add(AppRoute.DASHBOARD)
+                    } else {
+                        primaryTabHistory.remove(target)
+                        primaryTabHistory.add(target)
+                    }
                 }
-                if (target == AppRoute.DASHBOARD) {
-                    backStack.clear()
-                    backStack.add(AppRoute.DASHBOARD)
-                } else {
-                    backStack.remove(target)
-                    backStack.add(target)
+                while (backStack.size > 1) {
+                    backStack.removeLastOrNull()
                 }
+            } else {
+                backStack.remove(target.name)
+                backStack.add(target.name)
             }
             vm.navigateTo(target, searchPrefill)
         }
@@ -125,14 +148,26 @@ fun KharchAppShell(vm: KharchViewModel) {
 
     LaunchedEffect(state.currentRoute) {
         val target = state.currentRoute
-        if (backStack.lastOrNull() != target) {
-            if (target == AppRoute.DASHBOARD) {
-                backStack.clear()
-                backStack.add(AppRoute.DASHBOARD)
-            } else {
-                backStack.remove(target)
-                backStack.add(target)
+        if (target in dockOrder) {
+            if (activePrimaryTab != target) {
+                val curDock = dockOrder[activePrimaryTab] ?: 0
+                val tgtDock = dockOrder[target] ?: 0
+                primaryTabDir = if (tgtDock >= curDock) 1 else -1
+                activePrimaryTab = target
+                if (target == AppRoute.DASHBOARD) {
+                    primaryTabHistory.clear()
+                    primaryTabHistory.add(AppRoute.DASHBOARD)
+                } else {
+                    primaryTabHistory.remove(target)
+                    primaryTabHistory.add(target)
+                }
             }
+            while (backStack.size > 1) {
+                backStack.removeLastOrNull()
+            }
+        } else if (backStack.lastOrNull() != target.name) {
+            backStack.remove(target.name)
+            backStack.add(target.name)
         }
     }
 
@@ -158,12 +193,22 @@ fun KharchAppShell(vm: KharchViewModel) {
         }
     }
 
-    // Overlays close first; route back navigation & predictive back are handled by NavDisplay
-    BackHandler(enabled = isSpeedDialOpen || isMoreSheetOpen || drawerState.isOpen) {
+    // Overlays close first, then primary tab history back to Dashboard; detail pushes pop in NavDisplay
+    BackHandler(
+        enabled = isSpeedDialOpen || isMoreSheetOpen || drawerState.isOpen ||
+            (backStack.size == 1 && activePrimaryTab != AppRoute.DASHBOARD)
+    ) {
         when {
             isSpeedDialOpen -> isSpeedDialOpen = false
             isMoreSheetOpen -> isMoreSheetOpen = false
             drawerState.isOpen -> scope.launch { drawerState.close() }
+            backStack.size == 1 && activePrimaryTab != AppRoute.DASHBOARD -> {
+                primaryTabDir = -1
+                if (primaryTabHistory.size > 1) primaryTabHistory.removeLastOrNull()
+                val prevTab = primaryTabHistory.lastOrNull() ?: AppRoute.DASHBOARD
+                activePrimaryTab = prevTab
+                vm.navigateTo(prevTab)
+            }
         }
     }
 
@@ -260,6 +305,14 @@ fun KharchAppShell(vm: KharchViewModel) {
                                     navigateToRoute(item.route, "")
                                     scope.launch { drawerState.close() }
                                 },
+                                colors = NavigationDrawerItemDefaults.colors(
+                                    selectedContainerColor = kc.primaryButtonBg,
+                                    selectedIconColor = kc.primaryButtonFg,
+                                    selectedTextColor = kc.primaryButtonFg,
+                                    unselectedContainerColor = Color.Transparent,
+                                    unselectedIconColor = kc.textMuted,
+                                    unselectedTextColor = kc.textPrimary
+                                ),
                                 shape = RoundedCornerShape(12.dp)
                             )
                         }
@@ -293,7 +346,7 @@ fun KharchAppShell(vm: KharchViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .background(kc.background)
-                .preferredFrameRate(FrameRateCategory.High)
+                .kharchHighFrameRate(targetHz)
         ) {
             Scaffold(
                 containerColor = kc.background,
@@ -315,7 +368,12 @@ fun KharchAppShell(vm: KharchViewModel) {
                                 }
                                 AnimatedContent(
                                     targetState = if (state.currentRoute == AppRoute.DASHBOARD) "Kharch" else state.currentRoute.title,
-                                    transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(150)) },
+                                    transitionSpec = {
+                                        val sSpec = spring<IntOffset>(dampingRatio = 1.0f, stiffness = 480f)
+                                        val fSpec = spring<Float>(dampingRatio = 1.0f, stiffness = 480f)
+                                        (slideInVertically(sSpec) { it / 4 } + fadeIn(fSpec)) togetherWith
+                                            (slideOutVertically(sSpec) { -it / 4 } + fadeOut(fSpec))
+                                    },
                                     label = "topbar_title"
                                 ) { titleText ->
                                     Text(
@@ -392,123 +450,134 @@ fun KharchAppShell(vm: KharchViewModel) {
                     }
                     Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     NavDisplay(
-                        modifier = Modifier.fillMaxSize().preferredFrameRate(FrameRateCategory.High),
+                        modifier = Modifier.fillMaxSize().kharchHighFrameRate(targetHz),
                         backStack = backStack,
                         onBack = {
                             if (backStack.size > 1) {
-                                navDirection = -1
                                 backStack.removeLastOrNull()
-                                vm.navigateTo(backStack.lastOrNull() ?: AppRoute.DASHBOARD)
+                                val topKey = backStack.lastOrNull()
+                                val nextRoute = if (topKey == null || topKey == PRIMARY_ROOT_KEY) {
+                                    activePrimaryTab
+                                } else {
+                                    AppRoute.entries.firstOrNull { it.name == topKey } ?: activePrimaryTab
+                                }
+                                vm.navigateTo(nextRoute)
                             }
                         },
                         entryDecorators = listOf(rememberSaveableStateHolderNavEntryDecorator()),
                         transitionSpec = {
-                            val slideSpec = spring<IntOffset>(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = 480f
+                            val pushSlideSpec = spring<IntOffset>(
+                                dampingRatio = 1.0f,
+                                stiffness = 360f
                             )
-                            (slideInHorizontally(slideSpec) { w -> navDirection * (w / 7) } +
-                                fadeIn(tween(180, easing = FastOutSlowInEasing))) togetherWith
-                                (slideOutHorizontally(slideSpec) { w -> -navDirection * (w / 10) } +
-                                    fadeOut(tween(130, easing = FastOutSlowInEasing)))
+                            val pushFadeSpec = spring<Float>(
+                                dampingRatio = 1.0f,
+                                stiffness = 360f
+                            )
+                            (
+                                slideInHorizontally(pushSlideSpec) { it } togetherWith
+                                    (slideOutHorizontally(pushSlideSpec) { -(it * 3) / 10 } +
+                                        fadeOut(pushFadeSpec, targetAlpha = 0.82f))
+                            ).apply { targetContentZIndex = 1f }
                         },
                         popTransitionSpec = {
                             val popSlideSpec = spring<IntOffset>(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = 480f
+                                dampingRatio = 1.0f,
+                                stiffness = 360f
                             )
-                            (slideInHorizontally(popSlideSpec) { w -> -w / 10 } +
-                                fadeIn(tween(180, easing = FastOutSlowInEasing))) togetherWith
-                                (slideOutHorizontally(popSlideSpec) { w -> w / 6 } +
-                                    fadeOut(tween(130, easing = FastOutSlowInEasing)))
+                            val popFadeSpec = spring<Float>(
+                                dampingRatio = 1.0f,
+                                stiffness = 360f
+                            )
+                            (
+                                (slideInHorizontally(popSlideSpec) { -(it * 3) / 10 } +
+                                    fadeIn(popFadeSpec, initialAlpha = 0.82f)) togetherWith
+                                    slideOutHorizontally(popSlideSpec) { it }
+                            ).apply { targetContentZIndex = -1f }
                         },
                         predictivePopTransitionSpec = {
-                            (slideInHorizontally(tween(220, easing = LinearOutSlowInEasing)) { -it / 6 } +
-                                fadeIn(tween(180))) togetherWith
-                                (slideOutHorizontally(tween(220, easing = LinearOutSlowInEasing)) { it / 3 } +
-                                    scaleOut(targetScale = 0.94f, animationSpec = tween(220)) +
-                                    fadeOut(tween(180)))
+                            val predSpec = tween<IntOffset>(240, easing = LinearOutSlowInEasing)
+                            val predFade = tween<Float>(240, easing = LinearOutSlowInEasing)
+                            (
+                                (slideInHorizontally(predSpec) { -(it * 3) / 10 } +
+                                    fadeIn(predFade, initialAlpha = 0.82f)) togetherWith
+                                    slideOutHorizontally(predSpec) { it }
+                            ).apply { targetContentZIndex = -1f }
                         }
-                    ) { route ->
-                        NavEntry(route) {
-                            when (route) {
-                        AppRoute.DASHBOARD -> DashboardScreen(
-                            state = state,
-                            onNavigate = { navigateToRoute(it, "") },
-                            onOpenAuth = { authModalTab = "login"; isAuthModalOpen = true }
-                        )
-                        AppRoute.TRANSACTIONS -> TransactionsScreen(
-                            state = state,
-                            onSaveTransaction = vm::saveTransaction,
-                            onDeleteTransaction = vm::deleteTransaction,
-                            onCreateCategory = { n, t -> vm.createCategory(n, t) },
-                            onClearSearchPrefill = vm::clearTxSearchPrefill,
-                            onToast = vm::showToast
-                        )
-                        AppRoute.ACCOUNTS -> AccountsScreen(
-                            state = state,
-                            onSaveAccount = vm::saveAccount,
-                            onDeleteAccount = vm::deleteAccount,
-                            onTransferFunds = vm::transferFunds
-                        )
-                        AppRoute.GOALS -> SavingsGoalsScreen(
-                            state = state,
-                            onSaveGoal = vm::saveGoal,
-                            onDeleteGoal = vm::deleteGoal,
-                            onContribute = vm::contributeToGoal
-                        )
-                        AppRoute.EVENTS -> EventsScreen(
-                            state = state,
-                            onSaveEvent = vm::saveEvent,
-                            onDeleteEvent = vm::deleteEvent
-                        )
-                        AppRoute.SUBSCRIPTIONS -> SubscriptionsScreen(
-                            state = state,
-                            onSaveSubscription = vm::saveSubscription,
-                            onToggleActive = vm::toggleSubscriptionActive,
-                            onDeleteSubscription = vm::deleteSubscription
-                        )
-                        AppRoute.LENT -> LentMoneyScreen(
-                            state = state,
-                            onSaveLent = vm::saveLentRecord,
-                            onLendMore = vm::lendMoreMoney,
-                            onRecordRepayment = vm::recordLentRepayment,
-                            onSettleLent = vm::settleLentRecord,
-                            onDeleteLent = vm::deleteLentRecord,
-                            onToast = vm::showToast
-                        )
-                        AppRoute.BORROWED -> BorrowedMoneyScreen(
-                            state = state,
-                            onSaveBorrowed = vm::saveBorrowedRecord,
-                            onBorrowMore = vm::borrowMoreMoney,
-                            onRecordRepayment = vm::recordBorrowedRepayment,
-                            onSettleBorrowed = vm::settleBorrowedRecord,
-                            onDeleteBorrowed = vm::deleteBorrowedRecord,
-                            onToast = vm::showToast
-                        )
-                        AppRoute.ANALYTICS -> AnalyticsScreen(state = state)
-                        AppRoute.SETTINGS -> SettingsScreen(
-                            state = state,
-                            onOpenAuth = { authModalTab = "login"; isAuthModalOpen = true },
-                            onUpdateDisplayName = vm::updateDisplayName,
-                            onSyncCloud = vm::syncCloudData,
-                            onLogout = vm::logout,
-                            onPurgeCache = vm::purgeLocalCache,
-                            onUpdateMonthlyBudget = vm::updateMonthlyBudget,
-                            onUpdateCategoryBudget = vm::updateCategoryBudget,
-                            onTogglePrivacy = vm::togglePrivacyMode,
-                            onToggleHaptics = vm::toggleHaptics,
-                            onSetHapticIntensity = vm::setHapticIntensity,
-                            onTestHaptic = vm::testHapticBuzz,
-                            onSetThemeMode = vm::setThemeMode,
-                            onExportJsonBackup = { vm.exportFullBackupJsonFile(context) },
-                            onExportCsv = { vm.exportCsvFile(context) },
-                            onRestoreBackupUri = { uri -> vm.restoreBackupFromUri(context, uri) },
-                            onDismissRestoreProgress = vm::dismissRestoreProgress,
-                            onImportCsvBatch = vm::importCsvBatch,
-                            onToast = vm::showToast
-                        )
-                    }
+                    ) { key ->
+                        NavEntry(key) {
+                            Box(modifier = Modifier.fillMaxSize().background(kc.background)) {
+                                if (key == PRIMARY_ROOT_KEY) {
+                                    PrimaryTabsViewport(
+                                        activeTab = activePrimaryTab,
+                                        direction = primaryTabDir,
+                                        state = state,
+                                        onNavigate = { navigateToRoute(it, "") },
+                                        onOpenAuth = { authModalTab = "login"; isAuthModalOpen = true },
+                                        vm = vm
+                                    )
+                                } else {
+                                    val route = AppRoute.entries.firstOrNull { it.name == key } ?: AppRoute.ANALYTICS
+                                    when (route) {
+                                        AppRoute.EVENTS -> EventsScreen(
+                                            state = state,
+                                            onSaveEvent = vm::saveEvent,
+                                            onDeleteEvent = vm::deleteEvent
+                                        )
+                                        AppRoute.SUBSCRIPTIONS -> SubscriptionsScreen(
+                                            state = state,
+                                            onSaveSubscription = vm::saveSubscription,
+                                            onToggleActive = vm::toggleSubscriptionActive,
+                                            onDeleteSubscription = vm::deleteSubscription
+                                        )
+                                        AppRoute.LENT -> LentMoneyScreen(
+                                            state = state,
+                                            onSaveLent = vm::saveLentRecord,
+                                            onLendMore = vm::lendMoreMoney,
+                                            onRecordRepayment = vm::recordLentRepayment,
+                                            onSettleLent = vm::settleLentRecord,
+                                            onDeleteLent = vm::deleteLentRecord,
+                                            onToast = vm::showToast
+                                        )
+                                        AppRoute.BORROWED -> BorrowedMoneyScreen(
+                                            state = state,
+                                            onSaveBorrowed = vm::saveBorrowedRecord,
+                                            onBorrowMore = vm::borrowMoreMoney,
+                                            onRecordRepayment = vm::recordBorrowedRepayment,
+                                            onSettleBorrowed = vm::settleBorrowedRecord,
+                                            onDeleteBorrowed = vm::deleteBorrowedRecord,
+                                            onToast = vm::showToast
+                                        )
+                                        AppRoute.ANALYTICS -> AnalyticsScreen(state = state)
+                                        AppRoute.SETTINGS -> SettingsScreen(
+                                            state = state,
+                                            onOpenAuth = { authModalTab = "login"; isAuthModalOpen = true },
+                                            onUpdateDisplayName = vm::updateDisplayName,
+                                            onSyncCloud = vm::syncCloudData,
+                                            onLogout = vm::logout,
+                                            onPurgeCache = vm::purgeLocalCache,
+                                            onUpdateMonthlyBudget = vm::updateMonthlyBudget,
+                                            onUpdateCategoryBudget = vm::updateCategoryBudget,
+                                            onTogglePrivacy = vm::togglePrivacyMode,
+                                            onToggleHaptics = vm::toggleHaptics,
+                                            onSetHapticIntensity = vm::setHapticIntensity,
+                                            onTestHaptic = vm::testHapticBuzz,
+                                            onSetThemeMode = vm::setThemeMode,
+                                            onExportJsonBackup = { vm.exportFullBackupJsonFile(context) },
+                                            onExportCsv = { vm.exportCsvFile(context) },
+                                            onRestoreBackupUri = { uri -> vm.restoreBackupFromUri(context, uri) },
+                                            onDismissRestoreProgress = vm::dismissRestoreProgress,
+                                            onImportCsvBatch = vm::importCsvBatch,
+                                            onToast = vm::showToast
+                                        )
+                                        else -> DashboardScreen(
+                                            state = state,
+                                            onNavigate = { navigateToRoute(it, "") },
+                                            onOpenAuth = { authModalTab = "login"; isAuthModalOpen = true }
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                     }
@@ -551,92 +620,143 @@ fun KharchAppShell(vm: KharchViewModel) {
                 }
             }
 
-            // Floating Bottom Navigation Dock (Home, Accounts, Txns, Goals, More)
+            // Floating Bottom Navigation Dock (Home, Accounts, Txns, Goals, More) with iOS Sliding Capsule
             Surface(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
                     .padding(horizontal = 12.dp, vertical = 10.dp)
                     .fillMaxWidth()
-                    .preferredFrameRate(FrameRateCategory.High),
+                    .kharchHighFrameRate(targetHz),
                 shape = RoundedCornerShape(24.dp),
                 color = kc.dockBg,
                 border = BorderStroke(1.dp, kc.cardBorder),
-                shadowElevation = 2.dp
+                shadowElevation = 0.dp
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
+                val moreActive = moreItems.any { it.route == state.currentRoute } || isMoreSheetOpen
+                val activeDockIdx = remember(state.currentRoute, activePrimaryTab, moreActive) {
+                    if (moreActive) 4 else dockOrder[state.currentRoute] ?: dockOrder[activePrimaryTab] ?: 0
+                }
+                val pillPosState = animateFloatAsState(
+                    targetValue = activeDockIdx.toFloat(),
+                    animationSpec = spring(dampingRatio = 0.84f, stiffness = 460f),
+                    label = "dock_pill"
+                )
+                val density = LocalDensity.current
+
+                BoxWithConstraints(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 6.dp)
                 ) {
-                    val shortLabels = listOf("Home", "Accounts", "Txns", "Goals")
-                    primaryTabs.forEachIndexed { idx, tab ->
-                        val active = state.currentRoute == tab.route
-                        val tabBg by animateColorAsState(if (active) kc.subtleSurface else Color.Transparent, tween(160), label = "dock_bg_$idx")
-                        val tabFg by animateColorAsState(if (active) kc.textPrimary else kc.textMuted, tween(160), label = "dock_fg_$idx")
-                        val tabScaleState = animateFloatAsState(
-                            targetValue = if (active) 1.08f else 1f,
-                            animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 500f),
-                            label = "dock_sc_$idx"
+                    val slotWidth = maxWidth / 5f
+                    val slotWidthPx = with(density) { slotWidth.toPx() }
+
+                    Box(
+                        modifier = Modifier
+                            .width(slotWidth)
+                            .height(48.dp)
+                            .graphicsLayer { translationX = pillPosState.value * slotWidthPx }
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(kc.subtleSurface)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val shortLabels = listOf("Home", "Accounts", "Txns", "Goals")
+                        primaryTabs.forEachIndexed { idx, tab ->
+                            val active = activeDockIdx == idx
+                            val interaction = remember { MutableInteractionSource() }
+                            val pressed by interaction.collectIsPressedAsState()
+                            val tabFg by animateColorAsState(
+                                targetValue = if (active) kc.textPrimary else kc.textMuted,
+                                animationSpec = spring(dampingRatio = 1.0f, stiffness = 460f),
+                                label = "dock_fg_$idx"
+                            )
+                            val tabScaleState = animateFloatAsState(
+                                targetValue = if (pressed) 0.92f else if (active) 1.07f else 1f,
+                                animationSpec = spring(dampingRatio = 0.78f, stiffness = 540f),
+                                label = "dock_sc_$idx"
+                            )
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable(interactionSource = interaction, indication = null) {
+                                        navigateToRoute(tab.route, "")
+                                    },
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = tab.icon,
+                                    contentDescription = tab.label,
+                                    tint = tabFg,
+                                    modifier = Modifier
+                                        .size(19.dp)
+                                        .graphicsLayer {
+                                            val s = tabScaleState.value
+                                            scaleX = s
+                                            scaleY = s
+                                        }
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = shortLabels[idx],
+                                    fontSize = 10.sp,
+                                    fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                                    color = tabFg,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+
+                        val moreInteraction = remember { MutableInteractionSource() }
+                        val morePressed by moreInteraction.collectIsPressedAsState()
+                        val moreFg by animateColorAsState(
+                            targetValue = if (moreActive) kc.textPrimary else kc.textMuted,
+                            animationSpec = spring(dampingRatio = 1.0f, stiffness = 460f),
+                            label = "dock_more_fg"
+                        )
+                        val moreScaleState = animateFloatAsState(
+                            targetValue = if (morePressed) 0.92f else if (moreActive) 1.07f else 1f,
+                            animationSpec = spring(dampingRatio = 0.78f, stiffness = 540f),
+                            label = "dock_more_sc"
                         )
                         Column(
                             modifier = Modifier
                                 .weight(1f)
+                                .height(48.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(tabBg)
-                                .clickable { navigateToRoute(tab.route, "") }
-                                .padding(vertical = 6.dp),
+                                .clickable(interactionSource = moreInteraction, indication = null) {
+                                    isMoreSheetOpen = true
+                                },
+                            verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(
-                                imageVector = tab.icon,
-                                contentDescription = tab.label,
-                                tint = tabFg,
+                                imageVector = Icons.Rounded.MoreHoriz,
+                                contentDescription = "More features",
+                                tint = moreFg,
                                 modifier = Modifier
                                     .size(19.dp)
                                     .graphicsLayer {
-                                        val s = tabScaleState.value
+                                        val s = moreScaleState.value
                                         scaleX = s
                                         scaleY = s
                                     }
                             )
                             Spacer(Modifier.height(2.dp))
                             Text(
-                                text = shortLabels[idx],
+                                text = "More",
                                 fontSize = 10.sp,
-                                fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-                                color = tabFg,
+                                fontWeight = if (moreActive) FontWeight.Bold else FontWeight.Medium,
+                                color = moreFg,
                                 maxLines = 1
                             )
                         }
-                    }
-
-                    val moreActive = moreItems.any { it.route == state.currentRoute } || isMoreSheetOpen
-                    val moreBg by animateColorAsState(if (moreActive) kc.subtleSurface else Color.Transparent, tween(200), label = "dock_more_bg")
-                    val moreFg by animateColorAsState(if (moreActive) kc.textPrimary else kc.textMuted, tween(200), label = "dock_more_fg")
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(moreBg)
-                            .clickable { isMoreSheetOpen = true }
-                            .padding(vertical = 6.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.MoreHoriz,
-                            contentDescription = "More features",
-                            tint = moreFg,
-                            modifier = Modifier.size(19.dp)
-                        )
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            text = "More",
-                            fontSize = 10.sp,
-                            fontWeight = if (moreActive) FontWeight.Bold else FontWeight.Medium,
-                            color = moreFg,
-                            maxLines = 1
-                        )
                     }
                 }
             }
@@ -670,7 +790,7 @@ fun KharchAppShell(vm: KharchViewModel) {
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 18.dp)
                     .padding(bottom = 28.dp)
-                    .preferredFrameRate(FrameRateCategory.High),
+                    .kharchHighFrameRate(targetHz),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -708,65 +828,195 @@ fun KharchAppShell(vm: KharchViewModel) {
         }
     }
 
-    // Global Quick Modals
-    CommandPaletteSheet(
-        isOpen = isSpotlightOpen,
-        state = state,
-        onDismiss = { isSpotlightOpen = false },
-        onNavigate = { route, searchPref -> navigateToRoute(route, searchPref) },
-        onToggleTheme = vm::toggleThemeLightDark,
-        onTogglePrivacy = vm::togglePrivacyMode
-    )
+    // Global Quick Modals (composed only when opened so idle shell recompositions allocate zero modal lists)
+    if (isSpotlightOpen) {
+        CommandPaletteSheet(
+            isOpen = true,
+            state = state,
+            onDismiss = { isSpotlightOpen = false },
+            onNavigate = { route, searchPref -> navigateToRoute(route, searchPref) },
+            onToggleTheme = vm::toggleThemeLightDark,
+            onTogglePrivacy = vm::togglePrivacyMode
+        )
+    }
 
-    AuthModalSheet(
-        isOpen = isAuthModalOpen,
-        firebaseConfigured = state.firebaseConfigured,
-        initialTab = authModalTab,
-        onDismiss = { isAuthModalOpen = false },
-        onLogin = vm::login,
-        onSignup = vm::signup,
-        onGoogleLogin = vm::loginWithGoogleIdToken,
-        onResetPassword = vm::sendPasswordReset,
-        onContinueGuest = vm::continueAsGuest
-    )
+    if (isAuthModalOpen) {
+        AuthModalSheet(
+            isOpen = true,
+            firebaseConfigured = state.firebaseConfigured,
+            initialTab = authModalTab,
+            onDismiss = { isAuthModalOpen = false },
+            onLogin = vm::login,
+            onSignup = vm::signup,
+            onGoogleLogin = vm::loginWithGoogleIdToken,
+            onResetPassword = vm::sendPasswordReset,
+            onContinueGuest = vm::continueAsGuest
+        )
+    }
 
-    TransactionFormSheet(
-        isOpen = isQuickTxOpen,
-        initialData = null,
-        defaultType = quickTxType,
-        categories = state.categories,
-        accounts = state.accountsWithBalances,
-        events = state.eventsWithStats,
-        recentTransactions = state.transactions,
-        isPrivacyMode = state.isPrivacyMode,
-        onDismiss = { isQuickTxOpen = false },
-        onSave = vm::saveTransaction,
-        onCreateCategory = { n, t -> vm.createCategory(n, t) }
-    )
+    if (isQuickTxOpen) {
+        TransactionFormSheet(
+            isOpen = true,
+            initialData = null,
+            defaultType = quickTxType,
+            categories = state.categories,
+            accounts = state.accountsWithBalances,
+            events = state.eventsWithStats,
+            recentTransactions = state.transactions,
+            isPrivacyMode = state.isPrivacyMode,
+            onDismiss = { isQuickTxOpen = false },
+            onSave = vm::saveTransaction,
+            onCreateCategory = { n, t -> vm.createCategory(n, t) }
+        )
+    }
 
-    PersonLoanFormSheet(
-        isOpen = isQuickLentOpen,
-        isLentMode = true,
-        nameSuggestions = state.lentRecords.map { it.borrowerName }.distinct(),
-        noteSuggestions = state.lentRecords.mapNotNull { it.note }.distinct(),
-        onDismiss = { isQuickLentOpen = false },
-        onSubmit = { name, amount, date, dueDate, phone, note ->
-            vm.saveLentRecord(LentRecord(borrowerName = name, amount = amount, dateLent = date, dueDate = dueDate, phone = phone, note = note)) {
-                isQuickLentOpen = false
+    if (isQuickLentOpen) {
+        val lentNameSuggestions = remember(state.lentRecords) { state.lentRecords.map { it.borrowerName }.distinct() }
+        val lentNoteSuggestions = remember(state.lentRecords) { state.lentRecords.mapNotNull { it.note }.distinct() }
+        PersonLoanFormSheet(
+            isOpen = true,
+            isLentMode = true,
+            nameSuggestions = lentNameSuggestions,
+            noteSuggestions = lentNoteSuggestions,
+            onDismiss = { isQuickLentOpen = false },
+            onSubmit = { name, amount, date, dueDate, phone, note ->
+                vm.saveLentRecord(LentRecord(borrowerName = name, amount = amount, dateLent = date, dueDate = dueDate, phone = phone, note = note)) {
+                    isQuickLentOpen = false
+                }
+            }
+        )
+    }
+
+    if (isQuickBorrowOpen) {
+        val borrowNameSuggestions = remember(state.borrowedRecords) { state.borrowedRecords.map { it.lenderName }.distinct() }
+        val borrowNoteSuggestions = remember(state.borrowedRecords) { state.borrowedRecords.mapNotNull { it.note }.distinct() }
+        PersonLoanFormSheet(
+            isOpen = true,
+            isLentMode = false,
+            nameSuggestions = borrowNameSuggestions,
+            noteSuggestions = borrowNoteSuggestions,
+            onDismiss = { isQuickBorrowOpen = false },
+            onSubmit = { name, amount, date, dueDate, phone, note ->
+                vm.saveBorrowedRecord(BorrowedRecord(lenderName = name, amount = amount, dateBorrowed = date, dueDate = dueDate, phone = phone, note = note)) {
+                    isQuickBorrowOpen = false
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun PrimaryTabsViewport(
+    activeTab: AppRoute,
+    direction: Int,
+    state: KharchUiState,
+    onNavigate: (AppRoute) -> Unit,
+    onOpenAuth: () -> Unit,
+    vm: KharchViewModel
+) {
+    val kc = LocalKharchColors.current
+    val targetHz = LocalTargetRefreshRate.current
+    val saveableHolder = rememberSaveableStateHolder()
+    val visitedTabs = remember { mutableStateListOf(AppRoute.DASHBOARD) }
+    var settledTab by remember { mutableStateOf(activeTab) }
+    var outgoingTab by remember { mutableStateOf<AppRoute?>(null) }
+    val anim = remember { Animatable(1f) }
+
+    LaunchedEffect(activeTab) {
+        if (activeTab !in visitedTabs) visitedTabs.add(activeTab)
+        if (activeTab != settledTab) {
+            outgoingTab = settledTab
+            settledTab = activeTab
+            anim.snapTo(0f)
+            anim.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(dampingRatio = 1.0f, stiffness = 430f)
+            )
+            outgoingTab = null
+        }
+    }
+    LaunchedEffect(Unit) {
+        if (activeTab !in visitedTabs) visitedTabs.add(activeTab)
+    }
+
+    val renderedTabs = listOf(AppRoute.DASHBOARD, AppRoute.ACCOUNTS, AppRoute.TRANSACTIONS, AppRoute.GOALS)
+        .filter { it in visitedTabs || it == settledTab }
+
+    Layout(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(kc.background)
+            .kharchHighFrameRate(targetHz),
+        content = {
+            renderedTabs.forEach { tab ->
+                saveableHolder.SaveableStateProvider(tab.name) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        when (tab) {
+                            AppRoute.DASHBOARD -> DashboardScreen(
+                                state = state,
+                                onNavigate = onNavigate,
+                                onOpenAuth = onOpenAuth
+                            )
+                            AppRoute.ACCOUNTS -> AccountsScreen(
+                                state = state,
+                                onSaveAccount = vm::saveAccount,
+                                onDeleteAccount = vm::deleteAccount,
+                                onTransferFunds = vm::transferFunds
+                            )
+                            AppRoute.TRANSACTIONS -> TransactionsScreen(
+                                state = state,
+                                onSaveTransaction = vm::saveTransaction,
+                                onDeleteTransaction = vm::deleteTransaction,
+                                onCreateCategory = { n, t -> vm.createCategory(n, t) },
+                                onClearSearchPrefill = vm::clearTxSearchPrefill,
+                                onToast = vm::showToast
+                            )
+                            AppRoute.GOALS -> SavingsGoalsScreen(
+                                state = state,
+                                onSaveGoal = vm::saveGoal,
+                                onDeleteGoal = vm::deleteGoal,
+                                onContribute = vm::contributeToGoal
+                            )
+                            else -> Unit
+                        }
+                    }
+                }
             }
         }
-    )
-
-    PersonLoanFormSheet(
-        isOpen = isQuickBorrowOpen,
-        isLentMode = false,
-        nameSuggestions = state.borrowedRecords.map { it.lenderName }.distinct(),
-        noteSuggestions = state.borrowedRecords.mapNotNull { it.note }.distinct(),
-        onDismiss = { isQuickBorrowOpen = false },
-        onSubmit = { name, amount, date, dueDate, phone, note ->
-            vm.saveBorrowedRecord(BorrowedRecord(lenderName = name, amount = amount, dateBorrowed = date, dueDate = dueDate, phone = phone, note = note)) {
-                isQuickBorrowOpen = false
+    ) { measurables, constraints ->
+        val progress = anim.value
+        val placeables = arrayOfNulls<Placeable>(measurables.size)
+        val childConstraints = constraints.copy(minWidth = 0, minHeight = 0)
+        measurables.forEachIndexed { idx, measurable ->
+            val tab = renderedTabs[idx]
+            if (tab == settledTab || (tab == outgoingTab && progress < 1f)) {
+                placeables[idx] = measurable.measure(childConstraints)
             }
         }
-    )
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            val w = constraints.maxWidth.toFloat()
+            placeables.forEachIndexed { idx, placeable ->
+                if (placeable != null) {
+                    val tab = renderedTabs[idx]
+                    val isIncoming = tab == settledTab
+                    if (outgoingTab == null || progress >= 1f) {
+                        placeable.placeRelative(0, 0)
+                    } else if (isIncoming) {
+                        placeable.placeRelativeWithLayer(0, 0, zIndex = 1f) {
+                            alpha = progress
+                            val sc = 0.985f + 0.015f * progress
+                            scaleX = sc
+                            scaleY = sc
+                            translationX = direction * (1f - progress) * (w * 0.08f)
+                        }
+                    } else {
+                        placeable.placeRelativeWithLayer(0, 0, zIndex = 0f) {
+                            alpha = (1f - progress).coerceIn(0f, 1f)
+                            translationX = -direction * progress * (w * 0.06f)
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

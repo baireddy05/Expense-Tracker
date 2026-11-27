@@ -1,12 +1,13 @@
 package com.example.kharch.ui.components
 
-import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -16,12 +17,11 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.FrameRateCategory
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.preferredFrameRate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,10 +47,27 @@ fun QuickActionSpeedDial(
     modifier: Modifier = Modifier
 ) {
     val kc = LocalKharchColors.current
+    val targetHz = LocalTargetRefreshRate.current
+    val openProgressState = animateFloatAsState(
+        targetValue = if (isOpen) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = if (isOpen) 0.78f else 1.0f,
+            stiffness = if (isOpen) 480f else 560f,
+            visibilityThreshold = 0.001f
+        ),
+        label = "dial_progress"
+    )
     val rotationState = animateFloatAsState(
         targetValue = if (isOpen) 45f else 0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        animationSpec = spring(dampingRatio = 0.72f, stiffness = 540f),
         label = "fab_rot"
+    )
+    val fabInteraction = remember { MutableInteractionSource() }
+    val fabPressed by fabInteraction.collectIsPressedAsState()
+    val fabScaleState = animateFloatAsState(
+        targetValue = if (fabPressed) 0.92f else 1f,
+        animationSpec = spring(dampingRatio = 0.72f, stiffness = 600f),
+        label = "fab_press"
     )
 
     val actions = remember(onAddExpense, onAddIncome, onAddLent, onAddBorrowed, onOpenSearch) {
@@ -73,21 +90,23 @@ fun QuickActionSpeedDial(
         )
     }
 
-    Box(modifier = modifier.fillMaxSize().preferredFrameRate(FrameRateCategory.High)) {
-        AnimatedVisibility(
-            visible = isOpen,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.38f))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { onDismiss() }
-            )
+    val isVisibleOrAnimating = isOpen || openProgressState.value > 0.002f
+
+    Box(modifier = modifier.fillMaxSize().kharchHighFrameRate(targetHz)) {
+        if (isVisibleOrAnimating) {
+            val scrimModifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = openProgressState.value }
+                .background(Color.Black.copy(alpha = 0.38f))
+                .let { base ->
+                    if (isOpen) {
+                        base.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { onDismiss() }
+                    } else base
+                }
+            Box(modifier = scrimModifier)
         }
 
         Column(
@@ -96,29 +115,38 @@ fun QuickActionSpeedDial(
                 .padding(end = 18.dp, bottom = 92.dp),
             horizontalAlignment = Alignment.End
         ) {
-            AnimatedVisibility(
-                visible = isOpen,
-                enter = fadeIn() + expandVertically(expandFrom = Alignment.Bottom),
-                exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Bottom)
-            ) {
+            if (isVisibleOrAnimating) {
                 Column(
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.padding(bottom = 12.dp)
                 ) {
-                    actions.forEach { act ->
+                    actions.forEachIndexed { idx, act ->
+                        val fromBottom = actions.lastIndex - idx
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { act.onClick() }
+                            modifier = Modifier
+                                .graphicsLayer {
+                                    val p = ((openProgressState.value * 1.18f) - (fromBottom * 0.045f)).coerceIn(0f, 1f)
+                                    alpha = p
+                                    val sc = 0.76f + (0.24f * p)
+                                    scaleX = sc
+                                    scaleY = sc
+                                    translationY = (1f - p) * ((fromBottom + 1) * 16.dp.toPx())
+                                    transformOrigin = TransformOrigin(0.92f, 0.5f)
+                                }
+                                .clickable(
+                                    enabled = isOpen,
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { act.onClick() }
                         ) {
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
                                 color = kc.dockBg,
-                                shadowElevation = 6.dp
+                                border = BorderStroke(1.dp, kc.cardBorder),
+                                shadowElevation = 1.dp
                             ) {
                                 Text(
                                     text = act.label,
@@ -132,7 +160,7 @@ fun QuickActionSpeedDial(
                                 modifier = Modifier.size(44.dp),
                                 shape = RoundedCornerShape(14.dp),
                                 color = act.color,
-                                shadowElevation = 6.dp
+                                shadowElevation = 1.dp
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(act.icon, contentDescription = act.label, tint = Color.White, modifier = Modifier.size(19.dp))
@@ -145,10 +173,21 @@ fun QuickActionSpeedDial(
 
             FloatingActionButton(
                 onClick = onToggle,
+                interactionSource = fabInteraction,
                 containerColor = kc.primaryButtonBg,
                 contentColor = kc.primaryButtonFg,
                 shape = RoundedCornerShape(18.dp),
-                modifier = Modifier.size(56.dp)
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 2.dp,
+                    pressedElevation = 1.dp
+                ),
+                modifier = Modifier
+                    .size(56.dp)
+                    .graphicsLayer {
+                        val s = fabScaleState.value
+                        scaleX = s
+                        scaleY = s
+                    }
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Add,

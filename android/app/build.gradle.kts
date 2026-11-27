@@ -39,7 +39,9 @@ android {
 
   buildTypes {
     release {
-      isMinifyEnabled = false
+      signingConfig = signingConfigs.getByName("debug")
+      isMinifyEnabled = true
+      isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
     }
   }
@@ -74,6 +76,7 @@ dependencies {
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.activity.compose)
+  implementation(libs.androidx.profileinstaller)
 
   // Arch Components
   implementation(libs.androidx.lifecycle.runtime.compose)

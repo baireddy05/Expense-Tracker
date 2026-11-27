@@ -1,11 +1,14 @@
 package com.example.kharch.ui.components
 
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,10 +46,27 @@ fun KharchCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val kc = LocalKharchColors.current
+    val interactionModifier = if (onClick != null) {
+        val interactionSource = remember { MutableInteractionSource() }
+        val isPressed by interactionSource.collectIsPressedAsState()
+        val pressScaleState = animateFloatAsState(
+            targetValue = if (isPressed) 0.975f else 1f,
+            animationSpec = spring(dampingRatio = 0.72f, stiffness = 560f),
+            label = "card_press_sc"
+        )
+        Modifier
+            .graphicsLayer {
+                val s = pressScaleState.value
+                scaleX = s
+                scaleY = s
+            }
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(interactionSource = interactionSource, indication = LocalIndication.current, onClick = onClick)
+    } else Modifier
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .let { if (onClick != null) it.clip(RoundedCornerShape(20.dp)).clickable { onClick() } else it },
+            .then(interactionModifier),
         shape = RoundedCornerShape(20.dp),
         color = backgroundColor ?: kc.card,
         border = BorderStroke(1.dp, borderColor ?: kc.cardBorder),
@@ -67,7 +88,8 @@ fun AnimatedCurrencyText(
 ) {
     val animValue by animateFloatAsState(
         targetValue = amount.toFloat(),
-        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+        animationSpec = spring(dampingRatio = 1.0f, stiffness = 440f, visibilityThreshold = 0.5f),
+        visibilityThreshold = 0.5f,
         label = "kpi_counter"
     )
     val formatted = when {
@@ -158,8 +180,8 @@ fun CategoryIconBadge(
     size: Dp = 36.dp,
     cornerRadius: Dp = 10.dp
 ) {
-    val bgColor = CategoryEngine.parseHexColor(colorHex, KharchIndigo)
-    val icon = CategoryEngine.getIcon(iconName)
+    val bgColor = remember(colorHex) { CategoryEngine.parseHexColor(colorHex, KharchIndigo) }
+    val icon = remember(iconName) { CategoryEngine.getIcon(iconName) }
     Box(
         modifier = Modifier
             .size(size)
@@ -330,24 +352,47 @@ fun DatePickerField(
                 ?: System.currentTimeMillis()
         }
         val pickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
+        val dpColors = DatePickerDefaults.colors(
+            containerColor = kc.card,
+            titleContentColor = kc.textPrimary,
+            headlineContentColor = kc.textPrimary,
+            weekdayContentColor = kc.textMuted,
+            subheadContentColor = kc.textMuted,
+            yearContentColor = kc.textPrimary,
+            currentYearContentColor = KharchIndigo,
+            selectedYearContentColor = kc.primaryButtonFg,
+            selectedYearContainerColor = kc.primaryButtonBg,
+            dayContentColor = kc.textPrimary,
+            selectedDayContentColor = kc.primaryButtonFg,
+            selectedDayContainerColor = kc.primaryButtonBg,
+            todayContentColor = KharchIndigo,
+            todayDateBorderColor = KharchIndigo
+        )
         DatePickerDialog(
             onDismissRequest = { showPicker = false },
+            colors = dpColors,
             confirmButton = {
-                TextButton(onClick = {
-                    pickerState.selectedDateMillis?.let { millis ->
-                        val local = Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate()
-                        onDateSelected(DateUtils.getLocalDateString(local))
-                    }
-                    showPicker = false
-                }) {
+                TextButton(
+                    onClick = {
+                        pickerState.selectedDateMillis?.let { millis ->
+                            val local = Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate()
+                            onDateSelected(DateUtils.getLocalDateString(local))
+                        }
+                        showPicker = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = kc.primaryButtonBg)
+                ) {
                     Text("OK", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showPicker = false }) { Text("Cancel") }
+                TextButton(
+                    onClick = { showPicker = false },
+                    colors = ButtonDefaults.textButtonColors(contentColor = kc.textMuted)
+                ) { Text("Cancel") }
             }
         ) {
-            DatePicker(state = pickerState)
+            DatePicker(state = pickerState, colors = dpColors)
         }
     }
 }

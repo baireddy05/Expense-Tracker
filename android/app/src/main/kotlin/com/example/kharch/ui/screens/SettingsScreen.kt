@@ -14,12 +14,10 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.FrameRateCategory
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.preferredFrameRate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -78,7 +76,7 @@ fun SettingsScreen(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
             .padding(top = 8.dp, bottom = 120.dp)
-            .preferredFrameRate(FrameRateCategory.High),
+            .kharchHighFrameRate(LocalTargetRefreshRate.current),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Text("Settings", style = MaterialTheme.typography.headlineLarge, color = kc.textPrimary)
@@ -130,6 +128,8 @@ fun SettingsScreen(
                     }
                     OutlinedButton(
                         onClick = onLogout,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, kc.cardBorder),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = KharchRose),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f)
                     ) {
@@ -301,6 +301,8 @@ fun SettingsScreen(
                 }
                 OutlinedButton(
                     onClick = { jsonPicker.launch(arrayOf("application/json", "*/*")) },
+                    border = androidx.compose.foundation.BorderStroke(1.dp, kc.cardBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = kc.textPrimary),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.weight(1f)
                 ) {
@@ -319,6 +321,8 @@ fun SettingsScreen(
                             onToast("Transactions CSV ready!", false)
                         }
                     },
+                    border = androidx.compose.foundation.BorderStroke(1.dp, kc.cardBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = kc.textPrimary),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.weight(1f)
                 ) {

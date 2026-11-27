@@ -1,5 +1,6 @@
 package com.example.kharch.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -15,11 +16,9 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.FrameRateCategory
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.preferredFrameRate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -213,7 +212,7 @@ fun DashboardScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
-            .preferredFrameRate(FrameRateCategory.High),
+            .kharchHighFrameRate(LocalTargetRefreshRate.current),
         contentPadding = PaddingValues(top = 8.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
@@ -245,9 +244,12 @@ fun DashboardScreen(
         // Guest Sign-In Banner
         if (state.session == null) {
             item(key = "dash_guest") {
+            val bannerBg = if (kc.isDark) KharchDarkElevated else Color(0xFF18181B)
+            val bannerBorder = if (kc.isDark) BorderStroke(1.dp, KharchIndigo.copy(alpha = 0.45f)) else null
             Surface(
                 shape = RoundedCornerShape(18.dp),
-                color = kc.primaryButtonBg,
+                color = bannerBg,
+                border = bannerBorder,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -256,22 +258,22 @@ fun DashboardScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                        Icon(Icons.Rounded.Shield, contentDescription = null, tint = kc.primaryButtonFg, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Rounded.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(10.dp))
                         Column {
-                            Text("Guest Mode (Offline)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = kc.primaryButtonFg)
-                            Text("Sign in to sync and protect your cloud ledger", fontSize = 10.sp, color = kc.primaryButtonFg.copy(alpha = 0.8f))
+                            Text("Guest Mode (Offline)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
+                            Text("Sign in to sync and protect your cloud ledger", fontSize = 10.sp, color = Color.White.copy(alpha = 0.78f))
                         }
                     }
                     Spacer(Modifier.width(8.dp))
                     Surface(
                         onClick = onOpenAuth,
                         shape = RoundedCornerShape(10.dp),
-                        color = kc.primaryButtonFg
+                        color = Color.White
                     ) {
                         Text(
                             "Sign In",
-                            color = kc.primaryButtonBg,
+                            color = Color(0xFF09090B),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)

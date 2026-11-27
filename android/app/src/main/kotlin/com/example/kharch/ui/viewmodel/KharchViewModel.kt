@@ -3,6 +3,7 @@ package com.example.kharch.ui.viewmodel
 import android.app.Application
 import android.content.Context
 import android.net.Uri
+import androidx.compose.runtime.Immutable
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import androidx.lifecycle.AndroidViewModel
@@ -23,12 +24,14 @@ import kotlinx.serialization.encodeToString
 import java.io.File
 import java.time.Instant
 
+@Immutable
 data class ToastMessage(
     val id: Long = System.currentTimeMillis(),
     val text: String,
     val isError: Boolean = false
 )
 
+@Immutable
 data class KharchUiState(
     val isLoading: Boolean = true,
     val isSyncing: Boolean = false,

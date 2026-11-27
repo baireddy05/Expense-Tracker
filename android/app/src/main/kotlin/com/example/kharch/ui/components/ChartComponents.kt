@@ -212,31 +212,44 @@ fun CategoryDonutChart(
             }
         } else {
             Box(modifier = Modifier.size(185.dp), contentAlignment = Alignment.Center) {
-                Canvas(modifier = Modifier.fillMaxSize().padding(10.dp)) {
-                    var startAngle = -90f
-                    slices.forEach { s ->
-                        if (s.value > 0.0) {
-                            val sweep = ((s.value / total) * 360.0).toFloat()
-                            if (isPie) {
-                                drawArc(
-                                    color = s.color,
-                                    startAngle = startAngle,
-                                    sweepAngle = sweep,
-                                    useCenter = true
-                                )
-                            } else {
-                                drawArc(
-                                    color = s.color,
-                                    startAngle = startAngle,
-                                    sweepAngle = sweep,
-                                    useCenter = false,
-                                    style = Stroke(width = 24.dp.toPx(), cap = StrokeCap.Butt)
-                                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(10.dp)
+                        .drawWithCache {
+                            val strokeStyle = Stroke(width = 24.dp.toPx(), cap = StrokeCap.Butt)
+                            data class ArcSeg(val color: Color, val start: Float, val sweep: Float)
+                            val segs = mutableListOf<ArcSeg>()
+                            var startAngle = -90f
+                            slices.forEach { s ->
+                                if (s.value > 0.0) {
+                                    val sweep = ((s.value / total) * 360.0).toFloat()
+                                    segs.add(ArcSeg(s.color, startAngle, sweep))
+                                    startAngle += sweep
+                                }
                             }
-                            startAngle += sweep
+                            onDrawBehind {
+                                segs.forEach { seg ->
+                                    if (isPie) {
+                                        drawArc(
+                                            color = seg.color,
+                                            startAngle = seg.start,
+                                            sweepAngle = seg.sweep,
+                                            useCenter = true
+                                        )
+                                    } else {
+                                        drawArc(
+                                            color = seg.color,
+                                            startAngle = seg.start,
+                                            sweepAngle = seg.sweep,
+                                            useCenter = false,
+                                            style = strokeStyle
+                                        )
+                                    }
+                                }
+                            }
                         }
-                    }
-                }
+                )
                 if (!isPie) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(centerLabel, fontSize = 10.sp, color = kc.textMuted)
@@ -392,20 +405,33 @@ fun PeriodComparisonBarChart(
                             color = kc.textMuted
                         )
                     }
-                    Canvas(modifier = Modifier.fillMaxWidth().height(16.dp)) {
-                        drawRoundRect(
-                            color = KharchBlue,
-                            topLeft = Offset.Zero,
-                            size = Size(size.width * rA, 6.dp.toPx()),
-                            cornerRadius = CornerRadius(4.dp.toPx())
-                        )
-                        drawRoundRect(
-                            color = Color(0xFF94A3B8),
-                            topLeft = Offset(0f, 9.dp.toPx()),
-                            size = Size(size.width * rB, 6.dp.toPx()),
-                            cornerRadius = CornerRadius(4.dp.toPx())
-                        )
-                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(16.dp)
+                            .drawWithCache {
+                                val h = 6.dp.toPx()
+                                val yB = 9.dp.toPx()
+                                val radius = CornerRadius(4.dp.toPx())
+                                val szA = Size(size.width * rA, h)
+                                val szB = Size(size.width * rB, h)
+                                val offB = Offset(0f, yB)
+                                onDrawBehind {
+                                    drawRoundRect(
+                                        color = KharchBlue,
+                                        topLeft = Offset.Zero,
+                                        size = szA,
+                                        cornerRadius = radius
+                                    )
+                                    drawRoundRect(
+                                        color = Color(0xFF94A3B8),
+                                        topLeft = offB,
+                                        size = szB,
+                                        cornerRadius = radius
+                                    )
+                                }
+                            }
+                    )
                 }
             }
         }
